@@ -1,0 +1,222 @@
+---
+title: "Using mascarade package"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Using mascarade package}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, fig.width = 7, fig.height=5)
+```
+
+This is a vignette describing usage of `mascarade` to generate masks for clusters
+on 2D dimensional reduction plots like UMAP or t-SNE.
+
+### Package installation
+
+The package can be installed from GitHub:
+
+```{r eval=FALSE}
+remotes::install_github("alserglab/mascarade")
+```
+
+### Loading necessary libraries
+
+```{r}
+library(mascarade)
+library(data.table)
+library(ggplot2)
+```
+
+### Example run
+
+Loading example data from PBMC 3K processed with Seurat (see below for more details).
+
+```{r}
+data("exampleMascarade")
+```
+
+UMAP coordinates:
+
+```{r}
+head(exampleMascarade$dims)
+```
+
+Cluster annotations:
+```{r}
+head(exampleMascarade$clusters)
+```
+
+Expression table for several genes:
+```{r}
+head(exampleMascarade$features)
+```
+
+Let's plot this data:
+
+```{r}
+data <- data.table(exampleMascarade$dims, 
+                   cluster=exampleMascarade$clusters,
+                   exampleMascarade$features)
+ggplot(data, aes(x=UMAP_1, y=UMAP_2)) + 
+    geom_point(aes(color=cluster)) + 
+    coord_fixed() + 
+    theme_classic()
+                               
+```
+
+Now let's generate cluster masks:
+
+```{r}
+maskTable <- generateMask(dims=exampleMascarade$dims, 
+                          clusters=exampleMascarade$clusters)
+```
+
+The `maskTable` is actually a table of cluster borders. 
+A single cluster can have multiple connected parts, and
+one a single part can contain multiple border lines (groups).
+
+```{r}
+head(maskTable)
+```
+
+Now we can use this table to draw the borders with `geom_path` (`group` column should be used as the group aesthetics):
+
+```{r}
+ggplot(data, aes(x=UMAP_1, y=UMAP_2)) + 
+    geom_point(aes(color=cluster)) + 
+    geom_path(data=maskTable, aes(group=group)) +
+    coord_fixed() + 
+    theme_classic()
+```
+
+Or we can color the borders instead of points:
+
+```{r}
+ggplot(data, aes(x=UMAP_1, y=UMAP_2)) + 
+    geom_point(color="grey") + 
+    geom_path(data=maskTable, aes(group=group, color=cluster), size=1) +
+    coord_fixed() + 
+    theme_classic()
+```
+
+We can focus on a single cluster too:
+
+```{r}
+ggplot(data, aes(x=UMAP_1, y=UMAP_2)) + 
+    geom_point(aes(color=GNLY), size=0.5) + 
+    scale_color_gradient2() + 
+    geom_path(data=maskTable[cluster=="NK"], aes(group=group)) +
+    coord_fixed() + 
+    theme_classic()
+```
+
+However, for showing individual clusters another mode of `generateMask` can be preferred,
+which processes clusters independently and allows overlaps between masks.
+Such masks are more inclusive, which can be particularly important when your
+clusters don't separate well.
+
+
+```{r}
+maskTable <- generateMask(dims=exampleMascarade$dims, 
+                          clusters=exampleMascarade$clusters,
+                          type = "independent")
+
+ggplot(data, aes(x=UMAP_1, y=UMAP_2)) + 
+    geom_point(aes(color=GNLY), size=0.5) + 
+    scale_color_gradient2() + 
+    geom_path(data=maskTable[cluster=="NK"], aes(group=group)) +
+    coord_fixed() + 
+    theme_classic()
+```
+
+### Working with Seurat
+
+For this part of the vignette you need `Seurat` and `SeuratData` packages (the latter can be installed with `remotes::install_github('satijalab/seurat-data')`).
+
+Loading the example dataset:
+
+```{r message=FALSE, warning=FALSE}
+library(Seurat)
+library(SeuratData)
+InstallData("pbmc3k")
+LoadData("pbmc3k")
+
+pbmc3k.final <- Seurat::UpdateSeuratObject(pbmc3k.final)
+```
+
+Let's plot some features:
+```{r}
+featureList <- c("MS4A1", "GNLY", "CD3E", "CD14")
+FeaturePlot(pbmc3k.final, features=featureList)
+```
+
+Generate masks from UMAP data:
+
+```{r}
+maskTable <- generateMask(
+    dims=Embeddings(pbmc3k.final, "umap"),
+    clusters=pbmc3k.final$seurat_annotations)
+```
+
+Now we can plot the same features with borders (there will be some warnings due to the scale change):
+
+```{r message=FALSE, warning=FALSE}
+plots <- FeaturePlot(pbmc3k.final, features=featureList, combine = FALSE)
+
+plots <- lapply(plots, `+`,
+                list(
+                    geom_path(data=maskTable, aes(x=UMAP_1, y=UMAP_2, group=group)),
+                    # so that borders aren't cropped:
+                    scale_x_continuous(expand = expansion(mult = 0.05)),
+                    scale_y_continuous(expand = expansion(mult = 0.05))) 
+                )
+
+patchwork::wrap_plots(plots)
+```
+Works with t-SNE too:
+
+```{r message=FALSE, warning=FALSE}
+pbmc3k.final <- RunTSNE(pbmc3k.final)
+
+maskTable <- generateMask(
+    dims=Embeddings(pbmc3k.final, "tsne"),
+    clusters=pbmc3k.final$seurat_annotations)
+
+plots <- FeaturePlot(pbmc3k.final, features=featureList, combine = FALSE, reduction = "tsne")
+
+plots <- lapply(plots, `+`,
+                list(
+                    geom_path(data=maskTable, aes(x=tSNE_1, y=tSNE_2, group=group)),
+                    # so that borders aren't cropped:
+                    scale_x_continuous(expand = expansion(mult = 0.05)),
+                    scale_y_continuous(expand = expansion(mult = 0.05))) 
+                )
+
+patchwork::wrap_plots(plots)
+```
+In this case it can help to play with the parameters a bit: 
+increase smoothing and decrease the density threshold.
+WARNING: the sense and scaling of the parameters can change in the future versions.
+
+
+```{r message=FALSE, warning=FALSE}
+maskTable <- generateMask(
+    dims=Embeddings(pbmc3k.final, "tsne"),
+    clusters=pbmc3k.final$seurat_annotations,
+    minDensity = 0.05, smoothSigma = 0.04)
+
+plots <- FeaturePlot(pbmc3k.final, features=featureList, combine = FALSE, reduction = "tsne")
+
+plots <- lapply(plots, `+`,
+                list(
+                    geom_path(data=maskTable, aes(x=tSNE_1, y=tSNE_2, group=group)),
+                    # so that borders aren't cropped:
+                    scale_x_continuous(expand = expansion(mult = 0.05)),
+                    scale_y_continuous(expand = expansion(mult = 0.05))) 
+                )
+
+patchwork::wrap_plots(plots)
+```

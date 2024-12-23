@@ -1,0 +1,30 @@
+Package: mascarade
+Type: Package
+Title: Generating Cluster Masks for Single-Cell Dimensional Reduction Plots
+Version: 0.1.0
+Authors@R: person("Alexey", "Sergushichev", email = "alsergbox@gmail.com", role = c("aut", "cre"))
+Description: This package implements a procedure to automatically generate 2D masks
+    for clusters on single-cell dimensional reduction plots like t-SNE or UMAP.
+Imports:
+    data.table,
+    spatstat.geom,
+    spatstat.explore
+License: MIT + file LICENCE
+Encoding: UTF-8
+LazyData: true
+RoxygenNote: 7.3.2
+Depends: 
+    R (>= 2.10)
+Suggests: 
+    testthat (>= 3.0.0),
+    rmarkdown,
+    knitr,
+    ggplot2,
+    patchwork,
+    Seurat,
+    SeuratData
+Config/testthat/edition: 3
+VignetteBuilder: knitr
+URL: https://github.com/alserglab/mascarade/
+BugReports: https://github.com/alserglab/mascarade/issues
+Remotes: satijalab/seurat-data
