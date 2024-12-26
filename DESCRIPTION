@@ -22,7 +22,8 @@ Suggests:
     ggplot2,
     patchwork,
     Seurat,
-    SeuratData
+    SeuratData,
+    ggnewscale
 Config/testthat/edition: 3
 VignetteBuilder: knitr
 URL: https://github.com/alserglab/mascarade/

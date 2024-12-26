@@ -97,7 +97,22 @@ Or we can color the borders instead of points:
 ```{r}
 ggplot(data, aes(x=UMAP_1, y=UMAP_2)) + 
     geom_point(color="grey") + 
-    geom_path(data=maskTable, aes(group=group, color=cluster), size=1) +
+    geom_path(data=maskTable, aes(group=group, color=cluster), linewidth=1) +
+    coord_fixed() + 
+    theme_classic()
+```
+
+Now we can easily show association between cell types and 
+expression of particular genes, such as GNLY being a good marker
+for NK cells in this dataset.
+
+```{r}
+library(ggnewscale) # for having two color scales simultaneously
+ggplot(data, aes(x=UMAP_1, y=UMAP_2)) + 
+    geom_point(aes(color=GNLY), size=0.5) +
+    scale_color_gradient2(low = "#404040", high="red") + 
+    new_scale_color() + 
+    geom_path(data=maskTable, aes(group=group, color=cluster), linewidth=1) +
     coord_fixed() + 
     theme_classic()
 ```
@@ -107,7 +122,7 @@ We can focus on a single cluster too:
 ```{r}
 ggplot(data, aes(x=UMAP_1, y=UMAP_2)) + 
     geom_point(aes(color=GNLY), size=0.5) + 
-    scale_color_gradient2() + 
+    scale_color_gradient2(low = "#404040", high="red") + 
     geom_path(data=maskTable[cluster=="NK"], aes(group=group)) +
     coord_fixed() + 
     theme_classic()
@@ -126,7 +141,7 @@ maskTable <- generateMask(dims=exampleMascarade$dims,
 
 ggplot(data, aes(x=UMAP_1, y=UMAP_2)) + 
     geom_point(aes(color=GNLY), size=0.5) + 
-    scale_color_gradient2() + 
+    scale_color_gradient2(low = "#404040", high="red") + 
     geom_path(data=maskTable[cluster=="NK"], aes(group=group)) +
     coord_fixed() + 
     theme_classic()
