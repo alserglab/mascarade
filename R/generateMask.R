@@ -98,9 +98,7 @@ generateMask <- function(dims, clusters,
                          type=c("partition", "independent")) {
     type <- match.arg(type)
 
-    clusterFrequency <- table(clusters)
-    clusterProbability <- clusterFrequency / sum(clusterFrequency)
-    clusterLevels <- names(clusterProbability) # TODO do we need filter here?
+    clusterLevels <- unique(clusters)
 
     gridRange <- expandedRange2d(dims[, 1], dims[ ,2])
     windowWidth <- gridRange[2] - gridRange[1]
