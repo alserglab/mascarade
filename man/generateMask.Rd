@@ -8,9 +8,12 @@ generateMask(
   dims,
   clusters,
   gridSize = 200,
-  minDensity = 0.1,
-  smoothSigma = 0.025,
-  type = c("partition", "independent")
+  expand = 0.005,
+  minDensity = lifecycle::deprecated(),
+  smoothSigma = NA,
+  minSize = 10,
+  kernel = lifecycle::deprecated(),
+  type = lifecycle::deprecated()
 )
 }
 \arguments{
@@ -20,17 +23,18 @@ Rows are points, columns are dimensions. Only the first two columns are used.}
 \item{clusters}{vector of cluster annotations.
 Should be the same length as the number of rows in `dims`.}
 
-\item{gridSize}{width and height of the raster used internally}
+\item{gridSize}{target width and height of the raster used internally}
 
-\item{minDensity}{minimal required density for the grid cells to be included in the mask.
-Decreasing this parameter will expand masks.}
+\item{expand}{distance used to expand borders, represented as a fraction of sqrt(width*height). Default: 1/200.}
 
-\item{smoothSigma}{sigma used in Gaussian smoothing represented as a fraction of plot width.
+\item{minDensity}{Deprecated. Doesn't do anything.}
+
+\item{smoothSigma}{Deprecated. Parameter controlling smoothing and joining close cells into groups, represented as a fraction of sqrt(width*height).
 Increasing this parameter can help dealing with sparse regions.}
 
-\item{type}{controls the behavior of the method.
-When set to "partition" (default) generated masks are mutually exclusive.
-When set to "independent" masks can overlap.}
+\item{kernel}{Deprecated. Doesn't do anything.}
+
+\item{type}{Deprecated. Doesn't do anything.}
 }
 \value{
 data.table with points representing the mask borders.

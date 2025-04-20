@@ -28,6 +28,7 @@ remotes::install_github("alserglab/mascarade")
 library(mascarade)
 library(data.table)
 library(ggplot2)
+library(ggforce)
 ```
 
 ### Example run
@@ -102,13 +103,58 @@ ggplot(data, aes(x=UMAP_1, y=UMAP_2)) +
     theme_classic()
 ```
 
-We can use `ggfoce` package to make the borders touch instead of overlap:
+We can use `ggforce` package to make the borders touch instead of overlap:
+
 ```{r}
 ggplot(data, aes(x=UMAP_1, y=UMAP_2)) + 
     geom_point(color="grey") + 
     ggforce::geom_shape(data=maskTable, aes(group=group, color=cluster),
                         linewidth=1, fill=NA, expand=unit(-1, "pt")) +
     coord_fixed() + 
+    theme_classic()
+```
+
+In the presence of small clusters it can help to expand the borders a bit further
+away from the points.
+
+```{r}
+maskTable <- generateMask(dims=exampleMascarade$dims, 
+                          clusters=exampleMascarade$clusters,
+                          expand=0.02)
+ggplot(data, aes(x=UMAP_1, y=UMAP_2)) + 
+    geom_point(color="grey") + 
+    ggforce::geom_shape(data=maskTable, aes(group=group, color=cluster),
+                        linewidth=1, fill=NA, expand=unit(-1, "pt")) +
+    coord_fixed() + 
+    theme_classic()
+```
+
+With the help of `ggforce` we can also put the labels within the plot itself.
+For the best results use `ggforce` version from https://github.com/assaron/ggforce/tree/remove-offset. 
+
+```{r}
+fancyMask <- list(
+    ggforce::geom_shape(data=maskTable, aes(group=group, color=cluster),
+               linewidth=1, fill=NA, expand=unit(-1, "pt"), show.legend = FALSE),
+    ggforce::geom_mark_hull(data=maskTable, fill = NA, aes(group=cluster, color=cluster, label = cluster),
+                   linewidth=0,
+                   radius=0, expand=0, con.cap=0, con.type = "straight",
+                   label.fontsize = 10, label.buffer = unit(0, "cm"),
+                   label.fontface = "plain",
+                   label.minwidth = 0,
+                   label.margin = margin(2, 2, 2, 2, "pt"),
+                   label.lineheight = 0,
+                   con.colour = "inherit",
+                   show.legend = FALSE),
+    # expanding to give a bit more space for labels
+    scale_x_continuous(expand = expansion(mult = 0.1)),
+    scale_y_continuous(expand = expansion(mult = 0.1))
+)
+
+ggplot(data, aes(x=UMAP_1, y=UMAP_2)) +
+    geom_point(color="grey") +
+    fancyMask +
+    coord_fixed() +
     theme_classic()
 ```
 
@@ -122,8 +168,7 @@ ggplot(data, aes(x=UMAP_1, y=UMAP_2)) +
     geom_point(aes(color=GNLY), size=0.5) +
     scale_color_gradient2(low = "#404040", high="red") + 
     new_scale_color() + 
-    ggforce::geom_shape(data=maskTable, aes(group=group, color=cluster),
-                        linewidth=1, fill=NA, expand=unit(-1, "pt")) +
+    fancyMask +
     coord_fixed() + 
     theme_classic()
 ```
@@ -139,24 +184,6 @@ ggplot(data, aes(x=UMAP_1, y=UMAP_2)) +
     theme_classic()
 ```
 
-However, for showing individual clusters another mode of `generateMask` can be preferred,
-which processes clusters independently and allows overlaps between masks.
-Such masks are more inclusive, which can be particularly important when your
-clusters don't separate well.
-
-
-```{r}
-maskTable <- generateMask(dims=exampleMascarade$dims, 
-                          clusters=exampleMascarade$clusters,
-                          type = "independent")
-
-ggplot(data, aes(x=UMAP_1, y=UMAP_2)) + 
-    geom_point(aes(color=GNLY), size=0.5) + 
-    scale_color_gradient2(low = "#404040", high="red") + 
-    geom_path(data=maskTable[cluster=="NK"], aes(group=group)) +
-    coord_fixed() + 
-    theme_classic()
-```
 
 ### Working with Seurat
 
@@ -202,6 +229,7 @@ plots <- lapply(plots, `+`,
 
 patchwork::wrap_plots(plots)
 ```
+
 Works with t-SNE too:
 
 ```{r message=FALSE, warning=FALSE}
@@ -223,26 +251,9 @@ plots <- lapply(plots, `+`,
 
 patchwork::wrap_plots(plots)
 ```
-In this case it can help to play with the parameters a bit: 
-increase smoothing and decrease the density threshold.
-WARNING: the sense and scaling of the parameters can change in the future versions.
 
+### Session info
 
-```{r message=FALSE, warning=FALSE}
-maskTable <- generateMask(
-    dims=Embeddings(pbmc3k.final, "tsne"),
-    clusters=pbmc3k.final$seurat_annotations,
-    minDensity = 0.05, smoothSigma = 0.04)
-
-plots <- FeaturePlot(pbmc3k.final, features=featureList, combine = FALSE, reduction = "tsne")
-
-plots <- lapply(plots, `+`,
-                list(
-                    geom_path(data=maskTable, aes(x=tSNE_1, y=tSNE_2, group=group)),
-                    # so that borders aren't cropped:
-                    scale_x_continuous(expand = expansion(mult = 0.05)),
-                    scale_y_continuous(expand = expansion(mult = 0.05))) 
-                )
-
-patchwork::wrap_plots(plots)
+```{r}
+sessionInfo()
 ```
