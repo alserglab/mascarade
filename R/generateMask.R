@@ -83,6 +83,15 @@ borderTableFromMask <- function(curMask, curDensity, minSize=10, keepMax=TRUE) {
     rbindlist(curBorderTable)
 }
 
+# robust to empty masks
+splitWhichMaxLevels <- function(whichMaxDensity, nLevels) {
+    lapply(seq_len(nLevels), function(i) {
+        res <- (whichMaxDensity == i)
+        res[res == 0] <- NA # so that as.owin works as expected
+        res <- spatstat.geom::as.owin(res)
+    })
+}
+
 # TODO window argument shouldn't be really needed
 removeMaskIntersections <- function(curMasks, window) {
     maskWeights <- lapply(seq_along(curMasks), function(i) {
@@ -95,18 +104,18 @@ removeMaskIntersections <- function(curMasks, window) {
     whichMaxDensity <- spatstat.geom::im.apply(
         c(list(backgroundDensityOne*0.01), maskWeights), which.max) - 1
 
-    curMasks <- tiles(as.tess(whichMaxDensity))
-    curMasks <- tail(curMasks, -1) # remove background mask
+
+    curMasks <- splitWhichMaxLevels(whichMaxDensity, nLevels=length(curMasks))
     curMasks
 }
 
-getConnectedParts <- function(curMask, curDensity, minSize) {
+getConnectedParts <- function(curMask, curDensity, minSize, absolutelyMinSize=5) {
     parts <- tiles(tess(image=connected(curMask)))
     partSizes <- vapply(parts, function(part) {
         sum(as.matrix(part) * as.matrix(curDensity))
     }, FUN.VALUE = numeric(1))
 
-    parts <- parts[partSizes >= min(minSize, max(partSizes))]
+    parts <- parts[partSizes >= min(minSize, max(c(partSizes, absolutelyMinSize)))]
     unname(parts)
 }
 
@@ -241,11 +250,18 @@ generateMask <- function(dims, clusters,
             curMask <- curMasks[[i]]
             curDensity <- allDensities[[i]]
 
+            smoothed <- spatstat.geom::as.im(window) * 0
+
+            if (area(curMask) == 0) {
+                # lost the cluster, don't do anything
+                return(smoothed)
+            }
+
             parts <- getConnectedParts(curMask, curDensity, minSize = minSize)
 
             curPoints <- points[clusters == clusterLevels[i]]
 
-            smoothed <- spatstat.geom::as.im(window) * 0
+
             if (iter == nIter) {
                 # smoothed <- spatstat.geom::as.im(windowHD) * 0
             }
@@ -292,11 +308,7 @@ generateMask <- function(dims, clusters,
 
         # plot(whichMaxDensity)
 
-        curMasks <- lapply(seq_along(clusterLevels), function(i) {
-            res <- (whichMaxDensity == i)
-            res[res == 0] <- NA # so that as.owin works as expected
-            res <- spatstat.geom::as.owin(res)
-        })
+        curMasks <- splitWhichMaxLevels(whichMaxDensity, nLevels=length(clusterLevels))
     }
 
     # smooth borders and expand a little (in vector)
