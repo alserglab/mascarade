@@ -194,7 +194,9 @@ Loading the example dataset:
 ```{r message=FALSE, warning=FALSE}
 library(Seurat)
 library(SeuratData)
-InstallData("pbmc3k")
+if (!AvailableData()["pbmc3k", "Installed"]) {
+    InstallData("pbmc3k")    
+}
 LoadData("pbmc3k")
 
 pbmc3k.final <- Seurat::UpdateSeuratObject(pbmc3k.final)

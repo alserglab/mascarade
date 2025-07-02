@@ -1,7 +1,7 @@
 Package: mascarade
 Type: Package
 Title: Generating Cluster Masks for Single-Cell Dimensional Reduction Plots
-Version: 0.2.1
+Version: 0.2.2
 Authors@R: person("Alexey", "Sergushichev", email = "alsergbox@gmail.com", role = c("aut", "cre"))
 Description: This package implements a procedure to automatically generate 2D masks
     for clusters on single-cell dimensional reduction plots like t-SNE or UMAP.
