@@ -32,6 +32,8 @@ Should be the same length as the number of rows in `dims`.}
 \item{smoothSigma}{Deprecated. Parameter controlling smoothing and joining close cells into groups, represented as a fraction of sqrt(width*height).
 Increasing this parameter can help dealing with sparse regions.}
 
+\item{minSize}{Groups of less than `minSize` points are ignored, unless it is the only group for a cluster}
+
 \item{kernel}{Deprecated. Doesn't do anything.}
 
 \item{type}{Deprecated. Doesn't do anything.}

@@ -129,16 +129,15 @@ ggplot(data, aes(x=UMAP_1, y=UMAP_2)) +
     theme_classic()
 ```
 
-With the help of `ggforce` we can also put the labels within the plot itself.
-For the best results use `ggforce` version from https://github.com/assaron/ggforce/tree/remove-offset. 
+With the help of `ggforce`-based function `geom_mark_shape` we can also put the labels within the plot itself.
+
 
 ```{r}
 fancyMask <- list(
-    ggforce::geom_shape(data=maskTable, aes(group=group, color=cluster),
-               linewidth=1, fill=NA, expand=unit(-1, "pt"), show.legend = FALSE),
-    ggforce::geom_mark_hull(data=maskTable, fill = NA, aes(group=cluster, color=cluster, label = cluster),
-                   linewidth=0,
-                   radius=0, expand=0, con.cap=0, con.type = "straight",
+    geom_mark_shape(data=maskTable, aes(group=cluster, color=cluster, label = cluster),
+                    fill = NA,
+                   linewidth=1, expand=unit(-1, "pt"),
+                   radius=0, con.cap=0, con.type = "straight",
                    label.fontsize = 10, label.buffer = unit(0, "cm"),
                    label.fontface = "plain",
                    label.minwidth = 0,
@@ -157,6 +156,7 @@ ggplot(data, aes(x=UMAP_1, y=UMAP_2)) +
     coord_fixed() +
     theme_classic()
 ```
+
 
 Now we can easily show association between cell types and 
 expression of particular genes, such as GNLY being a good marker

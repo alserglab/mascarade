@@ -1,0 +1,332 @@
+# TODO: remove when https://github.com/thomasp85/ggforce/pull/343 is merged
+
+#' Annotate areas with polygonal shapes
+#'
+#' This geom lets you annotate sets of points via polygonal shapes.
+#' Unlike other `geom_mark_*` functions, `geom_mark_shape` should be explicitly
+#' provided with the shape coordinates. As in `geom_shape`, the polygon can be
+#' expanded/contracted and corners can be rounded, which is controlled by `expand` and
+#' `radius` parameters.
+#'
+#' @inheritSection ggforce::geom_mark_circle Annotation
+#' @inheritSection ggforce::geom_mark_circle Filtering
+#' @section Aesthetics:
+#' `geom_mark_shape` understand the following aesthetics (required aesthetics are
+#' in bold):
+#'
+#' - **x**
+#' - **y**
+#' - x0 *(used to anchor the label)*
+#' - y0 *(used to anchor the label)*
+#' - filter
+#' - label
+#' - description
+#' - color
+#' - fill
+#' - group
+#' - size
+#' - linetype
+#' - alpha
+#'
+#' @inheritParams ggforce::geom_mark_circle
+#'
+#'
+#' @family mark geoms
+#' @name geom_mark_shape
+#' @rdname geom_mark_shape
+#'
+#' @examples
+#' library(ggplot2)
+#' shape1 <- data.frame(
+#'     x = c(0, 3, 3, 2, 2, 1, 1, 0),
+#'     y = c(0, 0, 3, 3, 1, 1, 3, 3),
+#' label="bracket"
+#' )
+#' shape2 <- data.frame(
+#'     x = c(0, 3, 3, 0)+4,
+#'     y = c(0, 0, 3, 3),
+#'     label="square"
+#' )
+#' shape3 <- data.frame(
+#'     x = c(0, 1.5, 3, 1.5)+8,
+#'     y = c(1.5, 0, 1.5, 3),
+#'     label="diamond"
+#' )
+#'
+#' ggplot(rbind(shape1, shape2, shape3), aes(x=x, y=y, label=label, color=label, fill=label)) +
+#'     geom_mark_shape() +
+#'     ylim(0, 5)
+#'
+#'
+NULL
+
+#' @rdname geom_mark_shape
+#' @export
+geom_mark_shape <- function(mapping = NULL, data = NULL, stat = 'identity',
+                           position = 'identity', expand = 0,
+                           radius = 0,
+                           label.margin = margin(2, 2, 2, 2, 'mm'),
+                           label.width = NULL, label.minwidth = unit(50, 'mm'),
+                           label.hjust = 0, label.fontsize = 12,
+                           label.family = '', label.lineheight = 1,
+                           label.fontface = c('bold', 'plain'),
+                           label.fill = 'white', label.colour = 'black',
+                           label.buffer = unit(10, 'mm'), con.colour = 'black',
+                           con.size = 0.5, con.type = 'elbow', con.linetype = 1,
+                           con.border = 'one', con.cap = unit(3, 'mm'),
+                           con.arrow = NULL, ..., na.rm = FALSE,
+                           show.legend = NA, inherit.aes = TRUE) {
+  layer(
+    data = data,
+    mapping = mapping,
+    stat = stat,
+    geom = GeomMarkShape,
+    position = position,
+    show.legend = show.legend,
+    inherit.aes = inherit.aes,
+    params = list(
+      na.rm = na.rm,
+      expand = expand,
+      radius = radius,
+      concavity = NA,
+      label.margin = label.margin,
+      label.width = label.width,
+      label.minwidth = label.minwidth,
+      label.fontsize = label.fontsize,
+      label.family = label.family,
+      label.lineheight = label.lineheight,
+      label.fontface = label.fontface,
+      label.hjust = label.hjust,
+      label.fill = label.fill,
+      label.colour = label.colour,
+      label.buffer = label.buffer,
+      con.colour = con.colour,
+      con.size = con.size,
+      con.type = con.type,
+      con.linetype = con.linetype,
+      con.border = con.border,
+      con.cap = con.cap,
+      con.arrow = con.arrow,
+      ...
+    )
+  )
+}
+
+
+######
+# The code below is a slightly modified version of mark_hull.R from ggforce packge
+######
+
+GeomMarkShape <- ggplot2::ggproto(
+    'GeomMarkShape', ggplot2::GeomPolygon,
+    draw_panel = function(self, data, panel_params, coord, expand = unit(5, 'mm'),
+                          radius = unit(2.5, 'mm'), concavity = 2,
+                          label.margin = margin(2, 2, 2, 2, 'mm'),
+                          label.width = NULL, label.minwidth = unit(50, 'mm'),
+                          label.hjust = 0, label.buffer = unit(10, 'mm'),
+                          label.fontsize = 12, label.family = '',
+                          label.fontface = c('bold', 'plain'),
+                          label.lineheight = 1,
+                          label.fill = 'white', label.colour = 'black',
+                          con.colour = 'black', con.size = 0.5, con.type = 'elbow',
+                          con.linetype = 1, con.border = 'one',
+                          con.cap = unit(3, 'mm'), con.arrow = NULL) {
+        if (nrow(data) == 0) return(zeroGrob())
+
+        # As long as coord$transform() doesn't recognise x0/y0
+        data$xmin <- data$x0
+        data$ymin <- data$y0
+        coords <- coord$transform(data, panel_params)
+        if (!is.integer(coords$group)) {
+            coords$group <- match(coords$group, unique0(coords$group))
+        }
+        coords <- coords[order(coords$group), ]
+
+        # For gpar(), there is one entry per polygon (not one entry per point).
+        # We'll pull the first value from each group, and assume all these values
+        # are the same within each group.
+        first_idx <- !duplicated(coords$group)
+        first_rows <- coords[first_idx, ]
+
+        label <- NULL
+        ghosts <- NULL
+        if (!is.null(coords$label) || !is.null(coords$description)) {
+            label <- first_rows
+            is_ghost <- which(self$removed$PANEL == coords$PANEL[1])
+            if (length(is_ghost) > 0) {
+                ghosts <- self$removed[is_ghost, ]
+                ghosts <- coord$transform(ghosts, panel_params)
+                ghosts <- list(x = ghosts$x, y = ghosts$y)
+            }
+        }
+
+        gp <- gpar(
+            col = first_rows$colour,
+            fill = ggplot2::fill_alpha(first_rows$fill, first_rows$alpha),
+            lwd = (first_rows$linewidth %||% first_rows$size) * .pt,
+            lty = first_rows$linetype,
+            fontsize = (first_rows$size %||% 4.217518) * .pt
+        )
+
+        shapeEncGrob(coords$x, coords$y,
+                     default.units = 'native',
+                     id = coords$group, expand = expand, radius = radius,
+                     concavity = concavity, label = label, ghosts = ghosts,
+                     mark.gp = gp,
+                     label.gp = ggforce:::inherit_gp(
+                         col = label.colour[1],
+                         fill = label.fill,
+                         fontface = label.fontface[1],
+                         fontfamily = label.family[1],
+                         fontsize = label.fontsize[1],
+                         lineheight = label.lineheight[1],
+                         gp = gp
+                     ),
+                     desc.gp = ggforce:::inherit_gp(
+                         col = rep_len(label.colour, 2)[2],
+                         fontface = rep_len(label.fontface, 2)[2],
+                         fontfamily = rep_len(label.family, 2)[2],
+                         fontsize = rep_len(label.fontsize, 2)[2],
+                         lineheight = rep_len(label.lineheight, 2)[2],
+                         gp = gp
+                     ),
+                     con.gp = ggforce:::inherit_gp(
+                         col = con.colour,
+                         fill = con.colour,
+                         lwd = if (is.numeric(con.size)) con.size * .pt else con.size,
+                         lty = con.linetype,
+                         gp = gp
+                     ),
+                     label.margin = label.margin,
+                     label.width = label.width,
+                     label.minwidth = label.minwidth,
+                     label.hjust = label.hjust,
+                     label.buffer = label.buffer,
+                     con.type = con.type,
+                     con.border = con.border,
+                     con.cap = con.cap,
+                     con.arrow = con.arrow,
+                     anchor.x = first_rows$xmin,
+                     anchor.y = first_rows$ymin
+        )
+    }
+)
+
+# Helpers -----------------------------------------------------------------
+
+#' @import ggforce
+#' @importFrom grid gpar grobWidth grobHeight gTree
+shapeEncGrob <- function(x = c(0, 0.5, 1, 0.5), y = c(0.5, 1, 0.5, 0), id = NULL,
+                        id.lengths = NULL, expand = 0, radius = 0, concavity = 2,
+                        label = NULL, ghosts = NULL, default.units = 'npc',
+                        name = NULL, mark.gp = gpar(), label.gp = gpar(),
+                        desc.gp = gpar(), con.gp = gpar(), label.margin = margin(),
+                        label.width = NULL, label.minwidth = unit(50, 'mm'),
+                        label.hjust = 0, label.buffer = unit(10, 'mm'),
+                        con.type = 'elbow', con.border = 'one',
+                        con.cap = unit(3, 'mm'), con.arrow = NULL,
+                        anchor.x = NULL, anchor.y = NULL, vp = NULL) {
+    mark <- shapeGrob(
+        x = x, y = y, id = id, id.lengths = id.lengths,
+        expand = expand, radius = radius,
+        default.units = default.units, name = name, gp = mark.gp,
+        vp = vp
+    )
+    if (!is.null(label)) {
+        label <- lapply(seq_len(nrow(label)), function(i) {
+            if (is.na(label$label[i] %||% NA) && is.na(label$description[i] %||% NA)) return(zeroGrob())
+            grob <- ggforce:::labelboxGrob(
+                label$label[i], 0, 0, label$description[i],
+                gp = ggforce:::subset_gp(label.gp, i),
+                desc.gp = ggforce:::subset_gp(desc.gp, i),
+                pad = label.margin, width = label.width,
+                min.width = label.minwidth, hjust = label.hjust
+            )
+            if (con.border == 'all') {
+                con.gp <- subset_gp(con.gp, i)
+                grob$children[[1]]$gp$col <- con.gp$col
+                grob$children[[1]]$gp$lwd <- con.gp$lwd
+                grob$children[[1]]$gp$lty <- con.gp$lty
+            }
+            grob
+        })
+        labeldim <- lapply(label, function(l) {
+            c(
+                convertWidth(grobWidth(l), 'mm', TRUE),
+                convertHeight(grobHeight(l), 'mm', TRUE)
+            )
+        })
+        ghosts <- lapply(ghosts, unit, default.units)
+    } else {
+        labeldim <- NULL
+    }
+    if (!is.null(anchor.x) && !is.unit(anchor.x)) {
+        anchor.x <- unit(anchor.x, default.units)
+    }
+    if (!is.null(anchor.y) && !is.unit(anchor.y)) {
+        anchor.y <- unit(anchor.y, default.units)
+    }
+    gTree(
+        mark = mark, concavity = concavity, label = label, labeldim = labeldim,
+        buffer = label.buffer, ghosts = ghosts, con.gp = con.gp, con.type = con.type,
+        con.cap = ggforce:::as_mm(con.cap, default.units), con.border = con.border,
+        con.arrow = con.arrow, anchor.x = anchor.x, anchor.y = anchor.y, name = name,
+        vp = vp, cl = 'shape_enc'
+    )
+}
+#' @importFrom grid convertX convertY unit makeContent setChildren gList
+#' @importFrom vctrs vec_rbind
+#' @export
+makeContent.shape_enc <- function(x) {
+    mark <- x$mark
+    x_new <- convertX(mark$x, 'mm', TRUE)
+    x_new <- split(x_new, mark$id)
+    y_new <- convertY(mark$y, 'mm', TRUE)
+    y_new <- split(y_new, mark$id)
+    polygons <- Map(function(xx, yy, type) {
+        mat <- ggforce:::unique0(cbind(xx, yy))
+        if (nrow(mat) <= 2) {
+            return(mat)
+        }
+        if (length(ggforce:::unique0(xx)) == 1) {
+            return(mat[c(which.min(mat[, 2]), which.max(mat[, 2])), ])
+        }
+        if (length(ggforce:::unique0((yy[-1] - yy[1]) / (xx[-1] - xx[1]))) == 1) {
+            return(mat[c(which.min(mat[, 1]), which.max(mat[, 1])), ])
+        }
+        if (!is.na(x$concavity)) {
+            concaveman(mat, x$concavity, 0)
+        } else {
+            unname(mat)
+        }
+
+    }, xx = x_new, yy = y_new)
+    # ensure that all polygons have the same set of column names
+    polygons <- lapply(polygons, function(x) {
+        colnames(x) <- c("x", "y")
+        return(x)
+    })
+    mark$id <- rep(seq_along(polygons), vapply(polygons, nrow, numeric(1)))
+    polygons <- vec_rbind(!!!polygons)
+    mark$x <- unit(polygons[, 1], 'mm')
+    mark$y <- unit(polygons[, 2], 'mm')
+    if (inherits(mark, 'shape')) mark <- makeContent(mark)
+    if (!is.null(x$label)) {
+        polygons <- Map(function(x, y) list(x = x, y = y),
+                        x = split(as.numeric(mark$x), mark$id),
+                        y = split(as.numeric(mark$y), mark$id)
+        )
+        anchor_x <- if (is.null(x$anchor.x)) NULL else convertX(x$anchor.x, 'mm', TRUE)
+        anchor_y <- if (is.null(x$anchor.y)) NULL else convertY(x$anchor.y, 'mm', TRUE)
+        labels <- my_make_label(
+            labels = x$label, dims = x$labeldim, polygons = polygons,
+            ghosts = x$ghosts, buffer = x$buffer, con_type = x$con.type,
+            con_border = x$con.border, con_cap = x$con.cap,
+            con_gp = x$con.gp, anchor_mod = 2, anchor_x = anchor_x,
+            anchor_y = anchor_y, arrow = x$con.arrow
+        )
+        setChildren(x, rlang::inject(gList(!!!c(list(mark), labels))))
+    } else {
+        setChildren(x, gList(mark))
+    }
+}

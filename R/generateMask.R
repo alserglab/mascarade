@@ -1,22 +1,3 @@
-expandedRange2d <- function(x, y, fraction=0.05, fixAspectRatio=TRUE) {
-    xRange <- range(x)
-    xWidth <- (xRange[2] - xRange[1]) * (1 + fraction)
-
-    yRange <- range(y)
-    yWidth <- (yRange[2] - yRange[1]) * (1 + fraction)
-
-    if (fixAspectRatio) {
-        xWidth <- yWidth <- max(xWidth, yWidth)
-    }
-
-    xCenter <- mean(xRange)
-    yCenter <- mean(yRange)
-
-    return(
-        c(xCenter - xWidth/2, xCenter + xWidth/2,
-          yCenter - yWidth/2, yCenter + yWidth/2))
-}
-
 makeGridWindow <- function(dims, gridSize, fraction=0.05) {
     xyRanges <- apply(dims, 2, range)
 
@@ -39,17 +20,12 @@ makeGridWindow <- function(dims, gridSize, fraction=0.05) {
 
 #' @importFrom spatstat.geom tiles tess connected as.polygonal
 #' @importFrom  data.table rbindlist
-borderTableFromMask <- function(curMask, curDensity, minSize=10, keepMax=TRUE) {
+#' @keywords internal
+borderTableFromMask <- function(curMask, curDensity, keepMax=TRUE) {
     parts <- tiles(tess(image=connected(curMask)))
 
     curBorderTable <- list()
 
-    # partSizes <- vapply(parts, function(part) {
-    #     sum(as.matrix(part) * as.matrix(curDensity))
-    # }, FUN.VALUE = numeric(1))
-    #
-    # parts <- parts[partSizes >= min(minSize, max(partSizes))]
-    #
 
     for (partIdx in seq_along(parts)) {
         part <- parts[[partIdx]]
@@ -132,6 +108,7 @@ getConnectedParts <- function(curMask, curDensity, minSize, absolutelyMinSize=5)
 #' @param minDensity Deprecated. Doesn't do anything.
 #' @param smoothSigma Deprecated. Parameter controlling smoothing and joining close cells into groups, represented as a fraction of sqrt(width*height).
 #'      Increasing this parameter can help dealing with sparse regions.
+#' @param minSize Groups of less than `minSize` points are ignored, unless it is the only group for a cluster
 #' @param kernel Deprecated. Doesn't do anything.
 #' @param type Deprecated. Doesn't do anything.
 
@@ -305,8 +282,6 @@ generateMask <- function(dims, clusters,
 
         whichMaxDensity <- spatstat.geom::im.apply(
             c(list(backgroundDensityOne*0.01), allDensitiesSmoothed), which.max) - 1
-
-        # plot(whichMaxDensity)
 
         curMasks <- splitWhichMaxLevels(whichMaxDensity, nLevels=length(clusterLevels))
     }
