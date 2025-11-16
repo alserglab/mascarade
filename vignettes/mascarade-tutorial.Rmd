@@ -137,7 +137,7 @@ fancyMask <- list(
     geom_mark_shape(data=maskTable, aes(group=cluster, color=cluster, label = cluster),
                     fill = NA,
                    linewidth=1, expand=unit(-1, "pt"),
-                   radius=0, con.cap=0, con.type = "straight",
+                   con.cap=0, con.type = "straight",
                    label.fontsize = 10, label.buffer = unit(0, "cm"),
                    label.fontface = "plain",
                    label.minwidth = 0,
@@ -189,11 +189,24 @@ ggplot(data, aes(x=UMAP_1, y=UMAP_2)) +
 
 For this part of the vignette you need `Seurat` and `SeuratData` packages (the latter can be installed with `remotes::install_github('satijalab/seurat-data')`).
 
+```{r seuratdata-setup, message=FALSE, warning=FALSE}
+if (!requireNamespace("SeuratData", quietly = TRUE)) {
+  knitr::opts_chunk$set(eval = FALSE)
+  message(
+    "Package 'SeuratData' is not installed. ",
+    "The code chunks in this vignette will not be evaluated.\n",
+    "To run them, install it via:\n",
+    "  remotes::install_github('satijalab/seurat-data')"
+  )
+} else {
+  library(Seurat)
+  library(SeuratData)
+}
+```
+
 Loading the example dataset:
 
 ```{r message=FALSE, warning=FALSE}
-library(Seurat)
-library(SeuratData)
 if (!AvailableData()["pbmc3k", "Installed"]) {
     InstallData("pbmc3k")    
 }
