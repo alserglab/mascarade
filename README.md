@@ -1,4 +1,4 @@
-
+  [![R-CMD-check](https://github.com/alserglab/mascarade/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/alserglab/mascarade/actions/workflows/R-CMD-check.yaml)
 # mascarade
 
 `mascarade` package implements a procedure to automatically generate 2D
