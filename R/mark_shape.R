@@ -209,7 +209,15 @@ GeomMarkShape <- ggplot2::ggproto(
                      anchor.x = first_rows$xmin,
                      anchor.y = first_rows$ymin
         )
-    }
+    },
+    default_aes = ggplot2::aes(
+        colour = "black",
+        fill = NA,
+        linewidth = 0.5,
+        linetype = 1,
+        alpha = NA,
+        label = NA
+    )
 )
 
 # Helpers -----------------------------------------------------------------

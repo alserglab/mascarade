@@ -28,7 +28,7 @@ remotes::install_github("alserglab/mascarade")
 
 ## Quick run
 
-Loading neccessary libraries:
+Loading necessary libraries:
 
 ```{r}
 library(mascarade)
@@ -70,7 +70,7 @@ Fancy version, showing NGLY gene being specific to NK cells:
 ```{r readme-fancy, fig.show="hide"}
 library(ggnewscale)
 fancyMask <- list(
-    geom_mark_shape(data=maskTable, fill = NA, aes(group=cluster, color=cluster, label = cluster),
+    geom_mark_shape(data=maskTable, fill = NA, aes(group=group, color=cluster, label=cluster),
                    linewidth=1, expand=unit(-1, "pt"),
                    con.cap=0, con.type = "straight",
                    label.fontsize = 10, label.buffer = unit(0, "cm"),

@@ -1,4 +1,6 @@
-  [![R-CMD-check](https://github.com/alserglab/mascarade/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/alserglab/mascarade/actions/workflows/R-CMD-check.yaml)
+
+[![R-CMD-check](https://github.com/alserglab/mascarade/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/alserglab/mascarade/actions/workflows/R-CMD-check.yaml)
+
 # mascarade
 
 `mascarade` package implements a procedure to automatically generate 2D
@@ -20,7 +22,7 @@ remotes::install_github("alserglab/mascarade")
 
 ## Quick run
 
-Loading neccessary libraries:
+Loading necessary libraries:
 
 ``` r
 library(mascarade)
@@ -60,14 +62,11 @@ ggplot(data, aes(x=UMAP_1, y=UMAP_2)) +
 Fancy version, showing NGLY gene being specific to NK cells:
 
 ``` r
-library(ggforce)
 library(ggnewscale)
 fancyMask <- list(
-    ggforce::geom_shape(data=maskTable, aes(group=group, color=cluster),
-               linewidth=1, fill=NA, expand=unit(-1, "pt"), show.legend = FALSE),
-    ggforce::geom_mark_hull(data=maskTable, fill = NA, aes(group=cluster, color=cluster, label = cluster),
-                   linewidth=0,
-                   radius=0, expand=0, con.cap=0, con.type = "straight",
+    geom_mark_shape(data=maskTable, fill = NA, aes(group=group, color=cluster, label=cluster),
+                   linewidth=1, expand=unit(-1, "pt"),
+                   con.cap=0, con.type = "straight",
                    label.fontsize = 10, label.buffer = unit(0, "cm"),
                    label.fontface = "plain",
                    label.minwidth = 0,
