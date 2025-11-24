@@ -16,7 +16,7 @@ on 2D dimensional reduction plots like UMAP or t-SNE.
 
 ### Package installation
 
-The package can be installed from GitHub:
+The most recent version of the package can be installed from GitHub:
 
 ```{r eval=FALSE}
 remotes::install_github("alserglab/mascarade")
@@ -187,52 +187,51 @@ ggplot(data, aes(x=UMAP_1, y=UMAP_2)) +
 
 ### Working with Seurat
 
-For this part of the vignette you need `Seurat` and `SeuratData` packages (the latter can be installed with `remotes::install_github('satijalab/seurat-data')`).
+For this part of the vignette you need `Seurat`package. 
 
-```{r seuratdata-setup, message=FALSE, warning=FALSE}
-if (!requireNamespace("SeuratData", quietly = TRUE)) {
-  knitr::opts_chunk$set(eval = FALSE)
-  message(
-    "Package 'SeuratData' is not installed. ",
-    "The code chunks in this vignette will not be evaluated.\n",
-    "To run them, install it via:\n",
-    "  remotes::install_github('satijalab/seurat-data')"
-  )
-} else {
-  library(Seurat)
-  library(SeuratData)
+```{r}
+library(Seurat)
+```
+
+Let's get the example PBMC3K dataset:
+```{r}
+pbmc3k <- readRDS(url("https://alserglab.wustl.edu/files/mascarade/examples/pbmc3k_seurat5.rds"))
+pbmc3k
+```
+
+The same object can be obtained using `SeuratData` package (can be installed with `remotes::install_github('satijalab/seurat-data')`):
+
+```{r eval=FALSE, message=FALSE, warning=FALSE}
+if (requireNamespace("SeuratData")) {
+    if (!AvailableData()["pbmc3k", "Installed"]) {
+        InstallData("pbmc3k")    
+    }
+    LoadData("pbmc3k")
+    
+    pbmc3k <- UpdateSeuratObject(pbmc3k.final)    
+    pbmc3k
 }
 ```
 
-Loading the example dataset:
-
-```{r message=FALSE, warning=FALSE}
-if (!AvailableData()["pbmc3k", "Installed"]) {
-    InstallData("pbmc3k")    
-}
-LoadData("pbmc3k")
-
-pbmc3k.final <- Seurat::UpdateSeuratObject(pbmc3k.final)
-```
 
 Let's plot some features:
 ```{r}
 featureList <- c("MS4A1", "GNLY", "CD3E", "CD14")
-FeaturePlot(pbmc3k.final, features=featureList)
+FeaturePlot(pbmc3k, features=featureList)
 ```
 
 Generate masks from UMAP data:
 
 ```{r}
 maskTable <- generateMask(
-    dims=Embeddings(pbmc3k.final, "umap"),
-    clusters=pbmc3k.final$seurat_annotations)
+    dims=Embeddings(pbmc3k, "umap"),
+    clusters=pbmc3k$seurat_annotations)
 ```
 
 Now we can plot the same features with borders (there will be some warnings due to the scale change):
 
 ```{r message=FALSE, warning=FALSE}
-plots <- FeaturePlot(pbmc3k.final, features=featureList, combine = FALSE)
+plots <- FeaturePlot(pbmc3k, features=featureList, combine = FALSE)
 
 plots <- lapply(plots, `+`,
                 list(
@@ -248,13 +247,13 @@ patchwork::wrap_plots(plots)
 Works with t-SNE too:
 
 ```{r message=FALSE, warning=FALSE}
-pbmc3k.final <- RunTSNE(pbmc3k.final)
+pbmc3k <- RunTSNE(pbmc3k)
 
 maskTable <- generateMask(
-    dims=Embeddings(pbmc3k.final, "tsne"),
-    clusters=pbmc3k.final$seurat_annotations)
+    dims=Embeddings(pbmc3k, "tsne"),
+    clusters=pbmc3k$seurat_annotations)
 
-plots <- FeaturePlot(pbmc3k.final, features=featureList, combine = FALSE, reduction = "tsne")
+plots <- FeaturePlot(pbmc3k, features=featureList, combine = FALSE, reduction = "tsne")
 
 plots <- lapply(plots, `+`,
                 list(

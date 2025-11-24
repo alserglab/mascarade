@@ -10,11 +10,12 @@ Imports:
     spatstat.geom,
     spatstat.explore,
     lifecycle,
+    ggplot2,
     polyclip,
     ggforce,
     vctrs,
     rlang
-License: MIT + file LICENCE
+License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true
 RoxygenNote: 7.3.3
@@ -24,10 +25,10 @@ Suggests:
     testthat (>= 3.0.0),
     rmarkdown,
     knitr,
-    ggplot2,
     patchwork,
     ggnewscale,
-    ggsci
+    ggsci,
+    Seurat
 Config/testthat/edition: 3
 VignetteBuilder: knitr
 URL: https://github.com/alserglab/mascarade/

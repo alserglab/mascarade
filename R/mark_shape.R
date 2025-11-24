@@ -62,6 +62,7 @@ NULL
 
 #' @rdname geom_mark_shape
 #' @export
+#' @importFrom ggplot2 margin layer
 geom_mark_shape <- function(mapping = NULL, data = NULL, stat = 'identity',
                            position = 'identity', expand = 0,
                            radius = 0,
@@ -88,7 +89,6 @@ geom_mark_shape <- function(mapping = NULL, data = NULL, stat = 'identity',
       na.rm = na.rm,
       expand = expand,
       radius = radius,
-      concavity = NA,
       label.margin = label.margin,
       label.width = label.width,
       label.minwidth = label.minwidth,
@@ -117,10 +117,11 @@ geom_mark_shape <- function(mapping = NULL, data = NULL, stat = 'identity',
 # The code below is a slightly modified version of mark_hull.R from ggforce packge
 ######
 
+#' @importFrom ggplot2 zeroGrob
 GeomMarkShape <- ggplot2::ggproto(
     'GeomMarkShape', ggplot2::GeomPolygon,
     draw_panel = function(self, data, panel_params, coord, expand = unit(5, 'mm'),
-                          radius = unit(2.5, 'mm'), concavity = 2,
+                          radius = unit(2.5, 'mm'),
                           label.margin = margin(2, 2, 2, 2, 'mm'),
                           label.width = NULL, label.minwidth = unit(50, 'mm'),
                           label.hjust = 0, label.buffer = unit(10, 'mm'),
@@ -131,7 +132,7 @@ GeomMarkShape <- ggplot2::ggproto(
                           con.colour = 'black', con.size = 0.5, con.type = 'elbow',
                           con.linetype = 1, con.border = 'one',
                           con.cap = unit(3, 'mm'), con.arrow = NULL) {
-        if (nrow(data) == 0) return(zeroGrob())
+        if (nrow(data) == 0) return(ggplot2::zeroGrob())
 
         # As long as coord$transform() doesn't recognise x0/y0
         data$xmin <- data$x0
@@ -171,7 +172,7 @@ GeomMarkShape <- ggplot2::ggproto(
         shapeEncGrob(coords$x, coords$y,
                      default.units = 'native',
                      id = coords$group, expand = expand, radius = radius,
-                     concavity = concavity, label = label, ghosts = ghosts,
+                     label = label, ghosts = ghosts,
                      mark.gp = gp,
                      label.gp = ggforce:::inherit_gp(
                          col = label.colour[1],
@@ -223,9 +224,9 @@ GeomMarkShape <- ggplot2::ggproto(
 # Helpers -----------------------------------------------------------------
 
 #' @import ggforce
-#' @importFrom grid gpar grobWidth grobHeight gTree
+#' @importFrom grid gpar grobWidth grobHeight gTree is.unit
 shapeEncGrob <- function(x = c(0, 0.5, 1, 0.5), y = c(0.5, 1, 0.5, 0), id = NULL,
-                        id.lengths = NULL, expand = 0, radius = 0, concavity = 2,
+                        id.lengths = NULL, expand = 0, radius = 0,
                         label = NULL, ghosts = NULL, default.units = 'npc',
                         name = NULL, mark.gp = gpar(), label.gp = gpar(),
                         desc.gp = gpar(), con.gp = gpar(), label.margin = margin(),
@@ -251,7 +252,7 @@ shapeEncGrob <- function(x = c(0, 0.5, 1, 0.5), y = c(0.5, 1, 0.5, 0), id = NULL
                 min.width = label.minwidth, hjust = label.hjust
             )
             if (con.border == 'all') {
-                con.gp <- subset_gp(con.gp, i)
+                con.gp <- ggforce:::subset_gp(con.gp, i)
                 grob$children[[1]]$gp$col <- con.gp$col
                 grob$children[[1]]$gp$lwd <- con.gp$lwd
                 grob$children[[1]]$gp$lty <- con.gp$lty
@@ -275,7 +276,7 @@ shapeEncGrob <- function(x = c(0, 0.5, 1, 0.5), y = c(0.5, 1, 0.5, 0), id = NULL
         anchor.y <- unit(anchor.y, default.units)
     }
     gTree(
-        mark = mark, concavity = concavity, label = label, labeldim = labeldim,
+        mark = mark, label = label, labeldim = labeldim,
         buffer = label.buffer, ghosts = ghosts, con.gp = con.gp, con.type = con.type,
         con.cap = ggforce:::as_mm(con.cap, default.units), con.border = con.border,
         con.arrow = con.arrow, anchor.x = anchor.x, anchor.y = anchor.y, name = name,
@@ -302,11 +303,8 @@ makeContent.shape_enc <- function(x) {
         if (length(ggforce:::unique0((yy[-1] - yy[1]) / (xx[-1] - xx[1]))) == 1) {
             return(mat[c(which.min(mat[, 1]), which.max(mat[, 1])), ])
         }
-        if (!is.na(x$concavity)) {
-            concaveman(mat, x$concavity, 0)
-        } else {
-            unname(mat)
-        }
+
+        unname(mat)
 
     }, xx = x_new, yy = y_new)
     # ensure that all polygons have the same set of column names

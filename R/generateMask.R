@@ -115,8 +115,9 @@ getConnectedParts <- function(curMask, curDensity, minSize, absolutelyMinSize=5)
 #' @returns data.table with points representing the mask borders.
 #'      Each individual border line corresponds to a single level of `group` column.
 #'      Cluster assignment is in `cluster` column.
-#' @importFrom data.table rbindlist data.table setnames
+#' @importFrom data.table rbindlist data.table setnames :=
 #' @importFrom utils head tail
+#' @importFrom stats median bw.nrd
 #' @import spatstat.geom spatstat.explore
 #' @export
 #' @examples
