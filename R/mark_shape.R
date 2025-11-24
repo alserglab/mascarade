@@ -3,8 +3,8 @@
 #' Annotate areas with polygonal shapes
 #'
 #' This geom lets you annotate sets of points via polygonal shapes.
-#' Unlike other `geom_mark_*` functions, `geom_mark_shape` should be explicitly
-#' provided with the shape coordinates. As in `geom_shape`, the polygon can be
+#' Unlike other `ggforce::geom_mark_*` functions, `geom_mark_shape` should be explicitly
+#' provided with the shape coordinates. As in `ggforce::geom_shape`, the polygon can be
 #' expanded/contracted and corners can be rounded, which is controlled by `expand` and
 #' `radius` parameters.
 #'

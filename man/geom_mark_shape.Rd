@@ -197,29 +197,30 @@ the default plot specification, e.g. \code{\link[ggplot2:borders]{borders()}}.}
 }
 \description{
 This geom lets you annotate sets of points via polygonal shapes.
-Unlike other `geom_mark_*` functions, `geom_mark_shape` should be explicitly
-provided with the shape coordinates. As in `geom_shape`, the polygon can be
-expanded/contracted and corners can be rounded, which is controlled by `expand` and
-`radius` parameters.
+Unlike other \verb{ggforce::geom_mark_*} functions, \code{geom_mark_shape} should be explicitly
+provided with the shape coordinates. As in \code{ggforce::geom_shape}, the polygon can be
+expanded/contracted and corners can be rounded, which is controlled by \code{expand} and
+\code{radius} parameters.
 }
 \section{Aesthetics}{
 
-`geom_mark_shape` understand the following aesthetics (required aesthetics are
+\code{geom_mark_shape} understand the following aesthetics (required aesthetics are
 in bold):
-
-- **x**
-- **y**
-- x0 *(used to anchor the label)*
-- y0 *(used to anchor the label)*
-- filter
-- label
-- description
-- color
-- fill
-- group
-- size
-- linetype
-- alpha
+\itemize{
+\item \strong{x}
+\item \strong{y}
+\item x0 \emph{(used to anchor the label)}
+\item y0 \emph{(used to anchor the label)}
+\item filter
+\item label
+\item description
+\item color
+\item fill
+\item group
+\item size
+\item linetype
+\item alpha
+}
 }
 
 \section{Annotation}{

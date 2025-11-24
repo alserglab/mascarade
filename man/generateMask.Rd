@@ -21,7 +21,7 @@ generateMask(
 Rows are points, columns are dimensions. Only the first two columns are used.}
 
 \item{clusters}{vector of cluster annotations.
-Should be the same length as the number of rows in `dims`.}
+Should be the same length as the number of rows in \code{dims}.}
 
 \item{gridSize}{target width and height of the raster used internally}
 
@@ -32,7 +32,7 @@ Should be the same length as the number of rows in `dims`.}
 \item{smoothSigma}{Deprecated. Parameter controlling smoothing and joining close cells into groups, represented as a fraction of sqrt(width*height).
 Increasing this parameter can help dealing with sparse regions.}
 
-\item{minSize}{Groups of less than `minSize` points are ignored, unless it is the only group for a cluster}
+\item{minSize}{Groups of less than \code{minSize} points are ignored, unless it is the only group for a cluster}
 
 \item{kernel}{Deprecated. Doesn't do anything.}
 
@@ -40,8 +40,8 @@ Increasing this parameter can help dealing with sparse regions.}
 }
 \value{
 data.table with points representing the mask borders.
-     Each individual border line corresponds to a single level of `group` column.
-     Cluster assignment is in `cluster` column.
+Each individual border line corresponds to a single level of \code{group} column.
+Cluster assignment is in \code{cluster} column.
 }
 \description{
 Internally the function rasterizes and smoothes the density plots.
