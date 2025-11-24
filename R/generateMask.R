@@ -122,8 +122,10 @@ getConnectedParts <- function(curMask, curDensity, minSize, absolutelyMinSize=5)
 #' @export
 #' @examples
 #' data("exampleMascarade")
+#' # smaller gridSize leads to faster computation
 #' res <- generateMask(dims=exampleMascarade$dims,
-#'                     clusters=exampleMascarade$clusters)
+#'                     clusters=exampleMascarade$clusters,
+#'                     gridSize=50)
 #' \dontrun{
 #' data <- data.table(exampleMascarade$dims,
 #'                    cluster=exampleMascarade$clusters,
@@ -191,7 +193,7 @@ generateMask <- function(dims, clusters,
     pixelSize <- window$xstep
     smoothSigma <- smoothSigma * sqrt(area(window))
     expand <- expand * sqrt(area(window))
-    windowHD <- makeGridWindow(dims, gridSize=max(gridSize, 1000))
+    windowHD <- makeGridWindow(dims, gridSize=gridSize*5)
 
 
     points <- spatstat.geom::ppp(dims[, 1], dims[, 2], window=window)

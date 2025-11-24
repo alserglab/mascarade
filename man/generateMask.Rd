@@ -48,8 +48,10 @@ Internally the function rasterizes and smoothes the density plots.
 }
 \examples{
 data("exampleMascarade")
+# smaller gridSize leads to faster computation
 res <- generateMask(dims=exampleMascarade$dims,
-                    clusters=exampleMascarade$clusters)
+                    clusters=exampleMascarade$clusters,
+                    gridSize=50)
 \dontrun{
 data <- data.table(exampleMascarade$dims,
                    cluster=exampleMascarade$clusters,
