@@ -174,7 +174,7 @@ GeomMarkShape <- ggplot2::ggproto(
                      id = coords$group, expand = expand, radius = radius,
                      label = label, ghosts = ghosts,
                      mark.gp = gp,
-                     label.gp = ggforce:::inherit_gp(
+                     label.gp = inherit_gp(
                          col = label.colour[1],
                          fill = label.fill,
                          fontface = label.fontface[1],
@@ -183,7 +183,7 @@ GeomMarkShape <- ggplot2::ggproto(
                          lineheight = label.lineheight[1],
                          gp = gp
                      ),
-                     desc.gp = ggforce:::inherit_gp(
+                     desc.gp = inherit_gp(
                          col = rep_len(label.colour, 2)[2],
                          fontface = rep_len(label.fontface, 2)[2],
                          fontfamily = rep_len(label.family, 2)[2],
@@ -191,7 +191,7 @@ GeomMarkShape <- ggplot2::ggproto(
                          lineheight = rep_len(label.lineheight, 2)[2],
                          gp = gp
                      ),
-                     con.gp = ggforce:::inherit_gp(
+                     con.gp = inherit_gp(
                          col = con.colour,
                          fill = con.colour,
                          lwd = if (is.numeric(con.size)) con.size * .pt else con.size,
@@ -244,15 +244,15 @@ shapeEncGrob <- function(x = c(0, 0.5, 1, 0.5), y = c(0.5, 1, 0.5, 0), id = NULL
     if (!is.null(label)) {
         label <- lapply(seq_len(nrow(label)), function(i) {
             if (is.na(label$label[i] %||% NA) && is.na(label$description[i] %||% NA)) return(zeroGrob())
-            grob <- ggforce:::labelboxGrob(
+            grob <- labelboxGrob(
                 label$label[i], 0, 0, label$description[i],
-                gp = ggforce:::subset_gp(label.gp, i),
-                desc.gp = ggforce:::subset_gp(desc.gp, i),
+                gp = subset_gp(label.gp, i),
+                desc.gp = subset_gp(desc.gp, i),
                 pad = label.margin, width = label.width,
                 min.width = label.minwidth, hjust = label.hjust
             )
             if (con.border == 'all') {
-                con.gp <- ggforce:::subset_gp(con.gp, i)
+                con.gp <- subset_gp(con.gp, i)
                 grob$children[[1]]$gp$col <- con.gp$col
                 grob$children[[1]]$gp$lwd <- con.gp$lwd
                 grob$children[[1]]$gp$lty <- con.gp$lty
@@ -278,7 +278,7 @@ shapeEncGrob <- function(x = c(0, 0.5, 1, 0.5), y = c(0.5, 1, 0.5, 0), id = NULL
     gTree(
         mark = mark, label = label, labeldim = labeldim,
         buffer = label.buffer, ghosts = ghosts, con.gp = con.gp, con.type = con.type,
-        con.cap = ggforce:::as_mm(con.cap, default.units), con.border = con.border,
+        con.cap = as_mm(con.cap, default.units), con.border = con.border,
         con.arrow = con.arrow, anchor.x = anchor.x, anchor.y = anchor.y, name = name,
         vp = vp, cl = 'shape_enc'
     )
@@ -293,14 +293,14 @@ makeContent.shape_enc <- function(x) {
     y_new <- convertY(mark$y, 'mm', TRUE)
     y_new <- split(y_new, mark$id)
     polygons <- Map(function(xx, yy, type) {
-        mat <- ggforce:::unique0(cbind(xx, yy))
+        mat <- unique0(cbind(xx, yy))
         if (nrow(mat) <= 2) {
             return(mat)
         }
-        if (length(ggforce:::unique0(xx)) == 1) {
+        if (length(unique0(xx)) == 1) {
             return(mat[c(which.min(mat[, 2]), which.max(mat[, 2])), ])
         }
-        if (length(ggforce:::unique0((yy[-1] - yy[1]) / (xx[-1] - xx[1]))) == 1) {
+        if (length(unique0((yy[-1] - yy[1]) / (xx[-1] - xx[1]))) == 1) {
             return(mat[c(which.min(mat[, 1]), which.max(mat[, 1])), ])
         }
 

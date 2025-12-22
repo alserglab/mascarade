@@ -32,7 +32,7 @@ my_place_labels <- function(rects, polygons, bounds, anchors, ghosts) {
     }
     if (length(b) == 1) next()
     b <- lapply(b[-1], function(p) cbind(p$x, p$y))
-    closest <- ggforce:::points_to_path(matrix(anchors[[i]], ncol = 2), b, TRUE)
+    closest <- points_to_path(matrix(anchors[[i]], ncol = 2), b, TRUE)
     res[[i]] <- closest$proj
     rect$x <- rect$x + closest$proj[1]
     rect$y <- rect$y + closest$proj[2]
@@ -91,7 +91,7 @@ my_make_label <- function(labels, dims, polygons, ghosts, buffer, con_type,
       c(pos[1] - dim[1], pos[1] + dim[1], pos[1] + dim[1], pos[1] - dim[1]),
       c(pos[2] - dim[2], pos[2] - dim[2], pos[2] + dim[2], pos[2] + dim[2])
     )
-    pos <- ggforce:::points_to_path(pos, list(cbind(pol$x, pol$y)), TRUE)
+    pos <- points_to_path(pos, list(cbind(pol$x, pol$y)), TRUE)
     pos$projection[which.min(pos$distance), ]
   }, pol = polygons, pos = labelpos, dim = dims)))
   labeldims <- rlang::inject(rbind(!!!dims[lengths(labelpos) != 0])) / 2
@@ -99,22 +99,22 @@ my_make_label <- function(labels, dims, polygons, ghosts, buffer, con_type,
   if (con_type == 'none' || !con_type %in% c('elbow', 'straight')) {
     connect <- nullGrob()
   } else {
-    con_fun <- switch(con_type, elbow = ggforce:::elbow, straight = ggforce:::straight)
+    con_fun <- switch(con_type, elbow = elbow, straight = straight)
     connect <- con_fun(
       labelpos[, 1] - labeldims[, 1], labelpos[, 1] + labeldims[, 1],
       labelpos[, 2] - labeldims[, 2], labelpos[, 2] + labeldims[, 2],
       connect[, 1], connect[, 2]
     )
     if (con_border == 'one') {
-      connect <- ggforce:::with_borderline(
+      connect <- with_borderline(
         labelpos[, 1] - labeldims[, 1],
         labelpos[, 1] + labeldims[, 1], connect
       )
     }
-    connect <- ggforce:::end_cap(connect, con_cap)
-    connect <- ggforce:::zip_points(connect)
+    connect <- end_cap(connect, con_cap)
+    connect <- zip_points(connect)
     if (!is.null(arrow)) arrow$ends <- 2L
-    con_gp <- ggforce:::subset_gp(con_gp, labels_drawn)
+    con_gp <- subset_gp(con_gp, labels_drawn)
     connect <- polylineGrob(connect$x, connect$y,
       id = connect$id,
       default.units = 'mm', gp = con_gp, arrow = arrow

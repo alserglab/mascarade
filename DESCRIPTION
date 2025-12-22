@@ -15,7 +15,9 @@ Imports:
     polyclip,
     ggforce,
     vctrs,
-    rlang
+    rlang,
+    cli,
+    systemfonts
 License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true
