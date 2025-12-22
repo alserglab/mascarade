@@ -22,7 +22,11 @@ makeGridWindow <- function(dims, gridSize, fraction=0.05) {
 #' @importFrom  data.table rbindlist
 #' @keywords internal
 borderTableFromMask <- function(curMask, curDensity, keepMax=TRUE) {
-    parts <- tiles(tess(image=connected(curMask)))
+    toCrop <- boundingbox(curMask)
+    # to avoid one-pixel crops https://github.com/spatstat/spatstat.geom/issues/24
+    toCrop <- expandRect(toCrop, curMask$xstep, curMask$ystep)
+    curMaskCrop <- curMask[toCrop]
+    parts <- tiles(tess(image=connected(curMaskCrop)))
 
     curBorderTable <- list()
 
@@ -59,36 +63,55 @@ borderTableFromMask <- function(curMask, curDensity, keepMax=TRUE) {
     rbindlist(curBorderTable)
 }
 
-# robust to empty masks
-splitWhichMaxLevels <- function(whichMaxDensity, nLevels) {
-    lapply(seq_len(nLevels), function(i) {
-        res <- (whichMaxDensity == i)
-        res[res == 0] <- NA # so that as.owin works as expected
-        res <- spatstat.geom::as.owin(res)
+# assumes weights are compatible im objects
+splitByMaxWeight <- function(weights, backgroundWeight=0.01) {
+    if (length(weights) == 0) {
+        return(NULL)
+    }
+
+    vlist <- lapply(weights, function(im) as.vector(im$v))
+    vlist <- c(list(rep(backgroundWeight, length(vlist[[1]]))), vlist)
+    M <- do.call(cbind, vlist)
+    idx <- max.col(M, ties.method = "first") - 1
+
+    whichMaxWeight <- weights[[1]]
+    whichMaxWeight$v <- idx
+
+    res <- lapply(seq_along(weights), function(i) {
+        solutionset(whichMaxWeight == i)
     })
+    res
 }
 
-# TODO window argument shouldn't be really needed
-removeMaskIntersections <- function(curMasks, window) {
+removeMaskIntersections <- function(curMasks, backgroundDensity=0.01) {
     maskWeights <- lapply(seq_along(curMasks), function(i) {
         distmap(complement.owin(curMasks[[i]]))
     })
 
-    backgroundDensityOne <- spatstat.geom::as.im(window)
+    res <- splitByMaxWeight(maskWeights)
+    res
+}
 
-    # TODO: maybe consider cell densities here somehow
-    whichMaxDensity <- spatstat.geom::im.apply(
-        c(list(backgroundDensityOne*0.01), maskWeights), which.max) - 1
+expandRect <- function(rw, dx = 0, dy = dx) {
+    stopifnot(rw$type == "rectangle")
 
+    rw$xrange <- rw$xrange + c(-dx, dx)
+    rw$yrange <- rw$yrange + c(-dy, dy)
 
-    curMasks <- splitWhichMaxLevels(whichMaxDensity, nLevels=length(curMasks))
-    curMasks
+    rw
 }
 
 getConnectedParts <- function(curMask, curDensity, minSize, absolutelyMinSize=5) {
-    parts <- tiles(tess(image=connected(curMask)))
+    toCrop <- boundingbox(curMask)
+    # to avoid one-pixel crops https://github.com/spatstat/spatstat.geom/issues/24
+    toCrop <- expandRect(toCrop, curMask$xstep, curMask$ystep)
+    curMaskCrop <- curMask[toCrop]
+
+    curMaskSplit <- connected(curMaskCrop)
+    parts <- tiles(tess(image=connected(curMaskCrop)))
+
     partSizes <- vapply(parts, function(part) {
-        sum(as.matrix(part) * as.matrix(curDensity))
+        sum(as.matrix(part) * as.matrix(curDensity[toCrop]))
     }, FUN.VALUE = numeric(1))
 
     parts <- parts[partSizes >= min(minSize, max(c(partSizes, absolutelyMinSize)))]
@@ -254,7 +277,8 @@ generateMask <- function(dims, clusters,
                     partSigma <- sqrt(partSigma * smoothSigma)
                 }
 
-                partPoints <- curPoints[dilation(part, r=2*partSigma)][window]
+                extPart <- dilation(part, r=2*partSigma)
+                partPoints <- curPoints[extPart][window]
 
                 partMask <- pixellate(partPoints, xy=window)
                 partMask[partMask == 0] <- NA
@@ -281,12 +305,7 @@ generateMask <- function(dims, clusters,
             smoothed
         })
 
-        backgroundDensityOne <- spatstat.geom::as.im(as.owin(allDensitiesSmoothed[[1]]))
-
-        whichMaxDensity <- spatstat.geom::im.apply(
-            c(list(backgroundDensityOne*0.01), allDensitiesSmoothed), which.max) - 1
-
-        curMasks <- splitWhichMaxLevels(whichMaxDensity, nLevels=length(clusterLevels))
+        curMasks <- splitByMaxWeight(allDensitiesSmoothed)
     }
 
     # smooth borders and expand a little (in vector)
@@ -298,7 +317,7 @@ generateMask <- function(dims, clusters,
     # switch to high-res
     curMasks <- lapply(curMasks, as.mask, xy = windowHD)
 
-    curMasks <- removeMaskIntersections(curMasks, windowHD)
+    curMasks <- removeMaskIntersections(curMasks)
 
     borderTable <- rbindlist(lapply(seq_along(clusterLevels), function(i) {
         curMask <- curMasks[[i]]
