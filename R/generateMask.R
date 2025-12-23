@@ -21,12 +21,15 @@ makeGridWindow <- function(dims, gridSize, fraction=0.05) {
 #' @importFrom spatstat.geom tiles tess connected as.polygonal
 #' @importFrom  data.table rbindlist
 #' @keywords internal
-borderTableFromMask <- function(curMask, curDensity, keepMax=TRUE) {
-    toCrop <- boundingbox(curMask)
-    # to avoid one-pixel crops https://github.com/spatstat/spatstat.geom/issues/24
-    toCrop <- expandRect(toCrop, curMask$xstep, curMask$ystep)
-    curMaskCrop <- curMask[toCrop]
-    parts <- tiles(tess(image=connected(curMaskCrop)))
+borderTableFromMask <- function(curMask, crop=TRUE) {
+    if (crop) {
+        toCrop <- boundingbox(curMask)
+        # to avoid one-pixel crops https://github.com/spatstat/spatstat.geom/issues/24
+        toCrop <- expandRect(toCrop, curMask$xstep, curMask$ystep)
+        curMask <- curMask[toCrop]
+    }
+
+    parts <- tiles(tess(image=connected(curMask)))
 
     curBorderTable <- list()
 
@@ -389,7 +392,7 @@ generateMask <- function(dims, clusters,
             warning(sprintf("Mask is empty for cluster %s", clusterLevels[i]))
             return(NULL)
         }
-        curTable <- borderTableFromMask(curMask, allDensities[[i]])
+        curTable <- borderTableFromMask(curMask, crop=FALSE)
         curTable[, cluster := clusterLevels[i]]
         curTable[, part := paste0(cluster, "#", part)]
         curTable[, group := paste0(part, "#", group)]
