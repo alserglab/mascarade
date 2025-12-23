@@ -119,6 +119,62 @@ getConnectedParts <- function(curMask, curDensity, minSize, absolutelyMinSize=5)
 }
 
 
+getRoughMask <- function(partPoints, window, partSigma, pixelSize, crop=TRUE) {
+    extD <- 2*partSigma + 1.5*pixelSize
+
+    if (crop) {
+        toCrop <- boundingbox(partPoints)
+        toCrop <- expandRect(toCrop, extD, extD)
+        partPoints <- partPoints[toCrop]
+    }
+
+    D <- distmap(partPoints)
+    partMaskV <- solutionset(D <= 2*partSigma + 1.5*pixelSize)
+    partMaskV <- erosion(partMaskV, r = 2*partSigma, polygonal=F)
+    partMask <- as.mask(partMaskV, xy=window)
+    partMask
+}
+
+# values below automatic threshold are clipped out
+getPartDensityClipped <- function(curPoints, part, window, smoothSigma, pixelSize) {
+    partPoints <- curPoints[part]
+
+    partSigma <- sqrt(bw.nrd(partPoints$x) * bw.nrd(partPoints$y)) * 1.5
+    if (!is.na(smoothSigma)) {
+        partSigma <- sqrt(partSigma * smoothSigma)
+    }
+
+    extPart <- dilation(part, r=2*partSigma)
+    partPoints <- curPoints[extPart]
+
+    toCrop <- boundingbox(partPoints)
+    extD <- 2*partSigma + 1.5*pixelSize
+    toCrop <- expandRect(toCrop, extD, extD)
+    partPoints <- partPoints[toCrop]
+
+    partMask <- getRoughMask(partPoints, window[toCrop], partSigma, pixelSize, crop=FALSE)
+
+    if (min(partMask$dim) <= 3) {
+        partBorder <- partMask
+    } else {
+        #empty mask warning
+        suppressWarnings(partMaskShrinked <- erosion(partMask, r=pixelSize*2, shrink.frame = FALSE))
+        partBorder <- setminus.owin(
+            partMask,
+            partMaskShrinked
+        )
+    }
+
+    partDensity <- density.ppp(partPoints, sigma=partSigma, xy=window[toCrop])
+    t <- median(partDensity[partBorder])
+
+
+    partDensity <- partDensity*(partDensity > t)
+
+    partDensity <- as.im(partDensity, W = window, na.replace = 0)
+}
+
+
 #' Generate mask for clusters on 2D dimensional reduction plots
 #'
 #' Internally the function rasterizes and smoothes the density plots.
@@ -236,13 +292,7 @@ generateMask <- function(dims, clusters,
             partSigma <- sqrt(partSigma * smoothSigma)
         }
 
-        partMask <- pixellate(partPoints, xy=window)
-        partMask[partMask == 0] <- NA
-        partMask <- as.owin(partMask)
-        partMaskV <- dilation(partMask, r = 2*partSigma + 1.5*pixelSize, polygonal=T)
-        partMaskV <- erosion(partMaskV, r = 2*partSigma, polygonal=T)
-        partMask <- as.mask(partMaskV, xy=window)
-        partMask
+        partMask <- getRoughMask(partPoints, window, partSigma, pixelSize)
     })
 
     nIter <- 3
@@ -265,42 +315,11 @@ generateMask <- function(dims, clusters,
             curPoints <- points[clusters == clusterLevels[i]]
 
 
-            if (iter == nIter) {
-                # smoothed <- spatstat.geom::as.im(windowHD) * 0
-            }
-
             for (part in parts) {
-                partPoints <- curPoints[part][window]
+                partDensity <- getPartDensityClipped(
+                    curPoints, part, window, smoothSigma, pixelSize)
 
-                partSigma <- sqrt(bw.nrd(partPoints$x) * bw.nrd(partPoints$y)) * 1.5
-                if (!is.na(smoothSigma)) {
-                    partSigma <- sqrt(partSigma * smoothSigma)
-                }
-
-                extPart <- dilation(part, r=2*partSigma)
-                partPoints <- curPoints[extPart][window]
-
-                partMask <- pixellate(partPoints, xy=window)
-                partMask[partMask == 0] <- NA
-                partMask <- as.owin(partMask)
-                partMaskV <- dilation(partMask, r = 2*partSigma + 1.5*pixelSize, polygonal=T)
-                partMaskV <- erosion(partMaskV, r = 2*partSigma, polygonal=T)
-                partMask <- as.mask(partMaskV, xy=window)
-
-                partBorder <- setminus.owin(
-                    dilation(partMask, r=pixelSize*0, tight=FALSE),
-                    erosion(partMask, r=pixelSize*1.5, tight=FALSE))
-                partBorder <- intersect.owin(partBorder, window)
-
-                partDensity <- density.ppp(partPoints, sigma=partSigma, xy=window)
-                t <- median(partDensity[partBorder])
-
-                if (iter == nIter) {
-                    # better but slower way of smoothing borders
-                    # partDensity <- density.ppp(partPoints[windowHD], sigma=partSigma, xy=windowHD)
-                }
-
-                smoothed <- smoothed + partDensity*(partDensity > t)
+                smoothed <- smoothed + partDensity
             }
             smoothed
         })
