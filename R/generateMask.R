@@ -83,12 +83,36 @@ splitByMaxWeight <- function(weights, backgroundWeight=0.01) {
     res
 }
 
-removeMaskIntersections <- function(curMasks, backgroundDensity=0.01) {
+# weights should share coordinates with W
+splitByMaxWeight <- function(weights, W) {
+    maxWeight <- as.im(0, W=W)
+
+    for (i in seq_along(weights)) {
+        ix <- match(weights[[i]]$xcol, W$xcol)
+        iy <- match(weights[[i]]$yrow, W$yrow)
+        stopifnot(!anyNA(ix))
+        stopifnot(!anyNA(iy))
+
+        maxWeight$v[iy, ix] <- pmax(maxWeight$v[iy, ix], weights[[i]]$v)
+    }
+
+    res <- lapply(seq_along(weights), function(i) {
+        ix <- match(weights[[i]]$xcol, W$xcol)
+        iy <- match(weights[[i]]$yrow, W$yrow)
+        solutionset(weights[[i]] > 0 & (weights[[i]] == maxWeight$v[iy, ix]))
+    })
+}
+
+# curMasks should share coordinates with W
+removeMaskIntersections <- function(curMasks, W) {
     maskWeights <- lapply(seq_along(curMasks), function(i) {
-        distmap(complement.owin(curMasks[[i]]))
+        D <- distmap(complement.owin(curMasks[[i]]))
+        # a bit of jitter to make numbers unique
+        D$v <- D$v * (1 + runif(length(D$v))*(2**-20))
+        updateGridFrom(D, curMasks[[i]])
     })
 
-    res <- splitByMaxWeight(maskWeights)
+    res <- splitByMaxWeight(maskWeights, W=W)
     res
 }
 
@@ -100,6 +124,19 @@ expandRect <- function(rw, dx = 0, dy = dx) {
 
     rw
 }
+
+updateGridFrom <- function(to, from, eps=1e-10) {
+    stopifnot(identical(dim(to), dim(from)))
+    stopifnot(max(abs(to$xrange-from$xrange)) < eps)
+    stopifnot(max(abs(to$yrange-from$yrange)) < eps)
+
+    to$xcol <- from$xcol
+    to$yrow <- from$yrow
+    to$xstep <- from$xstep
+    to$ystep <- from$ystep
+    to
+}
+
 
 getConnectedParts <- function(curMask, curDensity, minSize, absolutelyMinSize=5) {
     toCrop <- boundingbox(curMask)
@@ -324,7 +361,7 @@ generateMask <- function(dims, clusters,
             smoothed
         })
 
-        curMasks <- splitByMaxWeight(allDensitiesSmoothed)
+        curMasks <- splitByMaxWeight(allDensitiesSmoothed, W=window)
     }
 
     # smooth borders and expand a little (in vector)
@@ -334,9 +371,17 @@ generateMask <- function(dims, clusters,
     curMasks <- lapply(curMasks, dilation, r=expand, polygonal=TRUE)
 
     # switch to high-res
-    curMasks <- lapply(curMasks, as.mask, xy = windowHD)
+    curMasks <- lapply(curMasks, function(m) {
+        bbox <- boundingbox(m)
+        subW <- windowHD[bbox]
+        res <- as.mask(m, xy = subW)
 
-    curMasks <- removeMaskIntersections(curMasks)
+        # force the coordinate grid to be the same (for some reason they're a bit different)
+        res <- updateGridFrom(res, from=subW)
+    })
+
+
+    curMasks <- removeMaskIntersections(curMasks, W=windowHD)
 
     borderTable <- rbindlist(lapply(seq_along(clusterLevels), function(i) {
         curMask <- curMasks[[i]]
