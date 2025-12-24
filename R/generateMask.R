@@ -29,10 +29,10 @@ borderTableFromMask <- function(curMask, crop=TRUE) {
         curMask <- curMask[toCrop]
     }
 
-    parts <- tiles(tess(image=connected(curMask)))
+    polyMask <- as.polygonal(curMask)
+    parts <- xypolycomponents(polyMask)
 
     curBorderTable <- list()
-
 
     for (partIdx in seq_along(parts)) {
         part <- parts[[partIdx]]
@@ -126,13 +126,13 @@ getConnectedParts <- function(curMask, curDensity, minSize, absolutelyMinSize=5)
     toCrop <- boundingbox(curMask)
     # to avoid one-pixel crops https://github.com/spatstat/spatstat.geom/issues/24
     toCrop <- expandRect(toCrop, curMask$xstep, curMask$ystep)
-    curMaskCrop <- curMask[toCrop]
+    curMask <- curMask[toCrop]
 
-    curMaskSplit <- connected(curMaskCrop)
-    parts <- tiles(tess(image=connected(curMaskCrop)))
+    curMaskSplit <- connected(curMask)
+    parts <- tiles(tess(image=curMaskSplit))
 
     partSizes <- vapply(parts, function(part) {
-        sum(as.matrix(part) * as.matrix(curDensity[toCrop]))
+        sum(curDensity[part])
     }, FUN.VALUE = numeric(1))
 
     parts <- parts[partSizes >= min(minSize, max(c(partSizes, absolutelyMinSize)))]
@@ -147,12 +147,14 @@ getRoughMask <- function(partPoints, window, partSigma, pixelSize, crop=TRUE) {
         toCrop <- boundingbox(partPoints)
         toCrop <- expandRect(toCrop, extD, extD)
         partPoints <- partPoints[toCrop]
+        window <- window[toCrop]
     }
 
     D <- distmap(partPoints)
     partMaskV <- solutionset(D <= 2*partSigma + 1.5*pixelSize)
     partMaskV <- erosion(partMaskV, r = 2*partSigma, polygonal=F)
     partMask <- as.mask(partMaskV, xy=window)
+    partMask <- updateGridFrom(partMask, window)
     partMask
 }
 
@@ -175,6 +177,7 @@ getPartDensityClipped <- function(curPoints, part, window, smoothSigma, pixelSiz
 
     partMask <- getRoughMask(partPoints, window[toCrop], partSigma, pixelSize, crop=FALSE)
 
+
     if (min(partMask$dim) <= 3) {
         partBorder <- partMask
     } else {
@@ -186,12 +189,12 @@ getPartDensityClipped <- function(curPoints, part, window, smoothSigma, pixelSiz
         )
     }
 
+    # TODO: use blur on precomputed raw density instead
     partDensity <- density.ppp(partPoints, sigma=partSigma, xy=window[toCrop])
     t <- median(partDensity[partBorder])
 
 
     partDensity <- partDensity*(partDensity > t)
-
     partDensity <- as.im(partDensity, W = window, na.replace = 0)
 }
 
