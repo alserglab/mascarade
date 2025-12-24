@@ -63,27 +63,8 @@ borderTableFromMask <- function(curMask, crop=TRUE) {
             res[]
         }))
     }
+
     rbindlist(curBorderTable)
-}
-
-# assumes weights are compatible im objects
-splitByMaxWeight <- function(weights, backgroundWeight=0.01) {
-    if (length(weights) == 0) {
-        return(NULL)
-    }
-
-    vlist <- lapply(weights, function(im) as.vector(im$v))
-    vlist <- c(list(rep(backgroundWeight, length(vlist[[1]]))), vlist)
-    M <- do.call(cbind, vlist)
-    idx <- max.col(M, ties.method = "first") - 1
-
-    whichMaxWeight <- weights[[1]]
-    whichMaxWeight$v <- idx
-
-    res <- lapply(seq_along(weights), function(i) {
-        solutionset(whichMaxWeight == i)
-    })
-    res
 }
 
 # weights should share coordinates with W
