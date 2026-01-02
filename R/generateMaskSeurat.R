@@ -5,7 +5,6 @@
 #'      (default: `DefaultDimReduc(object)`)
 #' @param group.by character vector specifying which field to use for clusters
 #'      (default: `"ident"`)
-#' @param name description
 #' @returns data.table with points representing the mask borders.
 #'      Each individual border line corresponds to a single level of `group` column.
 #'      Cluster assignment is in `cluster` column.
@@ -16,6 +15,7 @@
 #'
 #' maskTable <- generateMaskSeurat(exampleSeurat)
 #'
+#' library(ggplot2)
 #' Seurat::DimPlot(exampleSeurat) +
 #'     geom_path(data=maskTable, aes(x=UMAP_1, y=UMAP_2, group=group)) +
 #'     coord_fixed()

@@ -27,8 +27,6 @@ generateMaskSeurat(
 \item{expand}{distance used to expand borders, represented as a fraction of sqrt(width*height). Default: 1/200.}
 
 \item{minSize}{Groups of less than \code{minSize} points are ignored, unless it is the only group for a cluster}
-
-\item{name}{description}
 }
 \value{
 data.table with points representing the mask borders.
@@ -43,6 +41,7 @@ data("exampleSeurat")
 
 maskTable <- generateMaskSeurat(exampleSeurat)
 
+library(ggplot2)
 Seurat::DimPlot(exampleSeurat) +
     geom_path(data=maskTable, aes(x=UMAP_1, y=UMAP_2, group=group)) +
     coord_fixed()

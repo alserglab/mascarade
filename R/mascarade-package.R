@@ -8,3 +8,10 @@
 #' @docType data
 #' @name exampleMascarade
 NULL
+
+
+#' Example Seurat object with PBMC3K dataset.
+#'
+#' @docType data
+#' @name exampleSeurat
+NULL
