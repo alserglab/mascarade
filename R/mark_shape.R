@@ -312,6 +312,7 @@ makeContent.shape_enc <- function(x) {
         colnames(x) <- c("x", "y")
         return(x)
     })
+    # TODO: polygons can contain NAs if they get cut by axis limits
     mark$id <- rep(seq_along(polygons), vapply(polygons, nrow, numeric(1)))
     polygons <- vec_rbind(!!!polygons)
     mark$x <- unit(polygons[, 1], 'mm')

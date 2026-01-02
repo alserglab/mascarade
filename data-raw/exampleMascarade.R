@@ -17,3 +17,20 @@ exampleMascarade <- list(
 )
 
 usethis::use_data(exampleMascarade, overwrite = TRUE)
+
+
+exampleSeurat <- DietSeurat(pbmc3k.final,
+                            layers = c("data"),
+                            features = featureList,
+                            dimreducs = c("umap"),
+                            misc = FALSE)
+exampleSeurat@commands <- list()
+exampleSeurat@meta.data <- NULLexampleSeurat@meta.data[, c("seurat_clusters"), drop = FALSE]
+
+# make sure it's still usable
+DimPlot(exampleSeurat)
+FeaturePlot(exampleSeurat, "GNLY")
+
+usethis::use_data(exampleSeurat, overwrite = TRUE)
+
+

@@ -2,6 +2,7 @@
 
 S3method(makeContent,shape_enc)
 export(generateMask)
+export(generateMaskSeurat)
 export(geom_mark_shape)
 import(ggforce)
 import(spatstat.explore)
