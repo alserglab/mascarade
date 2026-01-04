@@ -7,9 +7,10 @@
 fancyMask(
   maskTable,
   ratio = NULL,
-  limits.expand = 0.1,
+  limits.expand = ifelse(label, 0.1, 0.05),
   linewidth = 1,
-  shape.expand = unit(-1, "pt"),
+  shape.expand = linewidth * unit(-1, "pt"),
+  label = TRUE,
   label.fontsize = 10,
   label.buffer = unit(0, "cm"),
   label.fontface = "plain",
@@ -26,14 +27,16 @@ passed to \code{geom_mark_shape()}).}
 Use \code{1} for equal scaling. Default is \code{NULL} (no fixed ratio).}
 
 \item{limits.expand}{Numeric scalar giving the fraction of the x/y range to
-expand on both sides when setting plot limits. Default is \code{0.1}.}
+expand on both sides when setting plot limits. Default is \code{0.1} with labels and 0.05 with no labels.}
 
 \item{linewidth}{Line width passed to \code{geom_mark_shape()} for the
 outline. Default is \code{1}.}
 
 \item{shape.expand}{Expansion or contraction applied to the marked shapes,
 passed to \code{geom_mark_shape(expand = ...)}. Default is
-\code{unit(-1, "pt")}.}
+\code{unit(-linewidth, "pt")}.}
+
+\item{label}{Boolean flag wheter the labels should be displayed.}
 
 \item{label.fontsize}{Label font size passed to \code{geom_mark_shape()}.
 Default is \code{10}.}

@@ -55,7 +55,7 @@ Expression table for several genes:
 head(exampleMascarade$features)
 ```
 
-Let's plot this data:
+Let's plot these data:
 
 ```{r}
 data <- data.table(exampleMascarade$dims, 
@@ -133,7 +133,7 @@ With the help of `ggforce`-based function `geom_mark_shape` we can also put the 
 
 
 ```{r}
-fancyMask <- list(
+myMask <- list(
     geom_mark_shape(data=maskTable, aes(group=cluster, color=cluster, label = cluster),
                     fill = NA,
                    linewidth=1, expand=unit(-1, "pt"),
@@ -152,24 +152,29 @@ fancyMask <- list(
 
 ggplot(data, aes(x=UMAP_1, y=UMAP_2)) +
     geom_point(color="grey") +
-    fancyMask +
+    myMask +
     coord_fixed() +
     theme_classic()
 ```
 
+The same can be achived with the `fancyMask()` helper function:
+
+```{r}
+ggplot(data, aes(x=UMAP_1, y=UMAP_2)) +
+    geom_point(color="grey") +
+    fancyMask(maskTable, ratio=1) +
+    theme_classic()
+```
 
 Now we can easily show association between cell types and 
 expression of particular genes, such as GNLY being a good marker
 for NK cells in this dataset.
 
 ```{r}
-library(ggnewscale) # for having two color scales simultaneously
 ggplot(data, aes(x=UMAP_1, y=UMAP_2)) + 
     geom_point(aes(color=GNLY), size=0.5) +
     scale_color_gradient2(low = "#404040", high="red") + 
-    new_scale_color() + 
-    fancyMask +
-    coord_fixed() + 
+    fancyMask(maskTable, ratio=1) +
     theme_classic()
 ```
 
@@ -189,13 +194,14 @@ ggplot(data, aes(x=UMAP_1, y=UMAP_2)) +
 
 For this part of the vignette you need `Seurat`package. 
 
-```{r}
+```{r message=FALSE}
 library(Seurat)
 ```
 
 Let's get the example PBMC3K dataset:
 ```{r}
 pbmc3k <- readRDS(url("https://alserglab.wustl.edu/files/mascarade/examples/pbmc3k_seurat5.rds"))
+pbmc3k <- NormalizeData(pbmc3k)
 pbmc3k
 ```
 
@@ -213,55 +219,56 @@ if (requireNamespace("SeuratData")) {
 }
 ```
 
-
-Let's plot some features:
-```{r}
-featureList <- c("MS4A1", "GNLY", "CD3E", "CD14")
-FeaturePlot(pbmc3k, features=featureList)
-```
-
-Generate masks from UMAP data:
+Generate masks using a helper function:
 
 ```{r}
-maskTable <- generateMask(
-    dims=Embeddings(pbmc3k, "umap"),
-    clusters=pbmc3k$seurat_annotations)
+maskTable <- generateMaskSeurat(pbmc3k)
 ```
 
-Now we can plot the same features with borders (there will be some warnings due to the scale change):
+We can use `fancyMask()` now:
+
+```{r seurat-dimplot}
+DimPlot(pbmc3k) + NoLegend() +
+    fancyMask(maskTable, ratio=1)
+```
+
+For the `DimPlot`, the borders can be viewed as redundant and removed:
+
+```{r seurat-dimplot-noborder}
+DimPlot(pbmc3k) + NoLegend() +
+    fancyMask(maskTable, linewidth = 0, ratio=1)
+```
+
+Let's plot an NK cell marker:
+
+```{r seurat-gnly}
+FeaturePlot(pbmc3k, "GNLY", cols=c("grey90", "red")) +
+    fancyMask(maskTable, ratio=1)
+```
+
+Or multiple markers (skipping the labels to save space):
 
 ```{r message=FALSE, warning=FALSE}
-plots <- FeaturePlot(pbmc3k, features=featureList, combine = FALSE)
-
-plots <- lapply(plots, `+`,
-                list(
-                    geom_path(data=maskTable, aes(x=UMAP_1, y=UMAP_2, group=group)),
-                    # so that borders aren't cropped:
-                    scale_x_continuous(expand = expansion(mult = 0.05)),
-                    scale_y_continuous(expand = expansion(mult = 0.05))) 
-                )
-
+featureList <- c("MS4A1", "GNLY", "CD3E", "CD14")
+plots <- FeaturePlot(pbmc3k, features=featureList, cols=c("grey90", "red"), combine = FALSE)
+plots <- lapply(plots, `+`, fancyMask(maskTable, ratio=1, linewidth=0.5, label=FALSE))
 patchwork::wrap_plots(plots)
 ```
+
 
 Works with t-SNE too:
 
 ```{r message=FALSE, warning=FALSE}
 pbmc3k <- RunTSNE(pbmc3k)
 
-maskTable <- generateMask(
-    dims=Embeddings(pbmc3k, "tsne"),
-    clusters=pbmc3k$seurat_annotations)
+maskTable <- generateMaskSeurat(pbmc3k, reduction = "tsne")
 
-plots <- FeaturePlot(pbmc3k, features=featureList, combine = FALSE, reduction = "tsne")
-
-plots <- lapply(plots, `+`,
-                list(
-                    geom_path(data=maskTable, aes(x=tSNE_1, y=tSNE_2, group=group)),
-                    # so that borders aren't cropped:
-                    scale_x_continuous(expand = expansion(mult = 0.05)),
-                    scale_y_continuous(expand = expansion(mult = 0.05))) 
-                )
+plots <- FeaturePlot(pbmc3k, 
+                     features=featureList,
+                     reduction = "tsne",
+                     cols=c("grey90", "red"),
+                     combine = FALSE)
+plots <- lapply(plots, `+`, fancyMask(maskTable, ratio=1, linewidth=0.5, label=FALSE))
 
 patchwork::wrap_plots(plots)
 ```
