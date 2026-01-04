@@ -2,7 +2,7 @@
 title: "Gallery of mascarade-generaded masks"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Gallery of mascarade-generaded mask}
+  %\VignetteIndexEntry{Gallery of mascarade-generaded masks}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---

@@ -12,6 +12,7 @@ Imports:
     spatstat.explore,
     lifecycle,
     ggplot2,
+    scales,
     polyclip,
     ggforce,
     vctrs,
@@ -35,6 +36,6 @@ Suggests:
     SeuratObject
 Config/testthat/edition: 3
 VignetteBuilder: knitr
-URL: https://github.com/alserglab/mascarade/
+URL: https://alserglab.github.io/mascarade/
 BugReports: https://github.com/alserglab/mascarade/issues
 Roxygen: list(markdown=TRUE)
