@@ -58,7 +58,7 @@
 <div class="page-header"><h1 id="mascarade">mascarade<a class="anchor" aria-label="anchor" href="#mascarade"></a>
 </h1></div>
 <p><code>mascarade</code> package implements a procedure to automatically generate 2D masks for clusters on single-cell dimensional reduction plots like t-SNE or UMAP.</p>
-<p>See the <a href="https://rpubs.com/asergushichev/mascarade-tutorial" class="external-link">tutorial</a> for usage details and <a href="https://rpubs.com/asergushichev/mascarade-gallery" class="external-link">gallery</a> for examples on different datasets.</p>
+<p>See the <a href="https://alserglab.github.io/mascarade/articles/mascarade-tutorial.html">tutorial</a> for usage details and <a href="https://alserglab.github.io/mascarade/articles/mascarade-gallery.html">gallery</a> for examples on different datasets.</p>
 <div class="section level2">
 <h2 id="installation">Installation<a class="anchor" aria-label="anchor" href="#installation"></a>
 </h2>
@@ -73,52 +73,36 @@
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://alserglab.github.io/mascarade/">mascarade</a></span><span class="op">)</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://ggplot2.tidyverse.org" class="external-link">ggplot2</a></span><span class="op">)</span></span>
-<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://r-datatable.com" class="external-link">data.table</a></span><span class="op">)</span></span></code></pre></div>
-<p>Loading example data:</p>
+<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://r-datatable.com" class="external-link">data.table</a></span><span class="op">)</span></span>
+<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://satijalab.org/seurat" class="external-link">Seurat</a></span><span class="op">)</span></span></code></pre></div>
+<p>Loading get the example PBMC3K dataset:</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span><span class="st">"exampleMascarade"</span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="va">pbmc3k</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">readRDS</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/connections.html" class="external-link">url</a></span><span class="op">(</span><span class="st">"https://alserglab.wustl.edu/files/mascarade/examples/pbmc3k_seurat5.rds"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">pbmc3k</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://satijalab.org/seurat/reference/NormalizeData.html" class="external-link">NormalizeData</a></span><span class="op">(</span><span class="va">pbmc3k</span><span class="op">)</span></span>
+<span><span class="va">pbmc3k</span></span></code></pre></div>
+<div class="sourceCode" id="cb4"><pre class="sourceCode R"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a><span class="do">## An object of class Seurat </span></span>
+<span id="cb4-2"><a href="#cb4-2" tabindex="-1"></a><span class="do">## 13714 features across 2638 samples within 1 assay </span></span>
+<span id="cb4-3"><a href="#cb4-3" tabindex="-1"></a><span class="do">## Active assay: RNA (13714 features, 2000 variable features)</span></span>
+<span id="cb4-4"><a href="#cb4-4" tabindex="-1"></a><span class="do">##  2 layers present: counts, data</span></span>
+<span id="cb4-5"><a href="#cb4-5" tabindex="-1"></a><span class="do">##  2 dimensional reductions calculated: pca, umap</span></span></code></pre></div>
 <p>Generating masks:</p>
-<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">maskTable</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/generateMask.html">generateMask</a></span><span class="op">(</span>dims<span class="op">=</span><span class="va">exampleMascarade</span><span class="op">$</span><span class="va">dims</span>, </span>
-<span>                          clusters<span class="op">=</span><span class="va">exampleMascarade</span><span class="op">$</span><span class="va">clusters</span><span class="op">)</span></span></code></pre></div>
-<p>Plotting with <code>ggplot2</code>:</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">data</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdatatable.gitlab.io/data.table/reference/data.table.html" class="external-link">data.table</a></span><span class="op">(</span><span class="va">exampleMascarade</span><span class="op">$</span><span class="va">dims</span>, </span>
-<span>                   cluster<span class="op">=</span><span class="va">exampleMascarade</span><span class="op">$</span><span class="va">clusters</span>,</span>
-<span>                   <span class="va">exampleMascarade</span><span class="op">$</span><span class="va">features</span><span class="op">)</span></span>
-<span></span>
-<span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="va">data</span>, <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>x<span class="op">=</span><span class="va">UMAP_1</span>, y<span class="op">=</span><span class="va">UMAP_2</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span> </span>
-<span>    <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_point.html" class="external-link">geom_point</a></span><span class="op">(</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>color<span class="op">=</span><span class="va">cluster</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span> </span>
-<span>    <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_path.html" class="external-link">geom_path</a></span><span class="op">(</span>data<span class="op">=</span><span class="va">maskTable</span>, <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>group<span class="op">=</span><span class="va">group</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
-<span>    <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/coord_fixed.html" class="external-link">coord_fixed</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span> </span>
-<span>    <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html" class="external-link">theme_classic</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
-<p><img src="https://alserglab.wustl.edu/files/mascarade/readme-basic-1.png"></p>
-<p>Fancy version, showing NGLY gene being specific to NK cells:</p>
+<code class="sourceCode R"><span><span class="va">maskTable</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/generateMaskSeurat.html">generateMaskSeurat</a></span><span class="op">(</span><span class="va">pbmc3k</span><span class="op">)</span></span></code></pre></div>
+<p><code>DimPlot</code> with the mask and labels:</p>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://eliocamp.github.io/ggnewscale/" class="external-link">ggnewscale</a></span><span class="op">)</span></span>
-<span><span class="va">fancyMask</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
-<span>    <span class="fu"><a href="reference/geom_mark_shape.html">geom_mark_shape</a></span><span class="op">(</span>data<span class="op">=</span><span class="va">maskTable</span>, fill <span class="op">=</span> <span class="cn">NA</span>, <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>group<span class="op">=</span><span class="va">group</span>, color<span class="op">=</span><span class="va">cluster</span>, label<span class="op">=</span><span class="va">cluster</span><span class="op">)</span>,</span>
-<span>                   linewidth<span class="op">=</span><span class="fl">1</span>, expand<span class="op">=</span><span class="fu"><a href="https://rdrr.io/r/grid/unit.html" class="external-link">unit</a></span><span class="op">(</span><span class="op">-</span><span class="fl">1</span>, <span class="st">"pt"</span><span class="op">)</span>,</span>
-<span>                   con.cap<span class="op">=</span><span class="fl">0</span>, con.type <span class="op">=</span> <span class="st">"straight"</span>,</span>
-<span>                   label.fontsize <span class="op">=</span> <span class="fl">10</span>, label.buffer <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/grid/unit.html" class="external-link">unit</a></span><span class="op">(</span><span class="fl">0</span>, <span class="st">"cm"</span><span class="op">)</span>,</span>
-<span>                   label.fontface <span class="op">=</span> <span class="st">"plain"</span>,</span>
-<span>                   label.minwidth <span class="op">=</span> <span class="fl">0</span>,</span>
-<span>                   label.margin <span class="op">=</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/element.html" class="external-link">margin</a></span><span class="op">(</span><span class="fl">2</span>, <span class="fl">2</span>, <span class="fl">2</span>, <span class="fl">2</span>, <span class="st">"pt"</span><span class="op">)</span>,</span>
-<span>                   label.lineheight <span class="op">=</span> <span class="fl">0</span>,</span>
-<span>                   con.colour <span class="op">=</span> <span class="st">"inherit"</span>,</span>
-<span>                   show.legend <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span>,</span>
-<span>    <span class="co"># expanding to give a bit more space for labels</span></span>
-<span>    <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_continuous.html" class="external-link">scale_x_continuous</a></span><span class="op">(</span>expand <span class="op">=</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/expansion.html" class="external-link">expansion</a></span><span class="op">(</span>mult <span class="op">=</span> <span class="fl">0.1</span><span class="op">)</span><span class="op">)</span>,</span>
-<span>    <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_continuous.html" class="external-link">scale_y_continuous</a></span><span class="op">(</span>expand <span class="op">=</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/expansion.html" class="external-link">expansion</a></span><span class="op">(</span>mult <span class="op">=</span> <span class="fl">0.1</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="va">data</span>, <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>x<span class="op">=</span><span class="va">UMAP_1</span>, y<span class="op">=</span><span class="va">UMAP_2</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span> </span>
-<span>    <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_point.html" class="external-link">geom_point</a></span><span class="op">(</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>color<span class="op">=</span><span class="va">GNLY</span><span class="op">)</span>, size<span class="op">=</span><span class="fl">0.5</span><span class="op">)</span> <span class="op">+</span></span>
-<span>    <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_gradient.html" class="external-link">scale_color_gradient2</a></span><span class="op">(</span>low <span class="op">=</span> <span class="st">"#404040"</span>, high<span class="op">=</span><span class="st">"red"</span><span class="op">)</span> <span class="op">+</span> </span>
-<span>    <span class="fu"><a href="https://eliocamp.github.io/ggnewscale/reference/new_scale.html" class="external-link">new_scale_color</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span> </span>
-<span>    <span class="va">fancyMask</span> <span class="op">+</span></span>
-<span>    <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/coord_fixed.html" class="external-link">coord_fixed</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span> </span>
-<span>    <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html" class="external-link">theme_classic</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
-<p><img src="https://alserglab.wustl.edu/files/mascarade/readme-fancy-1.png"></p>
+<code class="sourceCode R"><span><span class="fu"><a href="https://satijalab.org/seurat/reference/DimPlot.html" class="external-link">DimPlot</a></span><span class="op">(</span><span class="va">pbmc3k</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://satijalab.org/seurat/reference/SeuratTheme.html" class="external-link">NoLegend</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span></span>
+<span>    <span class="fu"><a href="reference/fancyMask.html">fancyMask</a></span><span class="op">(</span><span class="va">maskTable</span>, ratio<span class="op">=</span><span class="fl">1</span><span class="op">)</span></span></code></pre></div>
+<p><img src="https://alserglab.github.io/mascarade/articles/mascarade-tutorial_files/figure-html/seurat-dimplot-1.png"></p>
+<p><code>DimPlot</code> with the just the labels</p>
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://satijalab.org/seurat/reference/DimPlot.html" class="external-link">DimPlot</a></span><span class="op">(</span><span class="va">pbmc3k</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://satijalab.org/seurat/reference/SeuratTheme.html" class="external-link">NoLegend</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span></span>
+<span>    <span class="fu"><a href="reference/fancyMask.html">fancyMask</a></span><span class="op">(</span><span class="va">maskTable</span>, linewidth<span class="op">=</span><span class="fl">0</span>, ratio<span class="op">=</span><span class="fl">1</span><span class="op">)</span></span></code></pre></div>
+<p><img src="https://alserglab.github.io/mascarade/articles/mascarade-tutorial_files/figure-html/seurat-dimplot-noborder-1.png"></p>
+<p><code>FeaturePlot</code> with the mask and labels showing GNLY gene being specific to NK cells:</p>
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://satijalab.org/seurat/reference/FeaturePlot.html" class="external-link">FeaturePlot</a></span><span class="op">(</span><span class="va">pbmc3k</span>, <span class="st">"GNLY"</span>, cols<span class="op">=</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"grey90"</span>, <span class="st">"red"</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
+<span>    <span class="fu"><a href="reference/fancyMask.html">fancyMask</a></span><span class="op">(</span><span class="va">maskTable</span>, ratio<span class="op">=</span><span class="fl">1</span><span class="op">)</span></span></code></pre></div>
+<p><img src="https://alserglab.github.io/mascarade/articles/mascarade-tutorial_files/figure-html/seurat-gnly-1.png"></p>
 </div>
 </div>
 
