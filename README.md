@@ -7,10 +7,11 @@
 masks for clusters on single-cell dimensional reduction plots like t-SNE
 or UMAP.
 
-See the [tutorial](https://rpubs.com/asergushichev/mascarade-tutorial)
+See the
+[tutorial](https://alserglab.github.io/mascarade/articles/mascarade-tutorial.html)
 for usage details and
-[gallery](https://rpubs.com/asergushichev/mascarade-gallery) for
-examples on different datasets.
+[gallery](https://alserglab.github.io/mascarade/articles/mascarade-gallery.html)
+for examples on different datasets.
 
 ## Installation
 
@@ -28,63 +29,53 @@ Loading necessary libraries:
 library(mascarade)
 library(ggplot2)
 library(data.table)
+library(Seurat)
 ```
 
-Loading example data:
+Loading get the example PBMC3K dataset:
 
 ``` r
-data("exampleMascarade")
+pbmc3k <- readRDS(url("https://alserglab.wustl.edu/files/mascarade/examples/pbmc3k_seurat5.rds"))
+pbmc3k <- NormalizeData(pbmc3k)
+pbmc3k
 ```
+
+    ## An object of class Seurat 
+    ## 13714 features across 2638 samples within 1 assay 
+    ## Active assay: RNA (13714 features, 2000 variable features)
+    ##  2 layers present: counts, data
+    ##  2 dimensional reductions calculated: pca, umap
 
 Generating masks:
 
 ``` r
-maskTable <- generateMask(dims=exampleMascarade$dims, 
-                          clusters=exampleMascarade$clusters)
+maskTable <- generateMaskSeurat(pbmc3k)
 ```
 
-Plotting with `ggplot2`:
+`DimPlot` with the mask and labels:
 
 ``` r
-data <- data.table(exampleMascarade$dims, 
-                   cluster=exampleMascarade$clusters,
-                   exampleMascarade$features)
-
-ggplot(data, aes(x=UMAP_1, y=UMAP_2)) + 
-    geom_point(aes(color=cluster)) + 
-    geom_path(data=maskTable, aes(group=group)) +
-    coord_fixed() + 
-    theme_classic()
+DimPlot(pbmc3k) + NoLegend() +
+    fancyMask(maskTable, ratio=1)
 ```
 
-<img src="https://alserglab.wustl.edu/files/mascarade/readme-basic-1.png">
+<img src="https://alserglab.github.io/mascarade/articles/mascarade-tutorial_files/figure-html/seurat-dimplot-1.png">
 
-Fancy version, showing NGLY gene being specific to NK cells:
+`DimPlot` with the just the labels
 
 ``` r
-library(ggnewscale)
-fancyMask <- list(
-    geom_mark_shape(data=maskTable, fill = NA, aes(group=group, color=cluster, label=cluster),
-                   linewidth=1, expand=unit(-1, "pt"),
-                   con.cap=0, con.type = "straight",
-                   label.fontsize = 10, label.buffer = unit(0, "cm"),
-                   label.fontface = "plain",
-                   label.minwidth = 0,
-                   label.margin = margin(2, 2, 2, 2, "pt"),
-                   label.lineheight = 0,
-                   con.colour = "inherit",
-                   show.legend = FALSE),
-    # expanding to give a bit more space for labels
-    scale_x_continuous(expand = expansion(mult = 0.1)),
-    scale_y_continuous(expand = expansion(mult = 0.1))
-)
-ggplot(data, aes(x=UMAP_1, y=UMAP_2)) + 
-    geom_point(aes(color=GNLY), size=0.5) +
-    scale_color_gradient2(low = "#404040", high="red") + 
-    new_scale_color() + 
-    fancyMask +
-    coord_fixed() + 
-    theme_classic()
+DimPlot(pbmc3k) + NoLegend() +
+    fancyMask(maskTable, linewidth=0, ratio=1)
 ```
 
-<img src="https://alserglab.wustl.edu/files/mascarade/readme-fancy-1.png">
+<img src="https://alserglab.github.io/mascarade/articles/mascarade-tutorial_files/figure-html/seurat-dimplot-noborder-1.png">
+
+`FeaturePlot` with the mask and labels showing GNLY gene being specific
+to NK cells:
+
+``` r
+FeaturePlot(pbmc3k, "GNLY", cols=c("grey90", "red")) +
+    fancyMask(maskTable, ratio=1)
+```
+
+<img src="https://alserglab.github.io/mascarade/articles/mascarade-tutorial_files/figure-html/seurat-gnly-1.png">
