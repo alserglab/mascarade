@@ -1,0 +1,10 @@
+pandoc: 3.1.11
+pkgdown: 2.2.0
+pkgdown_sha: ~
+articles:
+  mascarade-gallery: mascarade-gallery.html
+  mascarade-tutorial: mascarade-tutorial.html
+last_built: 2026-01-04T02:21Z
+urls:
+  reference: https://alserglab.github.io/mascarade/reference
+  article: https://alserglab.github.io/mascarade/articles
