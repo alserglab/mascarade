@@ -10,9 +10,10 @@ expanded (via `limits.expand`) to provide extra room for labels.
 fancyMask(
   maskTable,
   ratio = NULL,
-  limits.expand = 0.1,
+  limits.expand = ifelse(label, 0.1, 0.05),
   linewidth = 1,
-  shape.expand = unit(-1, "pt"),
+  shape.expand = linewidth * unit(-1, "pt"),
+  label = TRUE,
   label.fontsize = 10,
   label.buffer = unit(0, "cm"),
   label.fontface = "plain",
@@ -39,7 +40,8 @@ fancyMask(
 - limits.expand:
 
   Numeric scalar giving the fraction of the x/y range to expand on both
-  sides when setting plot limits. Default is `0.1`.
+  sides when setting plot limits. Default is `0.1` with labels and 0.05
+  with no labels.
 
 - linewidth:
 
@@ -50,7 +52,11 @@ fancyMask(
 - shape.expand:
 
   Expansion or contraction applied to the marked shapes, passed to
-  `geom_mark_shape(expand = ...)`. Default is `unit(-1, "pt")`.
+  `geom_mark_shape(expand = ...)`. Default is `unit(-linewidth, "pt")`.
+
+- label:
+
+  Boolean flag wheter the labels should be displayed.
 
 - label.fontsize:
 

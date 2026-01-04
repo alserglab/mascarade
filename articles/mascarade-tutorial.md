@@ -76,7 +76,7 @@ head(exampleMascarade$features)
     ## AAACCGTGTATGCG -0.97272094 -0.1416271 -0.3537211
     ## AAACGCACTGGTAC -0.06309661 -0.1416271 -0.3537211
 
-Let’s plot this data:
+Let’s plot these data:
 
 ``` r
 data <- data.table(exampleMascarade$dims, 
@@ -174,7 +174,7 @@ With the help of `ggforce`-based function `geom_mark_shape` we can also
 put the labels within the plot itself.
 
 ``` r
-fancyMask <- list(
+myMask <- list(
     geom_mark_shape(data=maskTable, aes(group=cluster, color=cluster, label = cluster),
                     fill = NA,
                    linewidth=1, expand=unit(-1, "pt"),
@@ -193,29 +193,39 @@ fancyMask <- list(
 
 ggplot(data, aes(x=UMAP_1, y=UMAP_2)) +
     geom_point(color="grey") +
-    fancyMask +
+    myMask +
     coord_fixed() +
     theme_classic()
 ```
 
 ![](mascarade-tutorial_files/figure-html/unnamed-chunk-14-1.png)
 
+The same can be achived with the
+[`fancyMask()`](https://alserglab.github.io/mascarade/reference/fancyMask.md)
+helper function:
+
+``` r
+ggplot(data, aes(x=UMAP_1, y=UMAP_2)) +
+    geom_point(color="grey") +
+    fancyMask(maskTable, ratio=1) +
+    theme_classic()
+```
+
+![](mascarade-tutorial_files/figure-html/unnamed-chunk-15-1.png)
+
 Now we can easily show association between cell types and expression of
 particular genes, such as GNLY being a good marker for NK cells in this
 dataset.
 
 ``` r
-library(ggnewscale) # for having two color scales simultaneously
 ggplot(data, aes(x=UMAP_1, y=UMAP_2)) + 
     geom_point(aes(color=GNLY), size=0.5) +
     scale_color_gradient2(low = "#404040", high="red") + 
-    new_scale_color() + 
-    fancyMask +
-    coord_fixed() + 
+    fancyMask(maskTable, ratio=1) +
     theme_classic()
 ```
 
-![](mascarade-tutorial_files/figure-html/unnamed-chunk-15-1.png)
+![](mascarade-tutorial_files/figure-html/unnamed-chunk-16-1.png)
 
 We can focus on a single cluster too:
 
@@ -228,7 +238,7 @@ ggplot(data, aes(x=UMAP_1, y=UMAP_2)) +
     theme_classic()
 ```
 
-![](mascarade-tutorial_files/figure-html/unnamed-chunk-16-1.png)
+![](mascarade-tutorial_files/figure-html/unnamed-chunk-17-1.png)
 
 ### Working with Seurat
 
@@ -238,21 +248,11 @@ For this part of the vignette you need `Seurat`package.
 library(Seurat)
 ```
 
-    ## Loading required package: SeuratObject
-
-    ## Loading required package: sp
-
-    ## 
-    ## Attaching package: 'SeuratObject'
-
-    ## The following objects are masked from 'package:base':
-    ## 
-    ##     intersect, t
-
 Let’s get the example PBMC3K dataset:
 
 ``` r
 pbmc3k <- readRDS(url("https://alserglab.wustl.edu/files/mascarade/examples/pbmc3k_seurat5.rds"))
+pbmc3k <- NormalizeData(pbmc3k)
 pbmc3k
 ```
 
@@ -277,37 +277,47 @@ if (requireNamespace("SeuratData")) {
 }
 ```
 
-Let’s plot some features:
+Generate masks using a helper function:
+
+``` r
+maskTable <- generateMaskSeurat(pbmc3k)
+```
+
+We can use
+[`fancyMask()`](https://alserglab.github.io/mascarade/reference/fancyMask.md)
+now:
+
+``` r
+DimPlot(pbmc3k) + NoLegend() +
+    fancyMask(maskTable, ratio=1)
+```
+
+![](mascarade-tutorial_files/figure-html/seurat-dimplot-1.png)
+
+For the `DimPlot`, the borders can be viewed as redundant and removed:
+
+``` r
+DimPlot(pbmc3k) + NoLegend() +
+    fancyMask(maskTable, linewidth = 0, ratio=1)
+```
+
+![](mascarade-tutorial_files/figure-html/seurat-dimplot-noborder-1.png)
+
+Let’s plot an NK cell marker:
+
+``` r
+FeaturePlot(pbmc3k, "GNLY", cols=c("grey90", "red")) +
+    fancyMask(maskTable, ratio=1)
+```
+
+![](mascarade-tutorial_files/figure-html/seurat-gnly-1.png)
+
+Or multiple markers (skipping the labels to save space):
 
 ``` r
 featureList <- c("MS4A1", "GNLY", "CD3E", "CD14")
-FeaturePlot(pbmc3k, features=featureList)
-```
-
-![](mascarade-tutorial_files/figure-html/unnamed-chunk-20-1.png)
-
-Generate masks from UMAP data:
-
-``` r
-maskTable <- generateMask(
-    dims=Embeddings(pbmc3k, "umap"),
-    clusters=pbmc3k$seurat_annotations)
-```
-
-Now we can plot the same features with borders (there will be some
-warnings due to the scale change):
-
-``` r
-plots <- FeaturePlot(pbmc3k, features=featureList, combine = FALSE)
-
-plots <- lapply(plots, `+`,
-                list(
-                    geom_path(data=maskTable, aes(x=UMAP_1, y=UMAP_2, group=group)),
-                    # so that borders aren't cropped:
-                    scale_x_continuous(expand = expansion(mult = 0.05)),
-                    scale_y_continuous(expand = expansion(mult = 0.05))) 
-                )
-
+plots <- FeaturePlot(pbmc3k, features=featureList, cols=c("grey90", "red"), combine = FALSE)
+plots <- lapply(plots, `+`, fancyMask(maskTable, ratio=1, linewidth=0.5, label=FALSE))
 patchwork::wrap_plots(plots)
 ```
 
@@ -318,19 +328,14 @@ Works with t-SNE too:
 ``` r
 pbmc3k <- RunTSNE(pbmc3k)
 
-maskTable <- generateMask(
-    dims=Embeddings(pbmc3k, "tsne"),
-    clusters=pbmc3k$seurat_annotations)
+maskTable <- generateMaskSeurat(pbmc3k, reduction = "tsne")
 
-plots <- FeaturePlot(pbmc3k, features=featureList, combine = FALSE, reduction = "tsne")
-
-plots <- lapply(plots, `+`,
-                list(
-                    geom_path(data=maskTable, aes(x=tSNE_1, y=tSNE_2, group=group)),
-                    # so that borders aren't cropped:
-                    scale_x_continuous(expand = expansion(mult = 0.05)),
-                    scale_y_continuous(expand = expansion(mult = 0.05))) 
-                )
+plots <- FeaturePlot(pbmc3k, 
+                     features=featureList,
+                     reduction = "tsne",
+                     cols=c("grey90", "red"),
+                     combine = FALSE)
+plots <- lapply(plots, `+`, fancyMask(maskTable, ratio=1, linewidth=0.5, label=FALSE))
 
 patchwork::wrap_plots(plots)
 ```
@@ -364,8 +369,8 @@ sessionInfo()
     ## [1] stats     graphics  grDevices utils     datasets  methods   base     
     ## 
     ## other attached packages:
-    ## [1] Seurat_5.4.0       SeuratObject_5.3.0 sp_2.2-0           ggnewscale_0.5.2  
-    ## [5] ggforce_0.5.0      ggplot2_4.0.1      data.table_1.18.0  mascarade_0.2.999 
+    ## [1] Seurat_5.4.0       SeuratObject_5.3.0 sp_2.2-0           ggforce_0.5.0     
+    ## [5] ggplot2_4.0.1      data.table_1.18.0  mascarade_0.2.999 
     ## 
     ## loaded via a namespace (and not attached):
     ##   [1] pbapply_1.7-4          deldir_2.0-4           gridExtra_2.3         

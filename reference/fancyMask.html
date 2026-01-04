@@ -59,9 +59,10 @@ extra room for labels.</p>
     <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">fancyMask</span><span class="op">(</span></span>
 <span>  <span class="va">maskTable</span>,</span>
 <span>  ratio <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  limits.expand <span class="op">=</span> <span class="fl">0.1</span>,</span>
+<span>  limits.expand <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/ifelse.html" class="external-link">ifelse</a></span><span class="op">(</span><span class="va">label</span>, <span class="fl">0.1</span>, <span class="fl">0.05</span><span class="op">)</span>,</span>
 <span>  linewidth <span class="op">=</span> <span class="fl">1</span>,</span>
-<span>  shape.expand <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/grid/unit.html" class="external-link">unit</a></span><span class="op">(</span><span class="op">-</span><span class="fl">1</span>, <span class="st">"pt"</span><span class="op">)</span>,</span>
+<span>  shape.expand <span class="op">=</span> <span class="va">linewidth</span> <span class="op">*</span> <span class="fu"><a href="https://rdrr.io/r/grid/unit.html" class="external-link">unit</a></span><span class="op">(</span><span class="op">-</span><span class="fl">1</span>, <span class="st">"pt"</span><span class="op">)</span>,</span>
+<span>  label <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  label.fontsize <span class="op">=</span> <span class="fl">10</span>,</span>
 <span>  label.buffer <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/grid/unit.html" class="external-link">unit</a></span><span class="op">(</span><span class="fl">0</span>, <span class="st">"cm"</span><span class="op">)</span>,</span>
 <span>  label.fontface <span class="op">=</span> <span class="st">"plain"</span>,</span>
@@ -87,7 +88,7 @@ Use <code>1</code> for equal scaling. Default is <code>NULL</code> (no fixed rat
 
 <dt id="arg-limits-expand">limits.expand<a class="anchor" aria-label="anchor" href="#arg-limits-expand"></a></dt>
 <dd><p>Numeric scalar giving the fraction of the x/y range to
-expand on both sides when setting plot limits. Default is <code>0.1</code>.</p></dd>
+expand on both sides when setting plot limits. Default is <code>0.1</code> with labels and 0.05 with no labels.</p></dd>
 
 
 <dt id="arg-linewidth">linewidth<a class="anchor" aria-label="anchor" href="#arg-linewidth"></a></dt>
@@ -98,7 +99,11 @@ outline. Default is <code>1</code>.</p></dd>
 <dt id="arg-shape-expand">shape.expand<a class="anchor" aria-label="anchor" href="#arg-shape-expand"></a></dt>
 <dd><p>Expansion or contraction applied to the marked shapes,
 passed to <code>geom_mark_shape(expand = ...)</code>. Default is
-<code>unit(-1, "pt")</code>.</p></dd>
+<code>unit(-linewidth, "pt")</code>.</p></dd>
+
+
+<dt id="arg-label">label<a class="anchor" aria-label="anchor" href="#arg-label"></a></dt>
+<dd><p>Boolean flag wheter the labels should be displayed.</p></dd>
 
 
 <dt id="arg-label-fontsize">label.fontsize<a class="anchor" aria-label="anchor" href="#arg-label-fontsize"></a></dt>
