@@ -96,6 +96,9 @@ ggplot(data, aes(x=UMAP_1, y=UMAP_2)) +
 - [`exampleSeurat`](https://alserglab.github.io/mascarade/reference/exampleSeurat.md)
   : Example Seurat object with PBMC3K dataset.
 
+- [`fancyMask()`](https://alserglab.github.io/mascarade/reference/fancyMask.md)
+  : Generate ggplot2 layers for a labeled cluster mask
+
 - [`generateMask()`](https://alserglab.github.io/mascarade/reference/generateMask.md)
   : Generate mask for clusters on 2D dimensional reduction plots
 

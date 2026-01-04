@@ -72,18 +72,15 @@ assignment is in `cluster` column.
 
 ``` r
 data("exampleMascarade")
-# smaller gridSize leads to faster computation
-res <- generateMask(dims=exampleMascarade$dims,
-                    clusters=exampleMascarade$clusters,
-                    gridSize=50)
-if (FALSE) { # \dontrun{
-data <- data.table(exampleMascarade$dims,
+maskTable <- generateMask(dims=exampleMascarade$dims,
+                          clusters=exampleMascarade$clusters)
+data <- data.frame(exampleMascarade$dims,
                    cluster=exampleMascarade$clusters,
                    exampleMascarade$features)
+library(ggplot2)
 ggplot(data, aes(x=UMAP_1, y=UMAP_2)) +
     geom_point(aes(color=cluster)) +
     geom_path(data=maskTable, aes(group=group)) +
     coord_fixed() +
     theme_classic()
-} # }
 ```
