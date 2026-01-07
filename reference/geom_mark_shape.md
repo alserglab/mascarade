@@ -278,6 +278,12 @@ geom_mark_shape(
   plot specification, e.g.
   [`borders()`](https://ggplot2.tidyverse.org/reference/annotation_borders.html).
 
+## Value
+
+A ggplot2 layer
+([`ggplot2::layer`](https://ggplot2.tidyverse.org/reference/layer.html))
+that adds polygonal shape annotations to a plot.
+
 ## Aesthetics
 
 `geom_mark_shape` understand the following aesthetics (required
