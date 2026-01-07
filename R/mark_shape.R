@@ -29,7 +29,7 @@
 #' - alpha
 #'
 #' @inheritParams ggforce::geom_mark_circle
-#'
+#' @return A ggplot2 layer (`ggplot2::layer`) that adds polygonal shape annotations to a plot.
 #'
 #' @family mark geoms
 #' @name geom_mark_shape

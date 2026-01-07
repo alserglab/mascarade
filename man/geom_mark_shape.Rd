@@ -195,6 +195,9 @@ rather than combining with them. This is most useful for helper functions
 that define both data and aesthetics and shouldn't inherit behaviour from
 the default plot specification, e.g. \code{\link[ggplot2:borders]{borders()}}.}
 }
+\value{
+A ggplot2 layer (\code{ggplot2::layer}) that adds polygonal shape annotations to a plot.
+}
 \description{
 This geom lets you annotate sets of points via polygonal shapes.
 Unlike other \verb{ggforce::geom_mark_*} functions, \code{geom_mark_shape} should be explicitly
