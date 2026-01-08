@@ -130,7 +130,7 @@ sessionInfo()
     ## [1] stats     graphics  grDevices utils     datasets  methods   base     
     ## 
     ## other attached packages:
-    ## [1] ggsci_4.2.0       ggplot2_4.0.1     data.table_1.18.0 mascarade_0.2.999
+    ## [1] ggsci_4.2.0        ggplot2_4.0.1      data.table_1.18.0  mascarade_0.2.9001
     ## 
     ## loaded via a namespace (and not attached):
     ##  [1] sass_0.4.10            generics_0.1.4         spatstat.explore_3.6-0

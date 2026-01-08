@@ -54,12 +54,22 @@ assignment is in `cluster` column.
 ## Examples
 
 ``` r
-data("exampleSeurat")
+# only run if Seurat is installed
+if (require("Seurat")) {
+    data("pbmc_small")
+    maskTable <- generateMaskSeurat(pbmc_small)
 
-maskTable <- generateMaskSeurat(exampleSeurat)
-
-library(ggplot2)
-Seurat::DimPlot(exampleSeurat) +
-    geom_path(data=maskTable, aes(x=UMAP_1, y=UMAP_2, group=group)) +
-    coord_fixed()
+    library(ggplot2)
+    # not the best plot, see vignettes for better examples
+    DimPlot(pbmc_small) +
+        geom_path(data=maskTable, aes(x=tSNE_1, y=tSNE_2, group=group))
+}
+#> Loading required package: Seurat
+#> Loading required package: SeuratObject
+#> Loading required package: sp
+#> 
+#> Attaching package: ‘SeuratObject’
+#> The following objects are masked from ‘package:base’:
+#> 
+#>     intersect, t
 ```

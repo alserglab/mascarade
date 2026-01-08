@@ -370,7 +370,7 @@ sessionInfo()
     ## 
     ## other attached packages:
     ## [1] Seurat_5.4.0       SeuratObject_5.3.0 sp_2.2-0           ggforce_0.5.0     
-    ## [5] ggplot2_4.0.1      data.table_1.18.0  mascarade_0.2.999 
+    ## [5] ggplot2_4.0.1      data.table_1.18.0  mascarade_0.2.9001
     ## 
     ## loaded via a namespace (and not attached):
     ##   [1] pbapply_1.7-4          deldir_2.0-4           gridExtra_2.3         
