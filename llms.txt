@@ -12,7 +12,13 @@ for examples on different datasets.
 
 ## Installation
 
-The package can be installed from GitHub:
+The package stable version can be installed from CRAN:
+
+``` r
+install.packages("mascarade")
+```
+
+The most recent development version can be installed from GitHub:
 
 ``` r
 remotes::install_github("alserglab/mascarade")

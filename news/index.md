@@ -2,6 +2,8 @@
 
 ## mascarade 0.3.0
 
+CRAN release: 2026-01-12
+
 - Significant performance improvements
 - Introduced
   [`generateMaskSeurat()`](https://alserglab.github.io/mascarade/reference/generateMaskSeurat.md)

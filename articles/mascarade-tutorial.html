@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">mascarade</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.2.9001</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.3.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -72,15 +72,18 @@ or t-SNE.</p>
 <div class="section level3">
 <h3 id="package-installation">Package installation<a class="anchor" aria-label="anchor" href="#package-installation"></a>
 </h3>
-<p>The most recent version of the package can be installed from
-GitHub:</p>
+<p>The package stable version can be installed from CRAN:</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"mascarade"</span><span class="op">)</span></span></code></pre></div>
+<p>The most recent development version of the package can be installed
+from GitHub:</p>
+<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">remotes</span><span class="fu">::</span><span class="fu">install_github</span><span class="op">(</span><span class="st">"alserglab/mascarade"</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level3">
 <h3 id="loading-necessary-libraries">Loading necessary libraries<a class="anchor" aria-label="anchor" href="#loading-necessary-libraries"></a>
 </h3>
-<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://alserglab.github.io/mascarade/">mascarade</a></span><span class="op">)</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://r-datatable.com" class="external-link">data.table</a></span><span class="op">)</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://ggplot2.tidyverse.org" class="external-link">ggplot2</a></span><span class="op">)</span></span>
@@ -91,10 +94,10 @@ GitHub:</p>
 </h3>
 <p>Loading example data from PBMC 3K processed with Seurat (see below
 for more details).</p>
-<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span><span class="st">"exampleMascarade"</span><span class="op">)</span></span></code></pre></div>
 <p>UMAP coordinates:</p>
-<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">exampleMascarade</span><span class="op">$</span><span class="va">dims</span><span class="op">)</span></span></code></pre></div>
 <pre><code><span><span class="co">##                   UMAP_1    UMAP_2</span></span>
 <span><span class="co">## AAACATACAACCAC -4.232792 -4.152139</span></span>
@@ -104,7 +107,7 @@ for more details).</p>
 <span><span class="co">## AAACCGTGTATGCG -7.450703  1.092022</span></span>
 <span><span class="co">## AAACGCACTGGTAC -3.509504 -6.087042</span></span></code></pre>
 <p>Cluster annotations:</p>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">exampleMascarade</span><span class="op">$</span><span class="va">clusters</span><span class="op">)</span></span></code></pre></div>
 <pre><code><span><span class="co">## AAACATACAACCAC AAACATTGAGCTAC AAACATTGATCAGC AAACCGTGCTTCCG AAACCGTGTATGCG </span></span>
 <span><span class="co">##   Memory CD4 T              B   Memory CD4 T     CD14+ Mono             NK </span></span>
@@ -112,7 +115,7 @@ for more details).</p>
 <span><span class="co">##   Memory CD4 T </span></span>
 <span><span class="co">## 9 Levels: Naive CD4 T Memory CD4 T CD14+ Mono B CD8 T FCGR3A+ Mono NK ... Platelet</span></span></code></pre>
 <p>Expression table for several genes:</p>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">exampleMascarade</span><span class="op">$</span><span class="va">features</span><span class="op">)</span></span></code></pre></div>
 <pre><code><span><span class="co">##                     MS4A1       GNLY       CD3E      CD14     FCER1A     FCGR3A</span></span>
 <span><span class="co">## AAACATACAACCAC -0.4110536 -0.4081782  1.0157094 -0.393789 -0.1373491 -0.4507969</span></span>
@@ -129,7 +132,7 @@ for more details).</p>
 <span><span class="co">## AAACCGTGTATGCG -0.97272094 -0.1416271 -0.3537211</span></span>
 <span><span class="co">## AAACGCACTGGTAC -0.06309661 -0.1416271 -0.3537211</span></span></code></pre>
 <p>Let’s plot these data:</p>
-<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">data</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdatatable.gitlab.io/data.table/reference/data.table.html" class="external-link">data.table</a></span><span class="op">(</span><span class="va">exampleMascarade</span><span class="op">$</span><span class="va">dims</span>, </span>
 <span>                   cluster<span class="op">=</span><span class="va">exampleMascarade</span><span class="op">$</span><span class="va">clusters</span>,</span>
 <span>                   <span class="va">exampleMascarade</span><span class="op">$</span><span class="va">features</span><span class="op">)</span></span>
@@ -137,15 +140,15 @@ for more details).</p>
 <span>    <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_point.html" class="external-link">geom_point</a></span><span class="op">(</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>color<span class="op">=</span><span class="va">cluster</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span> </span>
 <span>    <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/coord_fixed.html" class="external-link">coord_fixed</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span> </span>
 <span>    <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html" class="external-link">theme_classic</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
-<p><img src="mascarade-tutorial_files/figure-html/unnamed-chunk-7-1.png" class="r-plt" alt="" width="672"></p>
+<p><img src="mascarade-tutorial_files/figure-html/unnamed-chunk-8-1.png" class="r-plt" alt="" width="672"></p>
 <p>Now let’s generate cluster masks:</p>
-<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">maskTable</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/generateMask.html">generateMask</a></span><span class="op">(</span>dims<span class="op">=</span><span class="va">exampleMascarade</span><span class="op">$</span><span class="va">dims</span>, </span>
 <span>                          clusters<span class="op">=</span><span class="va">exampleMascarade</span><span class="op">$</span><span class="va">clusters</span><span class="op">)</span></span></code></pre></div>
 <p>The <code>maskTable</code> is actually a table of cluster borders. A
 single cluster can have multiple connected parts, and one a single part
 can contain multiple border lines (groups).</p>
-<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">maskTable</span><span class="op">)</span></span></code></pre></div>
 <pre><code><span><span class="co">##       UMAP_1    UMAP_2           part            group      cluster</span></span>
 <span><span class="co">##        &lt;num&gt;     &lt;num&gt;         &lt;char&gt;           &lt;char&gt;       &lt;fctr&gt;</span></span>
@@ -158,34 +161,34 @@ can contain multiple border lines (groups).</p>
 <p>Now we can use this table to draw the borders with
 <code>geom_path</code> (<code>group</code> column should be used as the
 group aesthetics):</p>
-<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="va">data</span>, <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>x<span class="op">=</span><span class="va">UMAP_1</span>, y<span class="op">=</span><span class="va">UMAP_2</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span> </span>
 <span>    <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_point.html" class="external-link">geom_point</a></span><span class="op">(</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>color<span class="op">=</span><span class="va">cluster</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span> </span>
 <span>    <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_path.html" class="external-link">geom_path</a></span><span class="op">(</span>data<span class="op">=</span><span class="va">maskTable</span>, <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>group<span class="op">=</span><span class="va">group</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
 <span>    <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/coord_fixed.html" class="external-link">coord_fixed</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span> </span>
 <span>    <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html" class="external-link">theme_classic</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
-<p><img src="mascarade-tutorial_files/figure-html/unnamed-chunk-10-1.png" class="r-plt" alt="" width="672"></p>
+<p><img src="mascarade-tutorial_files/figure-html/unnamed-chunk-11-1.png" class="r-plt" alt="" width="672"></p>
 <p>Or we can color the borders instead of points:</p>
-<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="va">data</span>, <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>x<span class="op">=</span><span class="va">UMAP_1</span>, y<span class="op">=</span><span class="va">UMAP_2</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span> </span>
 <span>    <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_point.html" class="external-link">geom_point</a></span><span class="op">(</span>color<span class="op">=</span><span class="st">"grey"</span><span class="op">)</span> <span class="op">+</span> </span>
 <span>    <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_path.html" class="external-link">geom_path</a></span><span class="op">(</span>data<span class="op">=</span><span class="va">maskTable</span>, <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>group<span class="op">=</span><span class="va">group</span>, color<span class="op">=</span><span class="va">cluster</span><span class="op">)</span>, linewidth<span class="op">=</span><span class="fl">1</span><span class="op">)</span> <span class="op">+</span></span>
 <span>    <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/coord_fixed.html" class="external-link">coord_fixed</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span> </span>
 <span>    <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html" class="external-link">theme_classic</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
-<p><img src="mascarade-tutorial_files/figure-html/unnamed-chunk-11-1.png" class="r-plt" alt="" width="672"></p>
+<p><img src="mascarade-tutorial_files/figure-html/unnamed-chunk-12-1.png" class="r-plt" alt="" width="672"></p>
 <p>We can use <code>ggforce</code> package to make the borders touch
 instead of overlap:</p>
-<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="va">data</span>, <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>x<span class="op">=</span><span class="va">UMAP_1</span>, y<span class="op">=</span><span class="va">UMAP_2</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span> </span>
 <span>    <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_point.html" class="external-link">geom_point</a></span><span class="op">(</span>color<span class="op">=</span><span class="st">"grey"</span><span class="op">)</span> <span class="op">+</span> </span>
 <span>    <span class="fu">ggforce</span><span class="fu">::</span><span class="fu"><a href="https://ggforce.data-imaginist.com/reference/geom_shape.html" class="external-link">geom_shape</a></span><span class="op">(</span>data<span class="op">=</span><span class="va">maskTable</span>, <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>group<span class="op">=</span><span class="va">group</span>, color<span class="op">=</span><span class="va">cluster</span><span class="op">)</span>,</span>
 <span>                        linewidth<span class="op">=</span><span class="fl">1</span>, fill<span class="op">=</span><span class="cn">NA</span>, expand<span class="op">=</span><span class="fu"><a href="https://rdrr.io/r/grid/unit.html" class="external-link">unit</a></span><span class="op">(</span><span class="op">-</span><span class="fl">1</span>, <span class="st">"pt"</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
 <span>    <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/coord_fixed.html" class="external-link">coord_fixed</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span> </span>
 <span>    <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html" class="external-link">theme_classic</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
-<p><img src="mascarade-tutorial_files/figure-html/unnamed-chunk-12-1.png" class="r-plt" alt="" width="672"></p>
+<p><img src="mascarade-tutorial_files/figure-html/unnamed-chunk-13-1.png" class="r-plt" alt="" width="672"></p>
 <p>In the presence of small clusters it can help to expand the borders a
 bit further away from the points.</p>
-<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">maskTable</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/generateMask.html">generateMask</a></span><span class="op">(</span>dims<span class="op">=</span><span class="va">exampleMascarade</span><span class="op">$</span><span class="va">dims</span>, </span>
 <span>                          clusters<span class="op">=</span><span class="va">exampleMascarade</span><span class="op">$</span><span class="va">clusters</span>,</span>
 <span>                          expand<span class="op">=</span><span class="fl">0.02</span><span class="op">)</span></span>
@@ -195,11 +198,11 @@ bit further away from the points.</p>
 <span>                        linewidth<span class="op">=</span><span class="fl">1</span>, fill<span class="op">=</span><span class="cn">NA</span>, expand<span class="op">=</span><span class="fu"><a href="https://rdrr.io/r/grid/unit.html" class="external-link">unit</a></span><span class="op">(</span><span class="op">-</span><span class="fl">1</span>, <span class="st">"pt"</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
 <span>    <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/coord_fixed.html" class="external-link">coord_fixed</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span> </span>
 <span>    <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html" class="external-link">theme_classic</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
-<p><img src="mascarade-tutorial_files/figure-html/unnamed-chunk-13-1.png" class="r-plt" alt="" width="672"></p>
+<p><img src="mascarade-tutorial_files/figure-html/unnamed-chunk-14-1.png" class="r-plt" alt="" width="672"></p>
 <p>With the help of <code>ggforce</code>-based function
 <code>geom_mark_shape</code> we can also put the labels within the plot
 itself.</p>
-<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">myMask</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
 <span>    <span class="fu"><a href="../reference/geom_mark_shape.html">geom_mark_shape</a></span><span class="op">(</span>data<span class="op">=</span><span class="va">maskTable</span>, <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>group<span class="op">=</span><span class="va">cluster</span>, color<span class="op">=</span><span class="va">cluster</span>, label <span class="op">=</span> <span class="va">cluster</span><span class="op">)</span>,</span>
 <span>                    fill <span class="op">=</span> <span class="cn">NA</span>,</span>
@@ -222,44 +225,44 @@ itself.</p>
 <span>    <span class="va">myMask</span> <span class="op">+</span></span>
 <span>    <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/coord_fixed.html" class="external-link">coord_fixed</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span></span>
 <span>    <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html" class="external-link">theme_classic</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
-<p><img src="mascarade-tutorial_files/figure-html/unnamed-chunk-14-1.png" class="r-plt" alt="" width="672"></p>
+<p><img src="mascarade-tutorial_files/figure-html/unnamed-chunk-15-1.png" class="r-plt" alt="" width="672"></p>
 <p>The same can be achived with the <code><a href="../reference/fancyMask.html">fancyMask()</a></code> helper
 function:</p>
-<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="va">data</span>, <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>x<span class="op">=</span><span class="va">UMAP_1</span>, y<span class="op">=</span><span class="va">UMAP_2</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
 <span>    <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_point.html" class="external-link">geom_point</a></span><span class="op">(</span>color<span class="op">=</span><span class="st">"grey"</span><span class="op">)</span> <span class="op">+</span></span>
 <span>    <span class="fu"><a href="../reference/fancyMask.html">fancyMask</a></span><span class="op">(</span><span class="va">maskTable</span>, ratio<span class="op">=</span><span class="fl">1</span><span class="op">)</span> <span class="op">+</span></span>
 <span>    <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html" class="external-link">theme_classic</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
-<p><img src="mascarade-tutorial_files/figure-html/unnamed-chunk-15-1.png" class="r-plt" alt="" width="672"></p>
+<p><img src="mascarade-tutorial_files/figure-html/unnamed-chunk-16-1.png" class="r-plt" alt="" width="672"></p>
 <p>Now we can easily show association between cell types and expression
 of particular genes, such as GNLY being a good marker for NK cells in
 this dataset.</p>
-<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="va">data</span>, <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>x<span class="op">=</span><span class="va">UMAP_1</span>, y<span class="op">=</span><span class="va">UMAP_2</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span> </span>
 <span>    <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_point.html" class="external-link">geom_point</a></span><span class="op">(</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>color<span class="op">=</span><span class="va">GNLY</span><span class="op">)</span>, size<span class="op">=</span><span class="fl">0.5</span><span class="op">)</span> <span class="op">+</span></span>
 <span>    <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_gradient.html" class="external-link">scale_color_gradient2</a></span><span class="op">(</span>low <span class="op">=</span> <span class="st">"#404040"</span>, high<span class="op">=</span><span class="st">"red"</span><span class="op">)</span> <span class="op">+</span> </span>
 <span>    <span class="fu"><a href="../reference/fancyMask.html">fancyMask</a></span><span class="op">(</span><span class="va">maskTable</span>, ratio<span class="op">=</span><span class="fl">1</span><span class="op">)</span> <span class="op">+</span></span>
 <span>    <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html" class="external-link">theme_classic</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
-<p><img src="mascarade-tutorial_files/figure-html/unnamed-chunk-16-1.png" class="r-plt" alt="" width="672"></p>
+<p><img src="mascarade-tutorial_files/figure-html/unnamed-chunk-17-1.png" class="r-plt" alt="" width="672"></p>
 <p>We can focus on a single cluster too:</p>
-<div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="va">data</span>, <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>x<span class="op">=</span><span class="va">UMAP_1</span>, y<span class="op">=</span><span class="va">UMAP_2</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span> </span>
 <span>    <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_point.html" class="external-link">geom_point</a></span><span class="op">(</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>color<span class="op">=</span><span class="va">GNLY</span><span class="op">)</span>, size<span class="op">=</span><span class="fl">0.5</span><span class="op">)</span> <span class="op">+</span> </span>
 <span>    <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_gradient.html" class="external-link">scale_color_gradient2</a></span><span class="op">(</span>low <span class="op">=</span> <span class="st">"#404040"</span>, high<span class="op">=</span><span class="st">"red"</span><span class="op">)</span> <span class="op">+</span> </span>
 <span>    <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_path.html" class="external-link">geom_path</a></span><span class="op">(</span>data<span class="op">=</span><span class="va">maskTable</span><span class="op">[</span><span class="va">cluster</span><span class="op">==</span><span class="st">"NK"</span><span class="op">]</span>, <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>group<span class="op">=</span><span class="va">group</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
 <span>    <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/coord_fixed.html" class="external-link">coord_fixed</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span> </span>
 <span>    <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html" class="external-link">theme_classic</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
-<p><img src="mascarade-tutorial_files/figure-html/unnamed-chunk-17-1.png" class="r-plt" alt="" width="672"></p>
+<p><img src="mascarade-tutorial_files/figure-html/unnamed-chunk-18-1.png" class="r-plt" alt="" width="672"></p>
 </div>
 <div class="section level3">
 <h3 id="working-with-seurat">Working with Seurat<a class="anchor" aria-label="anchor" href="#working-with-seurat"></a>
 </h3>
 <p>For this part of the vignette you need
 <code>Seurat</code>package.</p>
-<div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb23"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://satijalab.org/seurat" class="external-link">Seurat</a></span><span class="op">)</span></span></code></pre></div>
 <p>Let’s get the example PBMC3K dataset:</p>
-<div class="sourceCode" id="cb23"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb24"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">pbmc3k</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">readRDS</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/connections.html" class="external-link">url</a></span><span class="op">(</span><span class="st">"https://alserglab.wustl.edu/files/mascarade/examples/pbmc3k_seurat5.rds"</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">pbmc3k</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://satijalab.org/seurat/reference/NormalizeData.html" class="external-link">NormalizeData</a></span><span class="op">(</span><span class="va">pbmc3k</span><span class="op">)</span></span>
 <span><span class="va">pbmc3k</span></span></code></pre></div>
@@ -271,7 +274,7 @@ this dataset.</p>
 <p>The same object can be obtained using <code>SeuratData</code> package
 (can be installed with
 <code>remotes::install_github('satijalab/seurat-data')</code>):</p>
-<div class="sourceCode" id="cb25"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb26"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/ns-load.html" class="external-link">requireNamespace</a></span><span class="op">(</span><span class="st">"SeuratData"</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
 <span>    <span class="kw">if</span> <span class="op">(</span><span class="op">!</span><span class="fu">AvailableData</span><span class="op">(</span><span class="op">)</span><span class="op">[</span><span class="st">"pbmc3k"</span>, <span class="st">"Installed"</span><span class="op">]</span><span class="op">)</span> <span class="op">{</span></span>
 <span>        <span class="fu">InstallData</span><span class="op">(</span><span class="st">"pbmc3k"</span><span class="op">)</span>    </span>
@@ -282,33 +285,33 @@ this dataset.</p>
 <span>    <span class="va">pbmc3k</span></span>
 <span><span class="op">}</span></span></code></pre></div>
 <p>Generate masks using a helper function:</p>
-<div class="sourceCode" id="cb26"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb27"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">maskTable</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/generateMaskSeurat.html">generateMaskSeurat</a></span><span class="op">(</span><span class="va">pbmc3k</span><span class="op">)</span></span></code></pre></div>
 <p>We can use <code><a href="../reference/fancyMask.html">fancyMask()</a></code> now:</p>
-<div class="sourceCode" id="cb27"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb28"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://satijalab.org/seurat/reference/DimPlot.html" class="external-link">DimPlot</a></span><span class="op">(</span><span class="va">pbmc3k</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://satijalab.org/seurat/reference/SeuratTheme.html" class="external-link">NoLegend</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span></span>
 <span>    <span class="fu"><a href="../reference/fancyMask.html">fancyMask</a></span><span class="op">(</span><span class="va">maskTable</span>, ratio<span class="op">=</span><span class="fl">1</span><span class="op">)</span></span></code></pre></div>
 <p><img src="mascarade-tutorial_files/figure-html/seurat-dimplot-1.png" class="r-plt" alt="" width="672"></p>
 <p>For the <code>DimPlot</code>, the borders can be viewed as redundant
 and removed:</p>
-<div class="sourceCode" id="cb28"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb29"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://satijalab.org/seurat/reference/DimPlot.html" class="external-link">DimPlot</a></span><span class="op">(</span><span class="va">pbmc3k</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://satijalab.org/seurat/reference/SeuratTheme.html" class="external-link">NoLegend</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span></span>
 <span>    <span class="fu"><a href="../reference/fancyMask.html">fancyMask</a></span><span class="op">(</span><span class="va">maskTable</span>, linewidth <span class="op">=</span> <span class="fl">0</span>, ratio<span class="op">=</span><span class="fl">1</span><span class="op">)</span></span></code></pre></div>
 <p><img src="mascarade-tutorial_files/figure-html/seurat-dimplot-noborder-1.png" class="r-plt" alt="" width="672"></p>
 <p>Let’s plot an NK cell marker:</p>
-<div class="sourceCode" id="cb29"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb30"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://satijalab.org/seurat/reference/FeaturePlot.html" class="external-link">FeaturePlot</a></span><span class="op">(</span><span class="va">pbmc3k</span>, <span class="st">"GNLY"</span>, cols<span class="op">=</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"grey90"</span>, <span class="st">"red"</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
 <span>    <span class="fu"><a href="../reference/fancyMask.html">fancyMask</a></span><span class="op">(</span><span class="va">maskTable</span>, ratio<span class="op">=</span><span class="fl">1</span><span class="op">)</span></span></code></pre></div>
 <p><img src="mascarade-tutorial_files/figure-html/seurat-gnly-1.png" class="r-plt" alt="" width="672"></p>
 <p>Or multiple markers (skipping the labels to save space):</p>
-<div class="sourceCode" id="cb30"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb31"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">featureList</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"MS4A1"</span>, <span class="st">"GNLY"</span>, <span class="st">"CD3E"</span>, <span class="st">"CD14"</span><span class="op">)</span></span>
 <span><span class="va">plots</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://satijalab.org/seurat/reference/FeaturePlot.html" class="external-link">FeaturePlot</a></span><span class="op">(</span><span class="va">pbmc3k</span>, features<span class="op">=</span><span class="va">featureList</span>, cols<span class="op">=</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"grey90"</span>, <span class="st">"red"</span><span class="op">)</span>, combine <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
 <span><span class="va">plots</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="va">plots</span>, <span class="va">`+`</span>, <span class="fu"><a href="../reference/fancyMask.html">fancyMask</a></span><span class="op">(</span><span class="va">maskTable</span>, ratio<span class="op">=</span><span class="fl">1</span>, linewidth<span class="op">=</span><span class="fl">0.5</span>, label<span class="op">=</span><span class="cn">FALSE</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu">patchwork</span><span class="fu">::</span><span class="fu"><a href="https://patchwork.data-imaginist.com/reference/wrap_plots.html" class="external-link">wrap_plots</a></span><span class="op">(</span><span class="va">plots</span><span class="op">)</span></span></code></pre></div>
-<p><img src="mascarade-tutorial_files/figure-html/unnamed-chunk-22-1.png" class="r-plt" alt="" width="672"></p>
+<p><img src="mascarade-tutorial_files/figure-html/unnamed-chunk-23-1.png" class="r-plt" alt="" width="672"></p>
 <p>Works with t-SNE too:</p>
-<div class="sourceCode" id="cb31"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb32"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">pbmc3k</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://satijalab.org/seurat/reference/RunTSNE.html" class="external-link">RunTSNE</a></span><span class="op">(</span><span class="va">pbmc3k</span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">maskTable</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/generateMaskSeurat.html">generateMaskSeurat</a></span><span class="op">(</span><span class="va">pbmc3k</span>, reduction <span class="op">=</span> <span class="st">"tsne"</span><span class="op">)</span></span>
@@ -321,12 +324,12 @@ and removed:</p>
 <span><span class="va">plots</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="va">plots</span>, <span class="va">`+`</span>, <span class="fu"><a href="../reference/fancyMask.html">fancyMask</a></span><span class="op">(</span><span class="va">maskTable</span>, ratio<span class="op">=</span><span class="fl">1</span>, linewidth<span class="op">=</span><span class="fl">0.5</span>, label<span class="op">=</span><span class="cn">FALSE</span><span class="op">)</span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu">patchwork</span><span class="fu">::</span><span class="fu"><a href="https://patchwork.data-imaginist.com/reference/wrap_plots.html" class="external-link">wrap_plots</a></span><span class="op">(</span><span class="va">plots</span><span class="op">)</span></span></code></pre></div>
-<p><img src="mascarade-tutorial_files/figure-html/unnamed-chunk-23-1.png" class="r-plt" alt="" width="672"></p>
+<p><img src="mascarade-tutorial_files/figure-html/unnamed-chunk-24-1.png" class="r-plt" alt="" width="672"></p>
 </div>
 <div class="section level3">
 <h3 id="session-info">Session info<a class="anchor" aria-label="anchor" href="#session-info"></a>
 </h3>
-<div class="sourceCode" id="cb32"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb33"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/sessionInfo.html" class="external-link">sessionInfo</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
 <pre><code><span><span class="co">## R version 4.5.2 (2025-10-31)</span></span>
 <span><span class="co">## Platform: x86_64-pc-linux-gnu</span></span>
@@ -350,31 +353,31 @@ and removed:</p>
 <span><span class="co">## </span></span>
 <span><span class="co">## other attached packages:</span></span>
 <span><span class="co">## [1] Seurat_5.4.0       SeuratObject_5.3.0 sp_2.2-0           ggforce_0.5.0     </span></span>
-<span><span class="co">## [5] ggplot2_4.0.1      data.table_1.18.0  mascarade_0.2.9001</span></span>
+<span><span class="co">## [5] ggplot2_4.0.1      data.table_1.18.0  mascarade_0.3.0   </span></span>
 <span><span class="co">## </span></span>
 <span><span class="co">## loaded via a namespace (and not attached):</span></span>
 <span><span class="co">##   [1] pbapply_1.7-4          deldir_2.0-4           gridExtra_2.3         </span></span>
-<span><span class="co">##   [4] rlang_1.1.6            magrittr_2.0.4         RcppAnnoy_0.0.22      </span></span>
+<span><span class="co">##   [4] rlang_1.1.7            magrittr_2.0.4         RcppAnnoy_0.0.23      </span></span>
 <span><span class="co">##   [7] otel_0.2.0             matrixStats_1.5.0      ggridges_0.5.7        </span></span>
 <span><span class="co">##  [10] compiler_4.5.2         spatstat.geom_3.6-1    reshape2_1.4.5        </span></span>
 <span><span class="co">##  [13] png_0.1-8              systemfonts_1.3.1      vctrs_0.6.5           </span></span>
 <span><span class="co">##  [16] stringr_1.6.0          pkgconfig_2.0.3        fastmap_1.2.0         </span></span>
 <span><span class="co">##  [19] labeling_0.4.3         promises_1.5.0         rmarkdown_2.30        </span></span>
-<span><span class="co">##  [22] ragg_1.5.0             purrr_1.2.0            xfun_0.55             </span></span>
+<span><span class="co">##  [22] ragg_1.5.0             purrr_1.2.1            xfun_0.55             </span></span>
 <span><span class="co">##  [25] cachem_1.1.0           jsonlite_2.0.0         goftest_1.2-3         </span></span>
-<span><span class="co">##  [28] later_1.4.4            spatstat.utils_3.2-0   tweenr_2.0.3          </span></span>
+<span><span class="co">##  [28] later_1.4.5            spatstat.utils_3.2-1   tweenr_2.0.3          </span></span>
 <span><span class="co">##  [31] irlba_2.3.5.1          parallel_4.5.2         cluster_2.1.8.1       </span></span>
 <span><span class="co">##  [34] R6_2.6.1               ica_1.0-3              stringi_1.8.7         </span></span>
 <span><span class="co">##  [37] bslib_0.9.0            RColorBrewer_1.1-3     spatstat.data_3.1-9   </span></span>
-<span><span class="co">##  [40] reticulate_1.44.1      parallelly_1.46.0      spatstat.univar_3.1-5 </span></span>
+<span><span class="co">##  [40] reticulate_1.44.1      parallelly_1.46.1      spatstat.univar_3.1-5 </span></span>
 <span><span class="co">##  [43] scattermore_1.2        lmtest_0.9-40          jquerylib_0.1.4       </span></span>
-<span><span class="co">##  [46] Rcpp_1.1.0             knitr_1.51             tensor_1.5.1          </span></span>
-<span><span class="co">##  [49] future.apply_1.20.1    zoo_1.8-15             sctransform_0.4.2     </span></span>
+<span><span class="co">##  [46] Rcpp_1.1.1             knitr_1.51             tensor_1.5.1          </span></span>
+<span><span class="co">##  [49] future.apply_1.20.1    zoo_1.8-15             sctransform_0.4.3     </span></span>
 <span><span class="co">##  [52] httpuv_1.6.16          Matrix_1.7-4           splines_4.5.2         </span></span>
 <span><span class="co">##  [55] igraph_2.2.1           tidyselect_1.2.1       abind_1.4-8           </span></span>
 <span><span class="co">##  [58] yaml_2.3.12            codetools_0.2-20       spatstat.random_3.4-3 </span></span>
 <span><span class="co">##  [61] miniUI_0.1.2           spatstat.explore_3.6-0 listenv_0.10.0        </span></span>
-<span><span class="co">##  [64] plyr_1.8.9             lattice_0.22-7         tibble_3.3.0          </span></span>
+<span><span class="co">##  [64] plyr_1.8.9             lattice_0.22-7         tibble_3.3.1          </span></span>
 <span><span class="co">##  [67] shiny_1.12.1           withr_3.0.2            S7_0.2.1              </span></span>
 <span><span class="co">##  [70] ROCR_1.0-11            evaluate_1.0.5         Rtsne_0.17            </span></span>
 <span><span class="co">##  [73] future_1.68.0          fastDummies_1.7.5      desc_1.4.3            </span></span>
@@ -386,12 +389,12 @@ and removed:</p>
 <span><span class="co">##  [91] RANN_2.6.2             fs_1.6.6               dotCall64_1.2         </span></span>
 <span><span class="co">##  [94] cowplot_1.2.0          grid_4.5.2             tidyr_1.3.2           </span></span>
 <span><span class="co">##  [97] patchwork_1.3.2        nlme_3.1-168           cli_3.6.5             </span></span>
-<span><span class="co">## [100] spatstat.sparse_3.1-0  textshaping_1.0.4      spam_2.11-1           </span></span>
+<span><span class="co">## [100] spatstat.sparse_3.1-0  textshaping_1.0.4      spam_2.11-3           </span></span>
 <span><span class="co">## [103] viridisLite_0.4.2      dplyr_1.1.4            uwot_0.2.4            </span></span>
 <span><span class="co">## [106] gtable_0.3.6           sass_0.4.10            digest_0.6.39         </span></span>
 <span><span class="co">## [109] progressr_0.18.0       ggrepel_0.9.6          htmlwidgets_1.6.4     </span></span>
 <span><span class="co">## [112] farver_2.1.2           htmltools_0.5.9        pkgdown_2.2.0         </span></span>
-<span><span class="co">## [115] lifecycle_1.0.4        httr_1.4.7             mime_0.13             </span></span>
+<span><span class="co">## [115] lifecycle_1.0.5        httr_1.4.7             mime_0.13             </span></span>
 <span><span class="co">## [118] MASS_7.3-65</span></span></code></pre>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

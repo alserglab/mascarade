@@ -5,7 +5,14 @@ clusters on 2D dimensional reduction plots like UMAP or t-SNE.
 
 ### Package installation
 
-The most recent version of the package can be installed from GitHub:
+The package stable version can be installed from CRAN:
+
+``` r
+install.packages("mascarade")
+```
+
+The most recent development version of the package can be installed from
+GitHub:
 
 ``` r
 remotes::install_github("alserglab/mascarade")
@@ -88,7 +95,7 @@ ggplot(data, aes(x=UMAP_1, y=UMAP_2)) +
     theme_classic()
 ```
 
-![](mascarade-tutorial_files/figure-html/unnamed-chunk-7-1.png)
+![](mascarade-tutorial_files/figure-html/unnamed-chunk-8-1.png)
 
 Now let’s generate cluster masks:
 
@@ -125,7 +132,7 @@ ggplot(data, aes(x=UMAP_1, y=UMAP_2)) +
     theme_classic()
 ```
 
-![](mascarade-tutorial_files/figure-html/unnamed-chunk-10-1.png)
+![](mascarade-tutorial_files/figure-html/unnamed-chunk-11-1.png)
 
 Or we can color the borders instead of points:
 
@@ -137,7 +144,7 @@ ggplot(data, aes(x=UMAP_1, y=UMAP_2)) +
     theme_classic()
 ```
 
-![](mascarade-tutorial_files/figure-html/unnamed-chunk-11-1.png)
+![](mascarade-tutorial_files/figure-html/unnamed-chunk-12-1.png)
 
 We can use `ggforce` package to make the borders touch instead of
 overlap:
@@ -151,7 +158,7 @@ ggplot(data, aes(x=UMAP_1, y=UMAP_2)) +
     theme_classic()
 ```
 
-![](mascarade-tutorial_files/figure-html/unnamed-chunk-12-1.png)
+![](mascarade-tutorial_files/figure-html/unnamed-chunk-13-1.png)
 
 In the presence of small clusters it can help to expand the borders a
 bit further away from the points.
@@ -168,7 +175,7 @@ ggplot(data, aes(x=UMAP_1, y=UMAP_2)) +
     theme_classic()
 ```
 
-![](mascarade-tutorial_files/figure-html/unnamed-chunk-13-1.png)
+![](mascarade-tutorial_files/figure-html/unnamed-chunk-14-1.png)
 
 With the help of `ggforce`-based function `geom_mark_shape` we can also
 put the labels within the plot itself.
@@ -198,7 +205,7 @@ ggplot(data, aes(x=UMAP_1, y=UMAP_2)) +
     theme_classic()
 ```
 
-![](mascarade-tutorial_files/figure-html/unnamed-chunk-14-1.png)
+![](mascarade-tutorial_files/figure-html/unnamed-chunk-15-1.png)
 
 The same can be achived with the
 [`fancyMask()`](https://alserglab.github.io/mascarade/reference/fancyMask.md)
@@ -211,7 +218,7 @@ ggplot(data, aes(x=UMAP_1, y=UMAP_2)) +
     theme_classic()
 ```
 
-![](mascarade-tutorial_files/figure-html/unnamed-chunk-15-1.png)
+![](mascarade-tutorial_files/figure-html/unnamed-chunk-16-1.png)
 
 Now we can easily show association between cell types and expression of
 particular genes, such as GNLY being a good marker for NK cells in this
@@ -225,7 +232,7 @@ ggplot(data, aes(x=UMAP_1, y=UMAP_2)) +
     theme_classic()
 ```
 
-![](mascarade-tutorial_files/figure-html/unnamed-chunk-16-1.png)
+![](mascarade-tutorial_files/figure-html/unnamed-chunk-17-1.png)
 
 We can focus on a single cluster too:
 
@@ -238,7 +245,7 @@ ggplot(data, aes(x=UMAP_1, y=UMAP_2)) +
     theme_classic()
 ```
 
-![](mascarade-tutorial_files/figure-html/unnamed-chunk-17-1.png)
+![](mascarade-tutorial_files/figure-html/unnamed-chunk-18-1.png)
 
 ### Working with Seurat
 
@@ -321,7 +328,7 @@ plots <- lapply(plots, `+`, fancyMask(maskTable, ratio=1, linewidth=0.5, label=F
 patchwork::wrap_plots(plots)
 ```
 
-![](mascarade-tutorial_files/figure-html/unnamed-chunk-22-1.png)
+![](mascarade-tutorial_files/figure-html/unnamed-chunk-23-1.png)
 
 Works with t-SNE too:
 
@@ -340,7 +347,7 @@ plots <- lapply(plots, `+`, fancyMask(maskTable, ratio=1, linewidth=0.5, label=F
 patchwork::wrap_plots(plots)
 ```
 
-![](mascarade-tutorial_files/figure-html/unnamed-chunk-23-1.png)
+![](mascarade-tutorial_files/figure-html/unnamed-chunk-24-1.png)
 
 ### Session info
 
@@ -370,31 +377,31 @@ sessionInfo()
     ## 
     ## other attached packages:
     ## [1] Seurat_5.4.0       SeuratObject_5.3.0 sp_2.2-0           ggforce_0.5.0     
-    ## [5] ggplot2_4.0.1      data.table_1.18.0  mascarade_0.2.9001
+    ## [5] ggplot2_4.0.1      data.table_1.18.0  mascarade_0.3.0   
     ## 
     ## loaded via a namespace (and not attached):
     ##   [1] pbapply_1.7-4          deldir_2.0-4           gridExtra_2.3         
-    ##   [4] rlang_1.1.6            magrittr_2.0.4         RcppAnnoy_0.0.22      
+    ##   [4] rlang_1.1.7            magrittr_2.0.4         RcppAnnoy_0.0.23      
     ##   [7] otel_0.2.0             matrixStats_1.5.0      ggridges_0.5.7        
     ##  [10] compiler_4.5.2         spatstat.geom_3.6-1    reshape2_1.4.5        
     ##  [13] png_0.1-8              systemfonts_1.3.1      vctrs_0.6.5           
     ##  [16] stringr_1.6.0          pkgconfig_2.0.3        fastmap_1.2.0         
     ##  [19] labeling_0.4.3         promises_1.5.0         rmarkdown_2.30        
-    ##  [22] ragg_1.5.0             purrr_1.2.0            xfun_0.55             
+    ##  [22] ragg_1.5.0             purrr_1.2.1            xfun_0.55             
     ##  [25] cachem_1.1.0           jsonlite_2.0.0         goftest_1.2-3         
-    ##  [28] later_1.4.4            spatstat.utils_3.2-0   tweenr_2.0.3          
+    ##  [28] later_1.4.5            spatstat.utils_3.2-1   tweenr_2.0.3          
     ##  [31] irlba_2.3.5.1          parallel_4.5.2         cluster_2.1.8.1       
     ##  [34] R6_2.6.1               ica_1.0-3              stringi_1.8.7         
     ##  [37] bslib_0.9.0            RColorBrewer_1.1-3     spatstat.data_3.1-9   
-    ##  [40] reticulate_1.44.1      parallelly_1.46.0      spatstat.univar_3.1-5 
+    ##  [40] reticulate_1.44.1      parallelly_1.46.1      spatstat.univar_3.1-5 
     ##  [43] scattermore_1.2        lmtest_0.9-40          jquerylib_0.1.4       
-    ##  [46] Rcpp_1.1.0             knitr_1.51             tensor_1.5.1          
-    ##  [49] future.apply_1.20.1    zoo_1.8-15             sctransform_0.4.2     
+    ##  [46] Rcpp_1.1.1             knitr_1.51             tensor_1.5.1          
+    ##  [49] future.apply_1.20.1    zoo_1.8-15             sctransform_0.4.3     
     ##  [52] httpuv_1.6.16          Matrix_1.7-4           splines_4.5.2         
     ##  [55] igraph_2.2.1           tidyselect_1.2.1       abind_1.4-8           
     ##  [58] yaml_2.3.12            codetools_0.2-20       spatstat.random_3.4-3 
     ##  [61] miniUI_0.1.2           spatstat.explore_3.6-0 listenv_0.10.0        
-    ##  [64] plyr_1.8.9             lattice_0.22-7         tibble_3.3.0          
+    ##  [64] plyr_1.8.9             lattice_0.22-7         tibble_3.3.1          
     ##  [67] shiny_1.12.1           withr_3.0.2            S7_0.2.1              
     ##  [70] ROCR_1.0-11            evaluate_1.0.5         Rtsne_0.17            
     ##  [73] future_1.68.0          fastDummies_1.7.5      desc_1.4.3            
@@ -406,10 +413,10 @@ sessionInfo()
     ##  [91] RANN_2.6.2             fs_1.6.6               dotCall64_1.2         
     ##  [94] cowplot_1.2.0          grid_4.5.2             tidyr_1.3.2           
     ##  [97] patchwork_1.3.2        nlme_3.1-168           cli_3.6.5             
-    ## [100] spatstat.sparse_3.1-0  textshaping_1.0.4      spam_2.11-1           
+    ## [100] spatstat.sparse_3.1-0  textshaping_1.0.4      spam_2.11-3           
     ## [103] viridisLite_0.4.2      dplyr_1.1.4            uwot_0.2.4            
     ## [106] gtable_0.3.6           sass_0.4.10            digest_0.6.39         
     ## [109] progressr_0.18.0       ggrepel_0.9.6          htmlwidgets_1.6.4     
     ## [112] farver_2.1.2           htmltools_0.5.9        pkgdown_2.2.0         
-    ## [115] lifecycle_1.0.4        httr_1.4.7             mime_0.13             
+    ## [115] lifecycle_1.0.5        httr_1.4.7             mime_0.13             
     ## [118] MASS_7.3-65
