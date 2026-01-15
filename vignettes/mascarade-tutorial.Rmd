@@ -16,7 +16,13 @@ on 2D dimensional reduction plots like UMAP or t-SNE.
 
 ### Package installation
 
-The most recent version of the package can be installed from GitHub:
+The package stable version can be installed from CRAN:
+
+```{r eval=FALSE}
+install.packages("mascarade")
+```
+
+The most recent development version of the package can be installed from GitHub:
 
 ```{r eval=FALSE}
 remotes::install_github("alserglab/mascarade")
