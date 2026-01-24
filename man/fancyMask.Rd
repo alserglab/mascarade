@@ -14,7 +14,8 @@ fancyMask(
   label.fontsize = 10,
   label.buffer = unit(0, "cm"),
   label.fontface = "plain",
-  label.margin = margin(2, 2, 2, 2, "pt")
+  label.margin = margin(2, 2, 2, 2, "pt"),
+  cols = NULL
 )
 }
 \arguments{
@@ -49,6 +50,10 @@ Default is \code{10}.}
 
 \item{label.margin}{Label margin passed to
 \code{geom_mark_shape()}. Default is \code{margin(2, 2, 2, 2, "pt")}.}
+
+\item{cols}{Optional vector of colors for the mask outlines and labels.
+Should have length equal to the number of unique clusters in \code{maskTable}.
+If \code{NULL} (default), colors are generated automatically using \code{scales::hue_pal()}.}
 }
 \value{
 A list of ggplot2 components suitable for adding to a plot with \code{+},

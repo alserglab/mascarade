@@ -28,6 +28,9 @@
 #'   `geom_mark_shape()`. Default is `"plain"`.
 #' @param label.margin Label margin passed to
 #'   `geom_mark_shape()`. Default is `margin(2, 2, 2, 2, "pt")`.
+#' @param cols Optional vector of colors for the mask outlines and labels.
+#'   Should have length equal to the number of unique clusters in `maskTable`.
+#'   If `NULL` (default), colors are generated automatically using `scales::hue_pal()`.
 #'
 #' @return A list of ggplot2 components suitable for adding to a plot with `+`,
 #'   containing:
@@ -64,7 +67,8 @@ fancyMask <- function(maskTable,
                       label.fontsize = 10,
                       label.buffer = unit(0, "cm"),
                       label.fontface = "plain",
-                      label.margin = margin(2, 2, 2, 2, "pt")
+                      label.margin = margin(2, 2, 2, 2, "pt"),
+                      cols = NULL
                       ) {
     xvar <- colnames(maskTable)[1]
     yvar <- colnames(maskTable)[2]
@@ -75,11 +79,20 @@ fancyMask <- function(maskTable,
     xyWidths <- apply(xyRanges, 2, diff)
     xyRanges <- xyRanges + c(-1, 1)  %*% t(xyWidths * limits.expand)
 
-    # TODO: make colors controllable
-    colors <- NULL
+    # Set colors for mask outlines and labels
+    colors <- cols
     if (is.null(colors)) {
         clusterLevels <- levels(maskTable$cluster)
         pal <- setNames(scales::hue_pal()(length(clusterLevels)), clusterLevels)
+        colors <- pal[maskTable$cluster]
+    } else {
+        # Map provided colors to clusters
+        clusterLevels <- levels(maskTable$cluster)
+        if (length(colors) != length(clusterLevels)) {
+            warning("Length of 'cols' (", length(colors), ") does not match number of clusters (", 
+                   length(clusterLevels), "). Colors will be recycled or truncated.")
+        }
+        pal <- setNames(rep(colors, length.out = length(clusterLevels)), clusterLevels)
         colors <- pal[maskTable$cluster]
     }
 
