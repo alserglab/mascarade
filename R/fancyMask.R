@@ -88,10 +88,11 @@ fancyMask <- function(maskTable,
     } else {
         # Map provided colors to clusters
         clusterLevels <- levels(maskTable$cluster)
-        if (length(colors) != length(clusterLevels)) {
-            warning("Length of 'cols' (", length(colors), ") does not match number of clusters (", 
-                   length(clusterLevels), "). Colors will be recycled or truncated.")
+        if (length(colors) < length(clusterLevels)) {
+            warning("Length of 'cols' (", length(colors), ") is less than number of clusters (", 
+                   length(clusterLevels), "). Colors will be recycled.")
         }
+        # Use first n colors if more are provided, recycle if fewer
         pal <- setNames(rep(colors, length.out = length(clusterLevels)), clusterLevels)
         colors <- pal[maskTable$cluster]
     }
