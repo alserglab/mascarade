@@ -256,9 +256,8 @@ Or multiple markers (skipping the labels to save space):
 
 ```{r message=FALSE, warning=FALSE}
 featureList <- c("MS4A1", "GNLY", "CD3E", "CD14")
-plots <- FeaturePlot(pbmc3k, features=featureList, cols=c("grey90", "red"), combine = FALSE)
-plots <- lapply(plots, `+`, fancyMask(maskTable, ratio=1, linewidth=0.5, label=FALSE))
-patchwork::wrap_plots(plots)
+FeaturePlot(pbmc3k, features=featureList, cols=c("grey90", "red")) *
+    fancyMask(maskTable, ratio=1, linewidth=0.5, label=FALSE)
 ```
 
 
@@ -269,14 +268,8 @@ pbmc3k <- RunTSNE(pbmc3k)
 
 maskTable <- generateMaskSeurat(pbmc3k, reduction = "tsne")
 
-plots <- FeaturePlot(pbmc3k, 
-                     features=featureList,
-                     reduction = "tsne",
-                     cols=c("grey90", "red"),
-                     combine = FALSE)
-plots <- lapply(plots, `+`, fancyMask(maskTable, ratio=1, linewidth=0.5, label=FALSE))
-
-patchwork::wrap_plots(plots)
+FeaturePlot(pbmc3k, features=featureList, reduction = "tsne", cols=c("grey90", "red")) * 
+    fancyMask(maskTable, ratio=1, linewidth=0.5, label=FALSE)
 ```
 
 ### Session info
