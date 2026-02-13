@@ -214,7 +214,7 @@ helper function:
 ``` r
 ggplot(data, aes(x=UMAP_1, y=UMAP_2)) +
     geom_point(color="grey") +
-    fancyMask(maskTable, ratio=1) +
+    fancyMask(maskTable, ratio=1, cols = scales::hue_pal()) +
     theme_classic()
 ```
 
@@ -228,7 +228,7 @@ dataset.
 ggplot(data, aes(x=UMAP_1, y=UMAP_2)) + 
     geom_point(aes(color=GNLY), size=0.5) +
     scale_color_gradient2(low = "#404040", high="red") + 
-    fancyMask(maskTable, ratio=1) +
+    fancyMask(maskTable, ratio=1, cols = scales::hue_pal()) +
     theme_classic()
 ```
 
@@ -292,7 +292,7 @@ maskTable <- generateMaskSeurat(pbmc3k)
 
 We can use
 [`fancyMask()`](https://alserglab.github.io/mascarade/reference/fancyMask.md)
-now:
+now, here it reuses colors from `DimPlot` automatically:
 
 ``` r
 DimPlot(pbmc3k) + NoLegend() +
@@ -319,12 +319,13 @@ FeaturePlot(pbmc3k, "GNLY", cols=c("grey90", "red")) +
 
 ![](mascarade-tutorial_files/figure-html/seurat-gnly-1.png)
 
-Or multiple markers (skipping the labels to save space):
+Or multiple markers (skipping the labels to save space, but adding
+colors):
 
 ``` r
 featureList <- c("MS4A1", "GNLY", "CD3E", "CD14")
 FeaturePlot(pbmc3k, features=featureList, cols=c("grey90", "red")) *
-    fancyMask(maskTable, ratio=1, linewidth=0.5, label=FALSE)
+    fancyMask(maskTable, ratio=1, linewidth=0.5, label=FALSE, cols = scales::hue_pal())
 ```
 
 ![](mascarade-tutorial_files/figure-html/unnamed-chunk-23-1.png)
@@ -337,7 +338,7 @@ pbmc3k <- RunTSNE(pbmc3k)
 maskTable <- generateMaskSeurat(pbmc3k, reduction = "tsne")
 
 FeaturePlot(pbmc3k, features=featureList, reduction = "tsne", cols=c("grey90", "red")) * 
-    fancyMask(maskTable, ratio=1, linewidth=0.5, label=FALSE)
+    fancyMask(maskTable, ratio=1, linewidth=0.5, label=FALSE, cols = scales::hue_pal())
 ```
 
 ![](mascarade-tutorial_files/figure-html/unnamed-chunk-24-1.png)
@@ -370,8 +371,8 @@ sessionInfo()
     ## 
     ## other attached packages:
     ## [1] Seurat_5.4.0        SeuratObject_5.3.0  sp_2.2-0           
-    ## [4] ggforce_0.5.0       ggplot2_4.0.1       data.table_1.18.2.1
-    ## [7] mascarade_0.3.0    
+    ## [4] ggforce_0.5.0       ggplot2_4.0.2       data.table_1.18.2.1
+    ## [7] mascarade_0.3.1    
     ## 
     ## loaded via a namespace (and not attached):
     ##   [1] pbapply_1.7-4          deldir_2.0-4           gridExtra_2.3         
@@ -384,7 +385,7 @@ sessionInfo()
     ##  [22] ragg_1.5.0             purrr_1.2.1            xfun_0.56             
     ##  [25] cachem_1.1.0           jsonlite_2.0.0         goftest_1.2-3         
     ##  [28] later_1.4.5            spatstat.utils_3.2-1   tweenr_2.0.3          
-    ##  [31] irlba_2.3.5.1          parallel_4.5.2         cluster_2.1.8.1       
+    ##  [31] irlba_2.3.7            parallel_4.5.2         cluster_2.1.8.1       
     ##  [34] R6_2.6.1               ica_1.0-3              stringi_1.8.7         
     ##  [37] bslib_0.10.0           RColorBrewer_1.1-3     spatstat.data_3.1-9   
     ##  [40] reticulate_1.44.1      parallelly_1.46.1      spatstat.univar_3.1-6 
@@ -392,7 +393,7 @@ sessionInfo()
     ##  [46] Rcpp_1.1.1             knitr_1.51             tensor_1.5.1          
     ##  [49] future.apply_1.20.1    zoo_1.8-15             sctransform_0.4.3     
     ##  [52] httpuv_1.6.16          Matrix_1.7-4           splines_4.5.2         
-    ##  [55] igraph_2.2.1           tidyselect_1.2.1       abind_1.4-8           
+    ##  [55] igraph_2.2.2           tidyselect_1.2.1       abind_1.4-8           
     ##  [58] yaml_2.3.12            codetools_0.2-20       spatstat.random_3.4-4 
     ##  [61] miniUI_0.1.2           spatstat.explore_3.7-0 listenv_0.10.0        
     ##  [64] plyr_1.8.9             lattice_0.22-7         tibble_3.3.1          
@@ -402,13 +403,13 @@ sessionInfo()
     ##  [76] survival_3.8-3         polyclip_1.10-7        fitdistrplus_1.2-6    
     ##  [79] pillar_1.11.1          KernSmooth_2.23-26     plotly_4.12.0         
     ##  [82] generics_0.1.4         RcppHNSW_0.6.0         scales_1.4.0          
-    ##  [85] xtable_1.8-4           globals_0.18.0         glue_1.8.0            
+    ##  [85] xtable_1.8-4           globals_0.19.0         glue_1.8.0            
     ##  [88] lazyeval_0.2.2         tools_4.5.2            RSpectra_0.16-2       
     ##  [91] RANN_2.6.2             fs_1.6.6               dotCall64_1.2         
     ##  [94] cowplot_1.2.0          grid_4.5.2             tidyr_1.3.2           
     ##  [97] patchwork_1.3.2        nlme_3.1-168           cli_3.6.5             
     ## [100] spatstat.sparse_3.1-0  textshaping_1.0.4      spam_2.11-3           
-    ## [103] viridisLite_0.4.2      dplyr_1.1.4            uwot_0.2.4            
+    ## [103] viridisLite_0.4.3      dplyr_1.2.0            uwot_0.2.4            
     ## [106] gtable_0.3.6           sass_0.4.10            digest_0.6.39         
     ## [109] progressr_0.18.0       ggrepel_0.9.6          htmlwidgets_1.6.4     
     ## [112] farver_2.1.2           htmltools_0.5.9        pkgdown_2.2.0         

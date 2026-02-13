@@ -130,8 +130,8 @@ sessionInfo()
     ## [1] stats     graphics  grDevices utils     datasets  methods   base     
     ## 
     ## other attached packages:
-    ## [1] ggsci_4.2.0         ggplot2_4.0.1       data.table_1.18.2.1
-    ## [4] mascarade_0.3.0    
+    ## [1] ggsci_4.2.0         ggplot2_4.0.2       data.table_1.18.2.1
+    ## [4] mascarade_0.3.1    
     ## 
     ## loaded via a namespace (and not attached):
     ##  [1] sass_0.4.10            generics_0.1.4         spatstat.explore_3.7-0
@@ -144,7 +144,7 @@ sessionInfo()
     ## [22] cli_3.6.5              rlang_1.1.7            polyclip_1.10-7       
     ## [25] withr_3.0.2            cachem_1.1.0           yaml_2.3.12           
     ## [28] otel_0.2.0             spatstat.univar_3.1-6  tools_4.5.2           
-    ## [31] deldir_2.0-4           dplyr_1.1.4            spatstat.geom_3.7-0   
+    ## [31] deldir_2.0-4           dplyr_1.2.0            spatstat.geom_3.7-0   
     ## [34] vctrs_0.7.1            R6_2.6.1               lifecycle_1.0.5       
     ## [37] fs_1.6.6               htmlwidgets_1.6.4      MASS_7.3-65           
     ## [40] ragg_1.5.0             pkgconfig_2.0.3        desc_1.4.3            
