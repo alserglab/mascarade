@@ -113,6 +113,10 @@ fancyMask <- function(maskTable,
                          label.margin = label.margin)
 }
 
+getClusterLevels <- function(x) {
+    if (is.factor(x)) levels(x) else unique(x)
+}
+
 resolveCols <- function(cols, clusterLevels) {
     nClusters <- length(clusterLevels)
     if (is.function(cols)) {
@@ -163,7 +167,7 @@ buildFancyMaskLayers <- function(maskTable, ratio, limits.expand, linewidth,
     xyWidths <- apply(xyRanges, 2, diff)
     xyRanges <- xyRanges + c(-1, 1)  %*% t(xyWidths * limits.expand)
 
-    clusterLevels <- levels(maskTable$cluster)
+    clusterLevels <- getClusterLevels(maskTable$cluster)
     pal <- resolveCols(cols, clusterLevels)
     colors <- pal[maskTable$cluster]
 
@@ -224,7 +228,7 @@ defaultDiscreteColourScale <- function() {
 #' @importFrom ggplot2 ggplot_add
 #' @export
 ggplot_add.fancyMask <- function(object, plot, ...) {
-    clusterLevels <- levels(object$maskTable$cluster)
+    clusterLevels <- getClusterLevels(object$maskTable$cluster)
     scale <- plot$scales$get_scales("colour")
 
     # If no explicit colour scale exists, check whether any layer maps the

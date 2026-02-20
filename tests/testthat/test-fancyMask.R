@@ -58,6 +58,33 @@ test_that("fancyMask errors on named cols missing a cluster", {
                  "missing entries for cluster")
 })
 
+test_that("fancyMask works when cluster column is character, not factor", {
+    data("exampleMascarade")
+    # Use character clusters (not factor) to mimic Seurat metadata
+    charClusters <- paste0("_", exampleMascarade$clusters)
+    mt <- generateMask(dims = exampleMascarade$dims,
+                       clusters = charClusters,
+                       gridSize = 50)
+    expect_false(is.factor(mt$cluster))
+
+    # Direct cols should work
+    res <- fancyMask(mt, cols = "red")
+    colors <- get_layer_colors(res)
+    expect_true(length(colors) > 0)
+    expect_true(all(colors == "red"))
+
+    # Inherit with a discrete scale should work
+    plotData <- data.frame(exampleMascarade$dims,
+                           cluster = factor(charClusters))
+    p <- ggplot(plotData) +
+        geom_point(aes(x = UMAP_1, y = UMAP_2, color = cluster), size = 0.5) +
+        fancyMask(mt, cols = "inherit")
+    mask_layer <- p$layers[[length(p$layers)]]
+    colors <- mask_layer$aes_params$colour
+    expect_true(length(colors) > 0)
+    expect_true(!any(is.na(colors)))
+})
+
 test_that("fancyMask renders without error with custom cols", {
     mt <- make_mask_table()
     data("exampleMascarade")
