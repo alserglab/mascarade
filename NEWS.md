@@ -1,4 +1,7 @@
 # mascarade 0.3.1
+* bug fixes
+
+# mascarade 0.3.1
 * fancyMask support setting colors manually or to inherit from the main layer.
 
 # mascarade 0.3.0

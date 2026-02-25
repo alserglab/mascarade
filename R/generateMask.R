@@ -356,6 +356,9 @@ generateMask <- function(dims, clusters,
 
     # switch to high-res
     curMasks <- lapply(curMasks, function(m) {
+        if (area(m) == 0) {
+            return(as.mask(complement.owin(windowHD), xy=windowHD))
+        }
         bbox <- boundingbox(m)
         subW <- windowHD[bbox]
         res <- as.mask(m, xy = subW)
