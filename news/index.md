@@ -4,6 +4,12 @@
 
 CRAN release: 2026-02-13
 
+- bug fixes
+
+## mascarade 0.3.1
+
+CRAN release: 2026-02-13
+
 - fancyMask support setting colors manually or to inherit from the main
   layer.
 
