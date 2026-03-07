@@ -379,12 +379,12 @@ sessionInfo()
     ##   [4] rlang_1.1.7            magrittr_2.0.4         RcppAnnoy_0.0.23      
     ##   [7] otel_0.2.0             matrixStats_1.5.0      ggridges_0.5.7        
     ##  [10] compiler_4.5.2         spatstat.geom_3.7-0    reshape2_1.4.5        
-    ##  [13] png_0.1-8              systemfonts_1.3.1      vctrs_0.7.1           
+    ##  [13] png_0.1-8              systemfonts_1.3.2      vctrs_0.7.1           
     ##  [16] stringr_1.6.0          pkgconfig_2.0.3        fastmap_1.2.0         
     ##  [19] labeling_0.4.3         promises_1.5.0         rmarkdown_2.30        
-    ##  [22] ragg_1.5.0             purrr_1.2.1            xfun_0.56             
+    ##  [22] ragg_1.5.1             purrr_1.2.1            xfun_0.56             
     ##  [25] cachem_1.1.0           jsonlite_2.0.0         goftest_1.2-3         
-    ##  [28] later_1.4.7            spatstat.utils_3.2-1   tweenr_2.0.3          
+    ##  [28] later_1.4.8            spatstat.utils_3.2-1   tweenr_2.0.3          
     ##  [31] irlba_2.3.7            parallel_4.5.2         cluster_2.1.8.1       
     ##  [34] R6_2.6.1               ica_1.0-3              stringi_1.8.7         
     ##  [37] bslib_0.10.0           RColorBrewer_1.1-3     spatstat.data_3.1-9   
@@ -405,13 +405,13 @@ sessionInfo()
     ##  [82] generics_0.1.4         RcppHNSW_0.6.0         scales_1.4.0          
     ##  [85] xtable_1.8-8           globals_0.19.0         glue_1.8.0            
     ##  [88] lazyeval_0.2.2         tools_4.5.2            RSpectra_0.16-2       
-    ##  [91] RANN_2.6.2             fs_1.6.6               dotCall64_1.2         
+    ##  [91] RANN_2.6.2             fs_1.6.7               dotCall64_1.2         
     ##  [94] cowplot_1.2.0          grid_4.5.2             tidyr_1.3.2           
     ##  [97] patchwork_1.3.2        nlme_3.1-168           cli_3.6.5             
-    ## [100] spatstat.sparse_3.1-0  textshaping_1.0.4      spam_2.11-3           
+    ## [100] spatstat.sparse_3.1-0  textshaping_1.0.5      spam_2.11-3           
     ## [103] viridisLite_0.4.3      dplyr_1.2.0            uwot_0.2.4            
     ## [106] gtable_0.3.6           sass_0.4.10            digest_0.6.39         
-    ## [109] progressr_0.18.0       ggrepel_0.9.6          htmlwidgets_1.6.4     
+    ## [109] progressr_0.18.0       ggrepel_0.9.7          htmlwidgets_1.6.4     
     ## [112] farver_2.1.2           htmltools_0.5.9        pkgdown_2.2.0         
     ## [115] lifecycle_1.0.5        httr_1.4.8             mime_0.13             
     ## [118] MASS_7.3-65
