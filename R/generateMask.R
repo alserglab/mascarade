@@ -281,6 +281,11 @@ generateMask <- function(dims, clusters,
         )
     }
 
+    if (length(clusters) != nrow(dims)) {
+        stop("length(clusters) must equal nrow(dims), got ",
+             length(clusters), " and ", nrow(dims), call. = FALSE)
+    }
+
     clusterLevels <- unique(clusters)
 
     dims <- dims[, 1:2]
