@@ -218,6 +218,8 @@ getPartDensityClipped <- function(curPoints, part, window, smoothSigma, pixelSiz
 #' @returns data.table with points representing the mask borders.
 #'      Each individual border line corresponds to a single level of `group` column.
 #'      Cluster assignment is in `cluster` column.
+#'      Within each cluster, parts are ordered by decreasing polygon area so
+#'      that part index 1 is always the largest disconnected component.
 #' @importFrom data.table rbindlist data.table setnames :=
 #' @importFrom utils head tail
 #' @importFrom stats median bw.nrd
@@ -382,6 +384,20 @@ generateMask <- function(dims, clusters,
             return(NULL)
         }
         curTable <- borderTableFromMask(curMask, crop=FALSE)
+
+        # Sort parts so that part index 1 is always the largest by polygon area.
+        # Each group is a closed polygon (last row == first row); shoelace formula
+        # gives its signed area. Sum absolute areas per part to rank them.
+        groupAreas <- curTable[,
+            .(area = abs(sum(head(x, -1) * tail(y, -1) -
+                             tail(x, -1) * head(y, -1))) / 2),
+            by = .(part, group)
+        ]
+        partAreas <- groupAreas[, .(totalArea = sum(area)), by = part]
+        partAreas <- partAreas[order(-totalArea)]
+        partMap   <- setNames(seq_len(nrow(partAreas)), partAreas$part)
+        curTable[, part := partMap[as.character(part)]]
+
         curTable[, cluster := clusterLevels[i]]
         curTable[, part := paste0(cluster, "#", part)]
         curTable[, group := paste0(part, "#", group)]

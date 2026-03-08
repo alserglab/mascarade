@@ -50,9 +50,12 @@ inherit_gp <- function(..., gp, call = caller_env()) {
 }
 subset_gp <- function(gp, index, ignore = c('font')) {
   gp_names <- names(gp)
-  gp_names <- gp_names[-unique0(unlist(lapply(ignore, grep, gp_names)))]
+  ignore_idx <- unique0(unlist(lapply(ignore, grep, gp_names)))
+  if (length(ignore_idx) > 0) {
+    gp_names <- gp_names[-ignore_idx]
+  }
   for (par in gp_names) {
-    gp[[par]] <- rep_len(gp[[par]], index)[index]
+    gp[[par]] <- rep_len(gp[[par]], max(index))[index]
   }
   gp
 }

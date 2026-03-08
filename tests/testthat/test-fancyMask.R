@@ -8,8 +8,7 @@ make_mask_table <- function() {
 }
 
 get_layer_colors <- function(res) {
-    # The geom layer is the second element (first is coord_cartesian)
-    # Note: "colour" is the ggplot2 internal field name
+    # The geom layer is the second element (first is coord_cartesian).
     res[[2]]$aes_params$colour
 }
 
@@ -161,6 +160,42 @@ test_that("cols='inherit' picks up colors from layer-level mapping", {
     colors <- mask_layer$aes_params$colour
     expected <- myPal[as.character(mt$cluster)]
     expect_equal(unname(colors), unname(expected))
+})
+
+make_two_part_mask_table <- function() {
+    # Cluster "A" with two parts: part #1 (large square) and part #2 (small square)
+    # Cluster "B" with one part
+    data.frame(
+        x       = c(0, 2, 2, 0, 0,   5, 5.5, 5.5, 5, 5,   10, 11, 11, 10, 10),
+        y       = c(0, 0, 2, 2, 0,   0, 0,   0.5, 0.5, 0,  0,  0,  1,  1,  0),
+        cluster = factor(c(rep("A", 10), rep("B", 5))),
+        part    = c(rep("A#1", 5), rep("A#2", 5), rep("B#1", 5)),
+        group   = c(rep("A#1#1", 5), rep("A#2#1", 5), rep("B#1#1", 5)),
+        stringsAsFactors = FALSE
+    )
+}
+
+test_that("label.largest=TRUE sets non-first-part labels to NA", {
+    mt  <- make_two_part_mask_table()
+    res <- fancyMask(mt, cols = "black", label = TRUE, label.largest = TRUE)
+    layer_data <- res[[2]]$data
+    expect_true(all(is.na(layer_data$.label_display[layer_data$part == "A#2"])))
+    expect_false(any(is.na(layer_data$.label_display[layer_data$part == "A#1"])))
+    expect_false(any(is.na(layer_data$.label_display[layer_data$part == "B#1"])))
+})
+
+test_that("label.largest=FALSE labels all parts", {
+    mt  <- make_two_part_mask_table()
+    res <- fancyMask(mt, cols = "black", label = TRUE, label.largest = FALSE)
+    layer_data <- res[[2]]$data
+    expect_false(any(is.na(layer_data$.label_display)))
+})
+
+test_that("label.largest is stored in deferred fancyMask object", {
+    mt  <- make_two_part_mask_table()
+    obj <- fancyMask(mt, cols = "inherit", label.largest = FALSE)
+    expect_s3_class(obj, "fancyMask")
+    expect_false(obj$label.largest)
 })
 
 test_that("cols='inherit' renders without error", {
