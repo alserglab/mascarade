@@ -85,7 +85,8 @@ fancyMask <- function(maskTable,
                       label.fontsize = 10,
                       label.buffer = unit(0, "cm"),
                       label.fontface = "plain",
-                      label.margin = margin(2, 2, 2, 2, "pt")
+                      label.margin = margin(2, 2, 2, 2, "pt"),
+                      simp_ratio = 0.001
                       ) {
 
     # Defer color resolution when inheriting from the plot's color scale
@@ -101,7 +102,8 @@ fancyMask <- function(maskTable,
             label.fontsize = label.fontsize,
             label.buffer = label.buffer,
             label.fontface = label.fontface,
-            label.margin = label.margin
+            label.margin = label.margin,
+            simp_ratio = simp_ratio
         )
         return(structure(params, class = "fancyMask"))
     }
@@ -117,7 +119,8 @@ fancyMask <- function(maskTable,
                          label.fontsize = label.fontsize,
                          label.buffer = label.buffer,
                          label.fontface = label.fontface,
-                         label.margin = label.margin)
+                         label.margin = label.margin,
+                         simp_ratio = simp_ratio)
 }
 
 getClusterLevels <- function(x) {
@@ -166,7 +169,7 @@ collectColourData <- function(plot) {
 buildFancyMaskLayers <- function(maskTable, ratio, limits.expand, linewidth,
                                  shape.expand, cols, label, label.largest,
                                  label.fontsize, label.buffer, label.fontface,
-                                 label.margin) {
+                                 label.margin, simp_ratio = 0.001) {
     xvar <- colnames(maskTable)[1]
     yvar <- colnames(maskTable)[2]
 
@@ -205,6 +208,7 @@ buildFancyMaskLayers <- function(maskTable, ratio, limits.expand, linewidth,
                                  label.buffer = label.buffer,
                                  label.fontface = label.fontface,
                                  label.margin = label.margin,
+                                 simp_ratio = simp_ratio,
                                  label.minwidth = 0,
                                  label.lineheight = 0,
                                  con.cap=0,
@@ -286,7 +290,8 @@ ggplot_add.fancyMask <- function(object, plot, ...) {
         label.fontsize = object$label.fontsize,
         label.buffer = object$label.buffer,
         label.fontface = object$label.fontface,
-        label.margin = object$label.margin
+        label.margin = object$label.margin,
+        simp_ratio = object$simp_ratio
     )
 
     for (layer in layers) {

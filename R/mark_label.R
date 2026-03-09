@@ -1,6 +1,61 @@
+simplify_outer <- function(poly, max_area, min_vertices = 4L) {
+  x <- poly$x
+  y <- poly$y
+  n <- length(x)
+  if (n <= min_vertices || max_area <= 0) return(poly)
+
+  # Circular linked list: prv[i] / nxt[i] are the neighbour indices of vertex i
+  prv <- c(n, seq_len(n - 1L))
+  nxt <- c(seq(2L, n), 1L)
+
+  # Signed polygon area via shoelace: positive = CCW, negative = CW
+  ccw <- sum(x * y[nxt] - x[nxt] * y) / 2 > 0
+
+  # Vectorised initial cross products: (P_i - P_prev) x (P_next - P_prev)
+  # Positive = left turn (convex in CCW), Negative = right turn (concave in CCW).
+  crosses <- (x - x[prv]) * (y[nxt] - y[prv]) - (y - y[prv]) * (x[nxt] - x[prv])
+
+  # For a CCW polygon a concave vertex (right turn, cross <= 0) dips inward.
+  # Removing it fills the dent so the simplified polygon encloses the original.
+  # Mark non-removable vertices with Inf so which.min() skips them.
+  areas <- abs(crosses) / 2
+  # Mark non-removable vertices with NA so which.min() skips them;
+  # dead vertices (removed) are marked Inf.
+  if (ccw) areas[crosses > 0] <- NA_real_ else areas[crosses < 0] <- NA_real_
+
+  alive <- rep(TRUE, n)
+  n_alive <- n
+  repeat {
+    if (n_alive <= min_vertices) break
+    best_i <- which.min(areas)  # NA values are ignored by which.min
+    if (length(best_i) == 0L || areas[best_i] > max_area) break
+
+    p <- prv[best_i]; nx <- nxt[best_i]
+    nxt[p] <- nx; prv[nx] <- p
+    alive[best_i] <- FALSE
+    areas[best_i] <- NA_real_     # exclude from future which.min (dead vertex)
+    n_alive <- n_alive - 1L
+
+    # Recompute cross products only for the two affected neighbours
+    for (nb in c(p, nx)) {
+      a_nb <- prv[nb]; b_nb <- nxt[nb]
+      cr <- (x[nb] - x[a_nb]) * (y[b_nb] - y[a_nb]) -
+            (y[nb] - y[a_nb]) * (x[b_nb] - x[a_nb])
+      removable <- if (ccw) cr <= 0 else cr >= 0
+      areas[nb] <- if (removable) abs(cr) / 2 else NA_real_
+    }
+  }
+
+  cur <- which(alive)[1L]
+  rx <- numeric(n_alive); ry <- numeric(n_alive)
+  for (j in seq_len(n_alive)) { rx[j] <- x[cur]; ry[j] <- y[cur]; cur <- nxt[cur] }
+  list(x = rx, y = ry)
+}
+
 #' @importFrom polyclip polyoffset polyminkowski polyclip
 #' @importFrom grid convertX convertY
-my_place_labels <- function(rects, polygons, bounds, anchors, ghosts) {
+my_place_labels <- function(rects, polygons, bounds, anchors, ghosts,
+                            simp_ratio = 0.001) {
   res <- vector('list', length(rects))
   bbox <- list(
     x = c(0, bounds[1], bounds[1], 0),
@@ -20,6 +75,13 @@ my_place_labels <- function(rects, polygons, bounds, anchors, ghosts) {
     )
     ghosts <- polyoffset(ghosts, 0)
     polygons <- c(polygons, ghosts)
+  }
+  if (simp_ratio > 0 && length(polygons) > 0) {
+    all_x <- unlist(lapply(polygons, `[[`, 'x'))
+    all_y <- unlist(lapply(polygons, `[[`, 'y'))
+    bbox_area <- diff(range(all_x)) * diff(range(all_y))
+    max_area  <- simp_ratio * bbox_area
+    polygons  <- lapply(polygons, simplify_outer, max_area = max_area)
   }
   for (i in seq_along(rects)) {
     if (all(rects[[i]] == 0)) next()
@@ -45,7 +107,7 @@ my_place_labels <- function(rects, polygons, bounds, anchors, ghosts) {
 #' @importFrom stats runif
 my_make_label <- function(labels, dims, polygons, ghosts, buffer, con_type,
                        con_border, con_cap, con_gp, anchor_mod, anchor_x,
-                       anchor_y, arrow) {
+                       anchor_y, arrow, simp_ratio = 0.001) {
   polygons <- lapply(polygons, function(p) {
     if (length(p$x) == 1 & length(p$y) == 1) {
       list(
@@ -73,7 +135,8 @@ my_make_label <- function(labels, dims, polygons, ghosts, buffer, con_type,
     convertWidth(unit(1, 'npc'), 'mm', TRUE),
     convertHeight(unit(1, 'npc'), 'mm', TRUE)
   )
-  labelpos <- my_place_labels(dims, p_big, area, anchors, ghosts)
+  labelpos <- my_place_labels(dims, p_big, area, anchors, ghosts,
+                              simp_ratio = simp_ratio)
   if (all(lengths(labelpos) == 0)) {
     return(list(nullGrob()))
   }

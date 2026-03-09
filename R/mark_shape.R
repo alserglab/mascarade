@@ -75,7 +75,7 @@ geom_mark_shape <- function(mapping = NULL, data = NULL, stat = 'identity',
                            label.buffer = unit(10, 'mm'), con.colour = 'black',
                            con.size = 0.5, con.type = 'elbow', con.linetype = 1,
                            con.border = 'one', con.cap = unit(3, 'mm'),
-                           con.arrow = NULL, ..., na.rm = FALSE,
+                           con.arrow = NULL, simp_ratio = 0.001, ..., na.rm = FALSE,
                            show.legend = NA, inherit.aes = TRUE) {
   layer(
     data = data,
@@ -107,6 +107,7 @@ geom_mark_shape <- function(mapping = NULL, data = NULL, stat = 'identity',
       con.border = con.border,
       con.cap = con.cap,
       con.arrow = con.arrow,
+      simp_ratio = simp_ratio,
       ...
     )
   )
@@ -131,7 +132,8 @@ GeomMarkShape <- ggplot2::ggproto(
                           label.fill = 'white', label.colour = 'black',
                           con.colour = 'black', con.size = 0.5, con.type = 'elbow',
                           con.linetype = 1, con.border = 'one',
-                          con.cap = unit(3, 'mm'), con.arrow = NULL) {
+                          con.cap = unit(3, 'mm'), con.arrow = NULL,
+                          simp_ratio = 0.001) {
         if (nrow(data) == 0) return(ggplot2::zeroGrob())
 
         # As long as coord$transform() doesn't recognise x0/y0
@@ -173,6 +175,7 @@ GeomMarkShape <- ggplot2::ggproto(
                      default.units = 'native',
                      id = coords$group, expand = expand, radius = radius,
                      label = label, ghosts = ghosts,
+                     simp_ratio = simp_ratio,
                      mark.gp = gp,
                      label.gp = inherit_gp(
                          col = label.colour[1],
@@ -234,7 +237,8 @@ shapeEncGrob <- function(x = c(0, 0.5, 1, 0.5), y = c(0.5, 1, 0.5, 0), id = NULL
                         label.hjust = 0, label.buffer = unit(10, 'mm'),
                         con.type = 'elbow', con.border = 'one',
                         con.cap = unit(3, 'mm'), con.arrow = NULL,
-                        anchor.x = NULL, anchor.y = NULL, vp = NULL) {
+                        anchor.x = NULL, anchor.y = NULL, vp = NULL,
+                        simp_ratio = 0.001) {
     mark <- shapeGrob(
         x = x, y = y, id = id, id.lengths = id.lengths,
         expand = expand, radius = radius,
@@ -279,7 +283,8 @@ shapeEncGrob <- function(x = c(0, 0.5, 1, 0.5), y = c(0.5, 1, 0.5, 0), id = NULL
         mark = mark, label = label, labeldim = labeldim,
         buffer = label.buffer, ghosts = ghosts, con.gp = con.gp, con.type = con.type,
         con.cap = as_mm(con.cap, default.units), con.border = con.border,
-        con.arrow = con.arrow, anchor.x = anchor.x, anchor.y = anchor.y, name = name,
+        con.arrow = con.arrow, anchor.x = anchor.x, anchor.y = anchor.y,
+        simp_ratio = simp_ratio, name = name,
         vp = vp, cl = 'shape_enc'
     )
 }
@@ -330,7 +335,8 @@ makeContent.shape_enc <- function(x) {
             ghosts = x$ghosts, buffer = x$buffer, con_type = x$con.type,
             con_border = x$con.border, con_cap = x$con.cap,
             con_gp = x$con.gp, anchor_mod = 2, anchor_x = anchor_x,
-            anchor_y = anchor_y, arrow = x$con.arrow
+            anchor_y = anchor_y, arrow = x$con.arrow,
+            simp_ratio = x$simp_ratio
         )
         setChildren(x, rlang::inject(gList(!!!c(list(mark), labels))))
     } else {
