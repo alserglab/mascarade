@@ -15,7 +15,7 @@ extra room for labels."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">mascarade</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.3.2</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.3.3</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -64,10 +64,12 @@ extra room for labels.</p>
 <span>  shape.expand <span class="op">=</span> <span class="va">linewidth</span> <span class="op">*</span> <span class="fu"><a href="https://rdrr.io/r/grid/unit.html" class="external-link">unit</a></span><span class="op">(</span><span class="op">-</span><span class="fl">1</span>, <span class="st">"pt"</span><span class="op">)</span>,</span>
 <span>  cols <span class="op">=</span> <span class="st">"inherit"</span>,</span>
 <span>  label <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  label.largest <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  label.fontsize <span class="op">=</span> <span class="fl">10</span>,</span>
 <span>  label.buffer <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/grid/unit.html" class="external-link">unit</a></span><span class="op">(</span><span class="fl">0</span>, <span class="st">"cm"</span><span class="op">)</span>,</span>
 <span>  label.fontface <span class="op">=</span> <span class="st">"plain"</span>,</span>
-<span>  label.margin <span class="op">=</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/element.html" class="external-link">margin</a></span><span class="op">(</span><span class="fl">2</span>, <span class="fl">2</span>, <span class="fl">2</span>, <span class="fl">2</span>, <span class="st">"pt"</span><span class="op">)</span></span>
+<span>  label.margin <span class="op">=</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/element.html" class="external-link">margin</a></span><span class="op">(</span><span class="fl">2</span>, <span class="fl">2</span>, <span class="fl">2</span>, <span class="fl">2</span>, <span class="st">"pt"</span><span class="op">)</span>,</span>
+<span>  simp_ratio <span class="op">=</span> <span class="fl">0.001</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -119,7 +121,14 @@ not matter.</p></li>
 
 
 <dt id="arg-label">label<a class="anchor" aria-label="anchor" href="#arg-label"></a></dt>
-<dd><p>Boolean flag wheter the labels should be displayed.</p></dd>
+<dd><p>Boolean flag whether the labels should be displayed.</p></dd>
+
+
+<dt id="arg-label-largest">label.largest<a class="anchor" aria-label="anchor" href="#arg-label-largest"></a></dt>
+<dd><p>Boolean flag. When <code>TRUE</code> (default), only the largest
+part of each cluster is labelled; smaller disconnected parts are drawn but
+not labelled. When <code>FALSE</code>, all parts are labelled. Ignored when
+<code>label = FALSE</code>.</p></dd>
 
 
 <dt id="arg-label-fontsize">label.fontsize<a class="anchor" aria-label="anchor" href="#arg-label-fontsize"></a></dt>
@@ -140,6 +149,15 @@ Default is <code>10</code>.</p></dd>
 <dt id="arg-label-margin">label.margin<a class="anchor" aria-label="anchor" href="#arg-label-margin"></a></dt>
 <dd><p>Label margin passed to
 <code><a href="geom_mark_shape.html">geom_mark_shape()</a></code>. Default is <code>margin(2, 2, 2, 2, "pt")</code>.</p></dd>
+
+
+<dt id="arg-simp-ratio">simp_ratio<a class="anchor" aria-label="anchor" href="#arg-simp-ratio"></a></dt>
+<dd><p>Fraction of the polygon bounding box area used as the
+label-placement simplification threshold. Cluster polygons are simplified
+before the label placement search by removing small concave vertices,
+which reduces computation while guaranteeing the simplified polygon
+encloses the original. Larger values simplify more aggressively;
+set to <code>0</code> to disable. Default is <code>0.001</code>.</p></dd>
 
 </dl></div>
     <div class="section level2">

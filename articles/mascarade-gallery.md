@@ -131,7 +131,7 @@ sessionInfo()
     ## 
     ## other attached packages:
     ## [1] ggsci_4.2.0         ggplot2_4.0.2       data.table_1.18.2.1
-    ## [4] mascarade_0.3.2    
+    ## [4] mascarade_0.3.3    
     ## 
     ## loaded via a namespace (and not attached):
     ##  [1] sass_0.4.10            generics_0.1.4         spatstat.explore_3.7-0

@@ -66,7 +66,9 @@ generateMask(
 
 data.table with points representing the mask borders. Each individual
 border line corresponds to a single level of `group` column. Cluster
-assignment is in `cluster` column.
+assignment is in `cluster` column. Within each cluster, parts are
+ordered by decreasing polygon area so that part index 1 is always the
+largest disconnected component.
 
 ## Examples
 

@@ -35,6 +35,7 @@ geom_mark_shape(
   con.border = "one",
   con.cap = unit(3, "mm"),
   con.arrow = NULL,
+  simp_ratio = 0.001,
   ...,
   na.rm = FALSE,
   show.legend = NA,
@@ -219,6 +220,15 @@ geom_mark_shape(
   An arrow specification for the connection using
   [`grid::arrow()`](https://rdrr.io/r/grid/arrow.html) for the end
   pointing towards the mark.
+
+- simp_ratio:
+
+  Fraction of the polygon bounding box area used as the label-placement
+  simplification threshold. Cluster polygons are simplified before the
+  label placement search by removing small concave vertices, which
+  reduces computation while guaranteeing the simplified polygon encloses
+  the original. Larger values simplify more aggressively; set to `0` to
+  disable. Default is `0.001`.
 
 - ...:
 

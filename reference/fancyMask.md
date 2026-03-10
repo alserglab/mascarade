@@ -15,10 +15,12 @@ fancyMask(
   shape.expand = linewidth * unit(-1, "pt"),
   cols = "inherit",
   label = TRUE,
+  label.largest = TRUE,
   label.fontsize = 10,
   label.buffer = unit(0, "cm"),
   label.fontface = "plain",
-  label.margin = margin(2, 2, 2, 2, "pt")
+  label.margin = margin(2, 2, 2, 2, "pt"),
+  simp_ratio = 0.001
 )
 ```
 
@@ -79,7 +81,14 @@ fancyMask(
 
 - label:
 
-  Boolean flag wheter the labels should be displayed.
+  Boolean flag whether the labels should be displayed.
+
+- label.largest:
+
+  Boolean flag. When `TRUE` (default), only the largest part of each
+  cluster is labelled; smaller disconnected parts are drawn but not
+  labelled. When `FALSE`, all parts are labelled. Ignored when
+  `label = FALSE`.
 
 - label.fontsize:
 
@@ -104,6 +113,15 @@ fancyMask(
   Label margin passed to
   [`geom_mark_shape()`](https://alserglab.github.io/mascarade/reference/geom_mark_shape.md).
   Default is `margin(2, 2, 2, 2, "pt")`.
+
+- simp_ratio:
+
+  Fraction of the polygon bounding box area used as the label-placement
+  simplification threshold. Cluster polygons are simplified before the
+  label placement search by removing small concave vertices, which
+  reduces computation while guaranteeing the simplified polygon encloses
+  the original. Larger values simplify more aggressively; set to `0` to
+  disable. Default is `0.001`.
 
 ## Value
 
