@@ -45,6 +45,12 @@
 #'     not matter.
 #' @param label.margin Label margin passed to
 #'   `geom_mark_shape()`. Default is `margin(2, 2, 2, 2, "pt")`.
+#' @param simp_ratio Fraction of the polygon bounding box area used as the
+#'   label-placement simplification threshold. Cluster polygons are simplified
+#'   before the label placement search by removing small concave vertices,
+#'   which reduces computation while guaranteeing the simplified polygon
+#'   encloses the original. Larger values simplify more aggressively;
+#'   set to `0` to disable. Default is `0.001`.
 #'
 #' @return A list of ggplot2 components suitable for adding to a plot with `+`,
 #'   containing a `ggplot2::coord_cartesian()` specification and a
@@ -200,7 +206,7 @@ buildFancyMaskLayers <- function(maskTable, ratio, limits.expand, linewidth,
                                  x=maskTable[[xvar]],
                                  y=maskTable[[yvar]],
                                  aes(group=group,
-                                     label=.label_display),
+                                     label=.data$.label_display),
                                  colour=colors,
                                  linewidth=linewidth,
                                  expand=shape.expand,

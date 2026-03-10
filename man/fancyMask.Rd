@@ -12,10 +12,12 @@ fancyMask(
   shape.expand = linewidth * unit(-1, "pt"),
   cols = "inherit",
   label = TRUE,
+  label.largest = TRUE,
   label.fontsize = 10,
   label.buffer = unit(0, "cm"),
   label.fontface = "plain",
-  label.margin = margin(2, 2, 2, 2, "pt")
+  label.margin = margin(2, 2, 2, 2, "pt"),
+  simp_ratio = 0.001
 )
 }
 \arguments{
@@ -52,7 +54,12 @@ colors are assigned to clusters in factor-level order.
 not matter.
 }}
 
-\item{label}{Boolean flag wheter the labels should be displayed.}
+\item{label}{Boolean flag whether the labels should be displayed.}
+
+\item{label.largest}{Boolean flag. When \code{TRUE} (default), only the largest
+part of each cluster is labelled; smaller disconnected parts are drawn but
+not labelled. When \code{FALSE}, all parts are labelled. Ignored when
+\code{label = FALSE}.}
 
 \item{label.fontsize}{Label font size passed to \code{geom_mark_shape()}.
 Default is \code{10}.}
@@ -65,6 +72,13 @@ Default is \code{10}.}
 
 \item{label.margin}{Label margin passed to
 \code{geom_mark_shape()}. Default is \code{margin(2, 2, 2, 2, "pt")}.}
+
+\item{simp_ratio}{Fraction of the polygon bounding box area used as the
+label-placement simplification threshold. Cluster polygons are simplified
+before the label placement search by removing small concave vertices,
+which reduces computation while guaranteeing the simplified polygon
+encloses the original. Larger values simplify more aggressively;
+set to \code{0} to disable. Default is \code{0.001}.}
 }
 \value{
 A list of ggplot2 components suitable for adding to a plot with \code{+},

@@ -29,6 +29,7 @@ geom_mark_shape(
   con.border = "one",
   con.cap = unit(3, "mm"),
   con.arrow = NULL,
+  simp_ratio = 0.001,
   ...,
   na.rm = FALSE,
   show.legend = NA,
@@ -152,6 +153,13 @@ on all sides), or \code{"none"} (not going to explain that one).}
 
 \item{con.arrow}{An arrow specification for the connection using
 \code{\link[grid:arrow]{grid::arrow()}} for the end pointing towards the mark.}
+
+\item{simp_ratio}{Fraction of the polygon bounding box area used as the
+label-placement simplification threshold. Cluster polygons are simplified
+before the label placement search by removing small concave vertices,
+which reduces computation while guaranteeing the simplified polygon
+encloses the original. Larger values simplify more aggressively;
+set to \code{0} to disable. Default is \code{0.001}.}
 
 \item{...}{Other arguments passed on to \code{\link[ggplot2:layer]{layer()}}'s \code{params} argument. These
 arguments broadly fall into one of 4 categories below. Notably, further

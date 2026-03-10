@@ -42,6 +42,8 @@ Increasing this parameter can help dealing with sparse regions.}
 data.table with points representing the mask borders.
 Each individual border line corresponds to a single level of \code{group} column.
 Cluster assignment is in \code{cluster} column.
+Within each cluster, parts are ordered by decreasing polygon area so
+that part index 1 is always the largest disconnected component.
 }
 \description{
 Internally the function rasterizes and smoothes the density plots.
