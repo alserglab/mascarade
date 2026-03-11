@@ -384,7 +384,7 @@ sessionInfo()
     ##  [19] labeling_0.4.3         promises_1.5.0         rmarkdown_2.30        
     ##  [22] ragg_1.5.1             purrr_1.2.1            xfun_0.56             
     ##  [25] cachem_1.1.0           jsonlite_2.0.0         goftest_1.2-3         
-    ##  [28] later_1.4.8            spatstat.utils_3.2-1   tweenr_2.0.3          
+    ##  [28] later_1.4.8            spatstat.utils_3.2-2   tweenr_2.0.3          
     ##  [31] irlba_2.3.7            parallel_4.5.2         cluster_2.1.8.1       
     ##  [34] R6_2.6.1               ica_1.0-3              stringi_1.8.7         
     ##  [37] bslib_0.10.0           RColorBrewer_1.1-3     spatstat.data_3.1-9   
@@ -395,7 +395,7 @@ sessionInfo()
     ##  [52] httpuv_1.6.16          Matrix_1.7-4           splines_4.5.2         
     ##  [55] igraph_2.2.2           tidyselect_1.2.1       abind_1.4-8           
     ##  [58] yaml_2.3.12            codetools_0.2-20       spatstat.random_3.4-4 
-    ##  [61] miniUI_0.1.2           spatstat.explore_3.7-0 listenv_0.10.0        
+    ##  [61] miniUI_0.1.2           spatstat.explore_3.7-0 listenv_0.10.1        
     ##  [64] plyr_1.8.9             lattice_0.22-7         tibble_3.3.1          
     ##  [67] shiny_1.13.0           withr_3.0.2            S7_0.2.1              
     ##  [70] ROCR_1.0-12            evaluate_1.0.5         Rtsne_0.17            
