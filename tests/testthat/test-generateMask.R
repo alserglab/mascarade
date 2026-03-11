@@ -38,7 +38,7 @@ test_that("generateMask warns and skips mask for single-point cluster", {
 
     expect_warning(
         res <- generateMask(dims=dims2, clusters=clusters2, gridSize=50),
-        "singleton.*fewer than 2 points"
+        "singleton.*fewer than two points"
     )
     expect_false("singleton" %in% res$cluster)
 })

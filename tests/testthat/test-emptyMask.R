@@ -13,5 +13,11 @@ test_that("generateMask handles cluster absorbed by neighbor (reproduces boundin
 
     # Should not throw: Error in owinInternalRect(...) : xrange should be a vector
     # of length 2 giving (xmin, xmax)
-    expect_no_error(generateMask(dims, clusters))
+    #
+    # Two warnings are expected and suppressed:
+    # - "data contain duplicated points": spatstat warns about the two identical
+    #   (0, 0) points — intentional in this test setup
+    # - "Mask is empty for cluster B": cluster B gets absorbed by A during
+    #   iteration, which is exactly the scenario this test documents
+    expect_no_error(suppressWarnings(generateMask(dims, clusters)))
 })

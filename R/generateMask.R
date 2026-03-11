@@ -315,6 +315,10 @@ generateMask <- function(dims, clusters,
         res
     })
 
+    skippedClusters <- clusterLevels[vapply(clusterLevels, function(cl) {
+        sum(clusters == cl) < 2
+    }, logical(1))]
+
     # getting initial masks
     curMasks <- lapply(seq_along(clusterLevels), function(i) {
         partPoints <- points[clusters == clusterLevels[i]]
@@ -389,7 +393,9 @@ generateMask <- function(dims, clusters,
     borderTable <- rbindlist(lapply(seq_along(clusterLevels), function(i) {
         curMask <- curMasks[[i]]
         if (area(curMask) == 0) {
-            warning(sprintf("Mask is empty for cluster %s", clusterLevels[i]))
+            if (!clusterLevels[i] %in% skippedClusters) {
+                warning(sprintf("Mask is empty for cluster %s", clusterLevels[i]))
+            }
             return(NULL)
         }
         curTable <- borderTableFromMask(curMask, crop=FALSE)

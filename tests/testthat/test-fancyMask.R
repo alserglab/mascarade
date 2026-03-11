@@ -205,7 +205,9 @@ test_that("cols='inherit' renders without error", {
     myPal <- setNames(rainbow(length(clusterLevels)), clusterLevels)
 
     plotData <- as.data.frame(do.call(cbind, exampleMascarade))
-    plotData$clusters <- factor(plotData$clusters)
+    # cbind coerces the factor to integer codes before factor() runs, so levels
+    # would be "1","2",... instead of cluster names — pass levels explicitly
+    plotData$clusters <- factor(plotData$clusters, levels = clusterLevels)
     p <- ggplot(plotData) +
         geom_point(aes(x = UMAP_1, y = UMAP_2, color = clusters)) +
         scale_color_manual(values = myPal) +
