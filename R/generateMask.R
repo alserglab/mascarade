@@ -162,6 +162,10 @@ getRoughMask <- function(partPoints, window, partSigma, pixelSize, crop=TRUE) {
 getPartDensityClipped <- function(curPoints, part, window, smoothSigma, pixelSize) {
     partPoints <- curPoints[part]
 
+    if (partPoints$n < 2) {
+        return(spatstat.geom::as.im(window) * 0)
+    }
+
     partSigma <- sqrt(bw.nrd(partPoints$x) * bw.nrd(partPoints$y)) * 1.5
     if (!is.na(smoothSigma)) {
         partSigma <- sqrt(partSigma * smoothSigma)
@@ -314,6 +318,11 @@ generateMask <- function(dims, clusters,
     # getting initial masks
     curMasks <- lapply(seq_along(clusterLevels), function(i) {
         partPoints <- points[clusters == clusterLevels[i]]
+
+        if (partPoints$n < 2) {
+            warning("Cluster ", clusterLevels[i], " has fewer than two points; no mask will be generated.")
+            return(as.mask(emptywindow(window), xy=window))
+        }
 
         partSigma <- sqrt(bw.nrd(partPoints$x) * bw.nrd(partPoints$y)) * 1.5
         if (!is.na(smoothSigma)) {

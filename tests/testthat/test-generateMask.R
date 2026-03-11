@@ -31,6 +31,18 @@ test_that("generateMask part #1 is the largest part by row count", {
     }
 })
 
+test_that("generateMask warns and skips mask for single-point cluster", {
+    data("exampleMascarade")
+    dims2 <- rbind(exampleMascarade$dims, c(0, 0))
+    clusters2 <- c(as.character(exampleMascarade$clusters), "singleton")
+
+    expect_warning(
+        res <- generateMask(dims=dims2, clusters=clusters2, gridSize=50),
+        "singleton.*fewer than 2 points"
+    )
+    expect_false("singleton" %in% res$cluster)
+})
+
 test_that("generateMask errors when clusters length does not match nrow(dims)", {
     set.seed(42)
     dims <- matrix(rnorm(90 * 2), ncol = 2)
