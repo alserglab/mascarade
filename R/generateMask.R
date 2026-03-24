@@ -150,7 +150,7 @@ getRoughMask <- function(partPoints, window, partSigma, pixelSize, crop=TRUE) {
         window <- window[toCrop]
     }
 
-    D <- distmap(partPoints)
+    D <- distmap(partPoints, eps=pixelSize)
     partMaskV <- solutionset(D <= 2*partSigma + 1.5*pixelSize)
     partMaskV <- erosion(partMaskV, r = 2*partSigma, polygonal=F)
     partMask <- as.mask(partMaskV, xy=window)
