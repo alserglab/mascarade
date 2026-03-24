@@ -1,5 +1,11 @@
 # Changelog
 
+## mascarade 0.3.3
+
+- option in fancyMask to label only the largest part of a cluster
+  (default)
+- bug fixes
+
 ## mascarade 0.3.1
 
 CRAN release: 2026-02-13
