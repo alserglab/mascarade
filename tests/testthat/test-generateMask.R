@@ -43,6 +43,17 @@ test_that("generateMask warns and skips mask for single-point cluster", {
     expect_false("singleton" %in% res$cluster)
 })
 
+test_that("generateMask handles cluster where all points share a coordinate (partSigma=0)", {
+    set.seed(1)
+    big <- matrix(c(rnorm(200), rnorm(200)), ncol = 2)
+    # 3 close points all at same y → bw.nrd(y)=0 → partSigma=0 without fix
+    small <- matrix(c(c(-0.1, 0, 0.1), c(8, 8, 8)), ncol = 2)
+    dims <- rbind(big, small)
+    clusters <- c(rep("A", 200), rep("B", 3))
+
+    expect_no_error(generateMask(dims, clusters, gridSize = 50, minSize = 1))
+})
+
 test_that("generateMask errors when clusters length does not match nrow(dims)", {
     set.seed(42)
     dims <- matrix(rnorm(90 * 2), ncol = 2)

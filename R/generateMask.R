@@ -166,10 +166,12 @@ getPartDensityClipped <- function(curPoints, part, window, smoothSigma, pixelSiz
         return(spatstat.geom::as.im(window) * 0)
     }
 
+    # TODO: should it be not a geometric mean, but minimum?
     partSigma <- sqrt(bw.nrd(partPoints$x) * bw.nrd(partPoints$y)) * 1.5
     if (!is.na(smoothSigma)) {
         partSigma <- sqrt(partSigma * smoothSigma)
     }
+    partSigma <- max(partSigma, pixelSize)
 
     extPart <- dilation(part, r=2*partSigma)
     partPoints <- curPoints[extPart]
@@ -328,10 +330,12 @@ generateMask <- function(dims, clusters,
             return(as.mask(emptywindow(window), xy=window))
         }
 
+        # TODO: should it be not a geometric mean, but minimum?
         partSigma <- sqrt(bw.nrd(partPoints$x) * bw.nrd(partPoints$y)) * 1.5
         if (!is.na(smoothSigma)) {
             partSigma <- sqrt(partSigma * smoothSigma)
         }
+        partSigma <- max(partSigma, pixelSize)
 
         partMask <- getRoughMask(partPoints, window, partSigma, pixelSize)
     })
