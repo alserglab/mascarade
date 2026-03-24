@@ -114,12 +114,12 @@ head(maskTable)
 
     ##       UMAP_1    UMAP_2           part            group      cluster
     ##        <num>     <num>         <char>           <char>       <fctr>
-    ## 1: -3.980324 -9.021239 Memory CD4 T#1 Memory CD4 T#1#1 Memory CD4 T
-    ## 2: -3.945936 -9.009776 Memory CD4 T#1 Memory CD4 T#1#1 Memory CD4 T
-    ## 3: -3.934473 -8.998313 Memory CD4 T#1 Memory CD4 T#1#1 Memory CD4 T
-    ## 4: -3.923011 -8.986850 Memory CD4 T#1 Memory CD4 T#1#1 Memory CD4 T
-    ## 5: -3.911548 -8.975387 Memory CD4 T#1 Memory CD4 T#1#1 Memory CD4 T
-    ## 6: -3.900085 -8.963925 Memory CD4 T#1 Memory CD4 T#1#1 Memory CD4 T
+    ## 1: -2.581865 -7.829109 Memory CD4 T#1 Memory CD4 T#1#1 Memory CD4 T
+    ## 2: -2.570402 -7.806183 Memory CD4 T#1 Memory CD4 T#1#1 Memory CD4 T
+    ## 3: -2.581865 -7.783258 Memory CD4 T#1 Memory CD4 T#1#1 Memory CD4 T
+    ## 4: -2.593327 -7.771795 Memory CD4 T#1 Memory CD4 T#1#1 Memory CD4 T
+    ## 5: -2.616253 -7.760332 Memory CD4 T#1 Memory CD4 T#1#1 Memory CD4 T
+    ## 6: -2.639179 -7.748869 Memory CD4 T#1 Memory CD4 T#1#1 Memory CD4 T
 
 Now we can use this table to draw the borders with `geom_path` (`group`
 column should be used as the group aesthetics):
@@ -349,7 +349,7 @@ FeaturePlot(pbmc3k, features=featureList, reduction = "tsne", cols=c("grey90", "
 sessionInfo()
 ```
 
-    ## R version 4.5.2 (2025-10-31)
+    ## R version 4.5.3 (2026-03-11)
     ## Platform: x86_64-pc-linux-gnu
     ## Running under: Ubuntu 24.04.3 LTS
     ## 
@@ -378,40 +378,40 @@ sessionInfo()
     ##   [1] pbapply_1.7-4          deldir_2.0-4           gridExtra_2.3         
     ##   [4] rlang_1.1.7            magrittr_2.0.4         RcppAnnoy_0.0.23      
     ##   [7] otel_0.2.0             matrixStats_1.5.0      ggridges_0.5.7        
-    ##  [10] compiler_4.5.2         spatstat.geom_3.7-0    reshape2_1.4.5        
-    ##  [13] png_0.1-8              systemfonts_1.3.2      vctrs_0.7.1           
+    ##  [10] compiler_4.5.3         spatstat.geom_3.7-3    reshape2_1.4.5        
+    ##  [13] png_0.1-9              systemfonts_1.3.2      vctrs_0.7.2           
     ##  [16] stringr_1.6.0          pkgconfig_2.0.3        fastmap_1.2.0         
     ##  [19] labeling_0.4.3         promises_1.5.0         rmarkdown_2.30        
-    ##  [22] ragg_1.5.1             purrr_1.2.1            xfun_0.56             
+    ##  [22] ragg_1.5.2             purrr_1.2.1            xfun_0.57             
     ##  [25] cachem_1.1.0           jsonlite_2.0.0         goftest_1.2-3         
     ##  [28] later_1.4.8            spatstat.utils_3.2-2   tweenr_2.0.3          
-    ##  [31] irlba_2.3.7            parallel_4.5.2         cluster_2.1.8.1       
+    ##  [31] irlba_2.3.7            parallel_4.5.3         cluster_2.1.8.2       
     ##  [34] R6_2.6.1               ica_1.0-3              stringi_1.8.7         
     ##  [37] bslib_0.10.0           RColorBrewer_1.1-3     spatstat.data_3.1-9   
-    ##  [40] reticulate_1.45.0      parallelly_1.46.1      spatstat.univar_3.1-6 
+    ##  [40] reticulate_1.45.0      parallelly_1.46.1      spatstat.univar_3.1-7 
     ##  [43] scattermore_1.2        lmtest_0.9-40          jquerylib_0.1.4       
     ##  [46] Rcpp_1.1.1             knitr_1.51             tensor_1.5.1          
     ##  [49] future.apply_1.20.2    zoo_1.8-15             sctransform_0.4.3     
-    ##  [52] httpuv_1.6.16          Matrix_1.7-4           splines_4.5.2         
+    ##  [52] httpuv_1.6.17          Matrix_1.7-4           splines_4.5.3         
     ##  [55] igraph_2.2.2           tidyselect_1.2.1       abind_1.4-8           
-    ##  [58] yaml_2.3.12            codetools_0.2-20       spatstat.random_3.4-4 
-    ##  [61] miniUI_0.1.2           spatstat.explore_3.7-0 listenv_0.10.1        
-    ##  [64] plyr_1.8.9             lattice_0.22-7         tibble_3.3.1          
+    ##  [58] yaml_2.3.12            codetools_0.2-20       spatstat.random_3.4-5 
+    ##  [61] miniUI_0.1.2           spatstat.explore_3.8-0 listenv_0.10.1        
+    ##  [64] plyr_1.8.9             lattice_0.22-9         tibble_3.3.1          
     ##  [67] shiny_1.13.0           withr_3.0.2            S7_0.2.1              
     ##  [70] ROCR_1.0-12            evaluate_1.0.5         Rtsne_0.17            
-    ##  [73] future_1.69.0          fastDummies_1.7.5      desc_1.4.3            
-    ##  [76] survival_3.8-3         polyclip_1.10-7        fitdistrplus_1.2-6    
+    ##  [73] future_1.70.0          fastDummies_1.7.5      desc_1.4.3            
+    ##  [76] survival_3.8-6         polyclip_1.10-7        fitdistrplus_1.2-6    
     ##  [79] pillar_1.11.1          KernSmooth_2.23-26     plotly_4.12.0         
     ##  [82] generics_0.1.4         RcppHNSW_0.6.0         scales_1.4.0          
-    ##  [85] xtable_1.8-8           globals_0.19.0         glue_1.8.0            
-    ##  [88] lazyeval_0.2.2         tools_4.5.2            RSpectra_0.16-2       
-    ##  [91] RANN_2.6.2             fs_1.6.7               dotCall64_1.2         
-    ##  [94] cowplot_1.2.0          grid_4.5.2             tidyr_1.3.2           
+    ##  [85] xtable_1.8-8           globals_0.19.1         glue_1.8.0            
+    ##  [88] lazyeval_0.2.2         tools_4.5.3            RSpectra_0.16-2       
+    ##  [91] RANN_2.6.2             fs_2.0.0               dotCall64_1.2         
+    ##  [94] cowplot_1.2.0          grid_4.5.3             tidyr_1.3.2           
     ##  [97] patchwork_1.3.2        nlme_3.1-168           cli_3.6.5             
     ## [100] spatstat.sparse_3.1-0  textshaping_1.0.5      spam_2.11-3           
     ## [103] viridisLite_0.4.3      dplyr_1.2.0            uwot_0.2.4            
     ## [106] gtable_0.3.6           sass_0.4.10            digest_0.6.39         
-    ## [109] progressr_0.18.0       ggrepel_0.9.7          htmlwidgets_1.6.4     
+    ## [109] progressr_0.18.0       ggrepel_0.9.8          htmlwidgets_1.6.4     
     ## [112] farver_2.1.2           htmltools_0.5.9        pkgdown_2.2.0         
     ## [115] lifecycle_1.0.5        httr_1.4.8             mime_0.13             
     ## [118] MASS_7.3-65

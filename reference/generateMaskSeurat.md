@@ -68,7 +68,7 @@ if (require("Seurat")) {
 #> Loading required package: SeuratObject
 #> Loading required package: sp
 #> ‘SeuratObject’ was built under R 4.5.0 but the current version is
-#> 4.5.2; it is recomended that you reinstall ‘SeuratObject’ as the ABI
+#> 4.5.3; it is recomended that you reinstall ‘SeuratObject’ as the ABI
 #> for R may have changed
 #> 
 #> Attaching package: ‘SeuratObject’
