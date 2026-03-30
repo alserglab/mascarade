@@ -334,8 +334,19 @@ makeContent.shape_enc <- function(x) {
                         x = split(as.numeric(mark$x), mark$id),
                         y = split(as.numeric(mark$y), mark$id)
         )
+        # ggforce's shapeGrob may silently drop polygons that contract to nothing
+        # under a negative expand (polyoffset returns empty). The surviving IDs are
+        # a subset of the original 1:n sequence. Prune labels, dims, and anchors to
+        # match so that my_make_label receives aligned lists.
+        surviving <- unique(mark$id)
         anchor_x <- if (is.null(x$anchor.x)) NULL else convertX(x$anchor.x, 'mm', TRUE)
         anchor_y <- if (is.null(x$anchor.y)) NULL else convertY(x$anchor.y, 'mm', TRUE)
+        if (length(surviving) < length(x$label)) {
+            x$label    <- x$label[surviving]
+            x$labeldim <- x$labeldim[surviving]
+            if (!is.null(anchor_x)) anchor_x <- anchor_x[surviving]
+            if (!is.null(anchor_y)) anchor_y <- anchor_y[surviving]
+        }
         labels <- my_make_label(
             labels = x$label, dims = x$labeldim, polygons = polygons,
             ghosts = x$ghosts, buffer = x$buffer, con_type = x$con.type,
