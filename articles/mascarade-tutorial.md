@@ -351,7 +351,7 @@ sessionInfo()
 
     ## R version 4.5.3 (2026-03-11)
     ## Platform: x86_64-pc-linux-gnu
-    ## Running under: Ubuntu 24.04.3 LTS
+    ## Running under: Ubuntu 24.04.4 LTS
     ## 
     ## Matrix products: default
     ## BLAS:   /usr/lib/x86_64-linux-gnu/openblas-pthread/libblas.so.3 
@@ -370,9 +370,9 @@ sessionInfo()
     ## [1] stats     graphics  grDevices utils     datasets  methods   base     
     ## 
     ## other attached packages:
-    ## [1] Seurat_5.4.0        SeuratObject_5.3.0  sp_2.2-1           
-    ## [4] ggforce_0.5.0       ggplot2_4.0.2       data.table_1.18.2.1
-    ## [7] mascarade_0.3.3    
+    ## [1] Seurat_5.4.0         SeuratObject_5.3.0   sp_2.2-1            
+    ## [4] ggforce_0.5.0        ggplot2_4.0.2        data.table_1.18.2.1 
+    ## [7] mascarade_0.3.3.9000
     ## 
     ## loaded via a namespace (and not attached):
     ##   [1] pbapply_1.7-4          deldir_2.0-4           gridExtra_2.3         
@@ -381,7 +381,7 @@ sessionInfo()
     ##  [10] compiler_4.5.3         spatstat.geom_3.7-3    reshape2_1.4.5        
     ##  [13] png_0.1-9              systemfonts_1.3.2      vctrs_0.7.2           
     ##  [16] stringr_1.6.0          pkgconfig_2.0.3        fastmap_1.2.0         
-    ##  [19] labeling_0.4.3         promises_1.5.0         rmarkdown_2.30        
+    ##  [19] labeling_0.4.3         promises_1.5.0         rmarkdown_2.31        
     ##  [22] ragg_1.5.2             purrr_1.2.1            xfun_0.57             
     ##  [25] cachem_1.1.0           jsonlite_2.0.0         goftest_1.2-3         
     ##  [28] later_1.4.8            spatstat.utils_3.2-2   tweenr_2.0.3          
@@ -405,7 +405,7 @@ sessionInfo()
     ##  [82] generics_0.1.4         RcppHNSW_0.6.0         scales_1.4.0          
     ##  [85] xtable_1.8-8           globals_0.19.1         glue_1.8.0            
     ##  [88] lazyeval_0.2.2         tools_4.5.3            RSpectra_0.16-2       
-    ##  [91] RANN_2.6.2             fs_2.0.0               dotCall64_1.2         
+    ##  [91] RANN_2.6.2             fs_2.0.1               dotCall64_1.2         
     ##  [94] cowplot_1.2.0          grid_4.5.3             tidyr_1.3.2           
     ##  [97] patchwork_1.3.2        nlme_3.1-168           cli_3.6.5             
     ## [100] spatstat.sparse_3.1-0  textshaping_1.0.5      spam_2.11-3           
