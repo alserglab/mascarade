@@ -130,22 +130,22 @@ sessionInfo()
     ## [1] stats     graphics  grDevices utils     datasets  methods   base     
     ## 
     ## other attached packages:
-    ## [1] ggsci_4.2.0          ggplot2_4.0.2        data.table_1.18.2.1 
+    ## [1] ggsci_4.3.0          ggplot2_4.0.2        data.table_1.18.2.1 
     ## [4] mascarade_0.3.3.9000
     ## 
     ## loaded via a namespace (and not attached):
     ##  [1] sass_0.4.10            generics_0.1.4         spatstat.explore_3.8-0
     ##  [4] tensor_1.5.1           spatstat.data_3.1-9    lattice_0.22-9        
-    ##  [7] digest_0.6.39          magrittr_2.0.4         spatstat.utils_3.2-2  
+    ##  [7] digest_0.6.39          magrittr_2.0.5         spatstat.utils_3.2-2  
     ## [10] evaluate_1.0.5         grid_4.5.3             RColorBrewer_1.1-3    
     ## [13] fastmap_1.2.0          jsonlite_2.0.0         Matrix_1.7-4          
     ## [16] spatstat.sparse_3.1-0  scales_1.4.0           tweenr_2.0.3          
     ## [19] textshaping_1.0.5      jquerylib_0.1.4        abind_1.4-8           
-    ## [22] cli_3.6.5              rlang_1.1.7            polyclip_1.10-7       
+    ## [22] cli_3.6.6              rlang_1.2.0            polyclip_1.10-7       
     ## [25] withr_3.0.2            cachem_1.1.0           yaml_2.3.12           
     ## [28] otel_0.2.0             spatstat.univar_3.1-7  tools_4.5.3           
-    ## [31] deldir_2.0-4           dplyr_1.2.0            spatstat.geom_3.7-3   
-    ## [34] vctrs_0.7.2            R6_2.6.1               lifecycle_1.0.5       
+    ## [31] deldir_2.0-4           dplyr_1.2.1            spatstat.geom_3.7-3   
+    ## [34] vctrs_0.7.3            R6_2.6.1               lifecycle_1.0.5       
     ## [37] fs_2.0.1               htmlwidgets_1.6.4      MASS_7.3-65           
     ## [40] ragg_1.5.2             pkgconfig_2.0.3        desc_1.4.3            
     ## [43] pkgdown_2.2.0          pillar_1.11.1          bslib_0.10.0          
