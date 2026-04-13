@@ -41,10 +41,9 @@ passed to \code{geom_mark_shape(expand = ...)}. Default is
 
 \item{cols}{Color specification for cluster outlines (and labels). One of:
 \itemize{
-\item \code{"inherit"} (default) — inherits colors from the discrete color scale
-of the plot that \code{fancyMask()} is added to (e.g., from
-\code{scale_color_manual()}). Falls back to black if no discrete color
-scale is found.
+\item \code{"inherit"} (default) — maps \code{colour} as an aesthetic (\code{aes(colour = cluster)}) so that ggplot2 resolves colours at build time against
+whatever \verb{scale_color_*()} the user has added, regardless of order.
+If no colour scale is present, ggplot2's default discrete scale applies.
 \item A palette function that accepts a single integer \code{n} and returns \code{n}
 colors (e.g., \code{scales::hue_pal()}, \code{rainbow}).
 \item A single color string — applied to every cluster.
@@ -83,8 +82,7 @@ set to \code{0} to disable. Default is \code{0.001}.}
 \value{
 A list of ggplot2 components suitable for adding to a plot with \code{+},
 containing a \code{ggplot2::coord_cartesian()} specification and a
-\code{geom_mark_shape()} layer. When \code{cols = "inherit"}, returns an
-opaque object whose colors are resolved when added to a plot.
+\code{geom_mark_shape()} layer.
 }
 \description{
 Convenience helper that returns a list of ggplot2 components

@@ -32,10 +32,10 @@
 #'   `geom_mark_shape()`. Default is `"plain"`.
 #' @param cols Color specification for cluster outlines (and labels). One of:
 #'
-#'   * `"inherit"` (default) — inherits colors from the discrete color scale
-#'     of the plot that `fancyMask()` is added to (e.g., from
-#'     `scale_color_manual()`). Falls back to black if no discrete color
-#'     scale is found.
+#'   * `"inherit"` (default) — maps `colour` as an aesthetic (`aes(colour =
+#'     cluster)`) so that ggplot2 resolves colours at build time against
+#'     whatever `scale_color_*()` the user has added, regardless of order.
+#'     If no colour scale is present, ggplot2's default discrete scale applies.
 #'   * A palette function that accepts a single integer `n` and returns `n`
 #'     colors (e.g., `scales::hue_pal()`, `rainbow`).
 #'   * A single color string — applied to every cluster.
@@ -54,8 +54,7 @@
 #'
 #' @return A list of ggplot2 components suitable for adding to a plot with `+`,
 #'   containing a `ggplot2::coord_cartesian()` specification and a
-#'   `geom_mark_shape()` layer. When `cols = "inherit"`, returns an
-#'   opaque object whose colors are resolved when added to a plot.
+#'   `geom_mark_shape()` layer.
 #'
 #' @details
 #' The first two columns of `maskTable` are used as x/y coordinates. Cluster
@@ -94,25 +93,6 @@ fancyMask <- function(maskTable,
                       label.margin = margin(2, 2, 2, 2, "pt"),
                       simp_ratio = 0.001
                       ) {
-
-    # Defer color resolution when inheriting from the plot's color scale
-    if (identical(cols, "inherit")) {
-        params <- list(
-            maskTable = maskTable,
-            ratio = ratio,
-            limits.expand = limits.expand,
-            linewidth = linewidth,
-            shape.expand = shape.expand,
-            label = label,
-            label.largest = label.largest,
-            label.fontsize = label.fontsize,
-            label.buffer = label.buffer,
-            label.fontface = label.fontface,
-            label.margin = label.margin,
-            simp_ratio = simp_ratio
-        )
-        return(structure(params, class = "fancyMask"))
-    }
 
     buildFancyMaskLayers(maskTable = maskTable,
                          ratio = ratio,
@@ -155,23 +135,6 @@ resolveCols <- function(cols, clusterLevels) {
     }
 }
 
-collectColourData <- function(plot) {
-    # Check plot-level mapping first
-    if ("colour" %in% names(plot$mapping)) {
-        vals <- rlang::eval_tidy(plot$mapping$colour, data = plot$data)
-        if (!is.null(vals)) return(vals)
-    }
-    # Check layer-level mappings
-    for (layer in plot$layers) {
-        if ("colour" %in% names(layer$mapping)) {
-            ldata <- if (inherits(layer$data, "waiver")) plot$data else layer$data
-            vals <- rlang::eval_tidy(layer$mapping$colour, data = ldata)
-            if (!is.null(vals)) return(vals)
-        }
-    }
-    NULL
-}
-
 buildFancyMaskLayers <- function(maskTable, ratio, limits.expand, linewidth,
                                  shape.expand, cols, label, label.largest,
                                  label.fontsize, label.buffer, label.fontface,
@@ -184,6 +147,65 @@ buildFancyMaskLayers <- function(maskTable, ratio, limits.expand, linewidth,
     xyWidths <- apply(xyRanges, 2, diff)
     xyRanges <- xyRanges + c(-1, 1)  %*% t(xyWidths * limits.expand)
 
+    if (label) {
+        # When label.largest=TRUE, only label the first part per cluster
+        # (generateMask guarantees part #1 is the largest by polygon area).
+        if (label.largest) {
+            isLargest <- grepl("#1$", maskTable$part)
+            labelCol <- ifelse(isLargest, as.character(maskTable$cluster), NA_character_)
+        } else {
+            labelCol <- as.character(maskTable$cluster)
+        }
+        maskTable <- cbind(maskTable, .label_display = labelCol)
+    }
+
+    if (identical(cols, "inherit")) {
+        # Colour is expressed as an aesthetic so ggplot2 resolves it at build
+        # time — after all scale_color_*() calls have been applied, regardless
+        # of the order they were added to the plot.
+        if (label) {
+            shapes <- geom_mark_shape(data = maskTable,
+                                     fill = NA,
+                                     x = maskTable[[xvar]],
+                                     y = maskTable[[yvar]],
+                                     aes(group = group,
+                                         label = .data$.label_display,
+                                         colour = cluster),
+                                     linewidth = linewidth,
+                                     expand = shape.expand,
+                                     show.legend = FALSE,
+                                     label.fontsize = label.fontsize,
+                                     label.buffer = label.buffer,
+                                     label.fontface = label.fontface,
+                                     label.margin = label.margin,
+                                     simp_ratio = simp_ratio,
+                                     label.minwidth = 0,
+                                     label.lineheight = 0,
+                                     con.cap = 0,
+                                     con.type = "straight",
+                                     con.colour = "inherit")
+        } else {
+            shapes <- geom_shape(data = maskTable,
+                                 fill = NA,
+                                 x = maskTable[[xvar]],
+                                 y = maskTable[[yvar]],
+                                 aes(group = group,
+                                     colour = cluster),
+                                 linewidth = linewidth,
+                                 expand = shape.expand,
+                                 show.legend = FALSE)
+        }
+
+        return(list(
+            coord_cartesian(xlim = xyRanges[, 1],
+                            ylim = xyRanges[, 2],
+                            ratio = ratio,
+                            expand = FALSE),
+            shapes
+        ))
+    }
+
+    # processing explicit color options
     clusterLevels <- getClusterLevels(maskTable$cluster)
     pal <- resolveCols(cols, clusterLevels)
     # Use as.character() to force name-based lookup regardless of whether
@@ -191,16 +213,6 @@ buildFancyMaskLayers <- function(maskTable, ratio, limits.expand, linewidth,
     colors <- unname(pal[as.character(maskTable$cluster)])
 
     if (label) {
-        # When label.largest=TRUE, only label the first part per cluster
-        # (generateMask guarantees part #1 is the largest by polygon area).
-        if (label.largest) {
-            isLargest <- grepl("#1$",  maskTable$part)
-            labelCol <- ifelse(isLargest, as.character(maskTable$cluster), NA_character_)
-        } else {
-            labelCol <- as.character(maskTable$cluster)
-        }
-        maskTable <- cbind(maskTable, .label_display = labelCol)
-
         shapes <- geom_mark_shape(data=maskTable,
                                  fill = NA,
                                  x=maskTable[[xvar]],
@@ -240,68 +252,3 @@ buildFancyMaskLayers <- function(maskTable, ratio, limits.expand, linewidth,
     )
 }
 
-defaultDiscreteColourScale <- function() {
-    # Respect user's default discrete colour scale set via
-    # options(ggplot2.discrete.colour = ...). Falls back to
-    # scale_colour_hue() (ggplot2's built-in default).
-    opt <- getOption("ggplot2.discrete.colour")
-    if (is.function(opt)) {
-        opt()
-    } else if (!is.null(opt)) {
-        # Character vector or list of colours
-        ggplot2::scale_colour_discrete()
-    } else {
-        ggplot2::scale_colour_hue()
-    }
-}
-
-#' @importFrom ggplot2 ggplot_add
-#' @export
-ggplot_add.fancyMask <- function(object, plot, ...) {
-    clusterLevels <- getClusterLevels(object$maskTable$cluster)
-    scale <- plot$scales$get_scales("colour")
-
-    # If no explicit colour scale exists, check whether any layer maps the
-    # colour aesthetic. If so, create the default discrete scale that ggplot2
-    # would use at build time.
-    colourVals <- collectColourData(plot)
-    if (is.null(scale) && !is.null(colourVals) &&
-        (is.factor(colourVals) || is.character(colourVals))) {
-        scale <- defaultDiscreteColourScale()
-    }
-
-    if (!is.null(scale) && scale$is_discrete()) {
-        tempScale <- scale$clone()
-
-        # Train the scale on existing layer data so that the color mapping
-        # matches the order ggplot2 will use when rendering the plot
-        if (!is.null(colourVals)) {
-            tempScale$train(colourVals)
-        }
-        tempScale$train(clusterLevels)
-        cols <- setNames(tempScale$map(clusterLevels), clusterLevels)
-    } else {
-        cols <- "black"
-    }
-
-    layers <- buildFancyMaskLayers(
-        maskTable = object$maskTable,
-        ratio = object$ratio,
-        limits.expand = object$limits.expand,
-        linewidth = object$linewidth,
-        shape.expand = object$shape.expand,
-        cols = cols,
-        label = object$label,
-        label.largest = object$label.largest,
-        label.fontsize = object$label.fontsize,
-        label.buffer = object$label.buffer,
-        label.fontface = object$label.fontface,
-        label.margin = object$label.margin,
-        simp_ratio = object$simp_ratio
-    )
-
-    for (layer in layers) {
-        plot <- plot + layer
-    }
-    plot
-}

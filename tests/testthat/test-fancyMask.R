@@ -78,10 +78,10 @@ test_that("fancyMask works when cluster column is character, not factor", {
     p <- ggplot(plotData) +
         geom_point(aes(x = UMAP_1, y = UMAP_2, color = cluster), size = 0.5) +
         fancyMask(mt, cols = "inherit")
-    mask_layer <- p$layers[[length(p$layers)]]
-    colors <- mask_layer$aes_params$colour
-    expect_true(length(colors) > 0)
-    expect_true(!any(is.na(colors)))
+    b <- ggplot_build(p)
+    mask_colours <- b$data[[length(p$layers)]]$colour
+    expect_true(length(mask_colours) > 0)
+    expect_true(!any(is.na(mask_colours)))
 })
 
 test_that("fancyMask renders without error with custom cols", {
@@ -96,10 +96,11 @@ test_that("fancyMask renders without error with custom cols", {
     expect_true(file.exists(pf))
 })
 
-test_that("fancyMask with cols='inherit' returns a fancyMask S3 object", {
+test_that("fancyMask with cols='inherit' returns a plain list", {
     mt <- make_mask_table()
     res <- fancyMask(mt, cols = "inherit")
-    expect_s3_class(res, "fancyMask")
+    expect_true(is.list(res))
+    expect_false(inherits(res, "fancyMask"))
 })
 
 test_that("cols='inherit' picks up scale_color_manual values", {
@@ -109,30 +110,33 @@ test_that("cols='inherit' picks up scale_color_manual values", {
     myPal <- setNames(rainbow(length(clusterLevels)), clusterLevels)
 
     plotData <- as.data.frame(do.call(cbind, exampleMascarade))
-    plotData$clusters <- factor(plotData$clusters)
+    plotData$clusters <- factor(plotData$clusters, levels = clusterLevels)
     p <- ggplot(plotData) +
         geom_point(aes(x = UMAP_1, y = UMAP_2, color = clusters)) +
         scale_color_manual(values = myPal) +
         fancyMask(mt, cols = "inherit")
 
-    # The mask layer is the last layer added by ggplot_add
-    mask_layer <- p$layers[[length(p$layers)]]
-    colors <- mask_layer$aes_params$colour
-    expected <- myPal[as.character(mt$cluster)]
-    expect_equal(unname(colors), unname(expected))
+    # Colours resolved at build time via ggplot2's scale machinery
+    b <- ggplot_build(p)
+    mask_colours <- b$data[[length(p$layers)]]$colour
+    expected <- unname(myPal[as.character(mt$cluster)])
+    expect_equal(mask_colours, expected)
 })
 
-test_that("cols='inherit' falls back to black without a color scale", {
+test_that("cols='inherit' uses ggplot2 default scale when no colour scale is set", {
     mt <- make_mask_table()
     data("exampleMascarade")
 
+    # No colour aesthetic on the scatter — mask uses its own aes(colour=cluster)
+    # and gets ggplot2's default discrete scale, not black.
     p <- ggplot(do.call(cbind, exampleMascarade)) +
         geom_point(aes(x = UMAP_1, y = UMAP_2)) +
         fancyMask(mt, cols = "inherit")
 
-    mask_layer <- p$layers[[length(p$layers)]]
-    colors <- mask_layer$aes_params$colour
-    expect_true(all(colors == "black"))
+    b <- ggplot_build(p)
+    mask_colours <- b$data[[length(p$layers)]]$colour
+    expect_true(length(mask_colours) > 0)
+    expect_false(all(mask_colours == "black"))
 })
 
 test_that("cols accepts a palette function", {
@@ -156,10 +160,10 @@ test_that("cols='inherit' picks up colors from layer-level mapping", {
         scale_color_manual(values = myPal) +
         fancyMask(mt, cols = "inherit")
 
-    mask_layer <- p$layers[[length(p$layers)]]
-    colors <- mask_layer$aes_params$colour
-    expected <- myPal[as.character(mt$cluster)]
-    expect_equal(unname(colors), unname(expected))
+    b <- ggplot_build(p)
+    mask_colours <- b$data[[length(p$layers)]]$colour
+    expected <- unname(myPal[as.character(mt$cluster)])
+    expect_equal(mask_colours, expected)
 })
 
 make_two_part_mask_table <- function() {
@@ -191,11 +195,12 @@ test_that("label.largest=FALSE labels all parts", {
     expect_false(any(is.na(layer_data$.label_display)))
 })
 
-test_that("label.largest is stored in deferred fancyMask object", {
+test_that("label.largest=TRUE works with cols='inherit'", {
     mt  <- make_two_part_mask_table()
-    obj <- fancyMask(mt, cols = "inherit", label.largest = FALSE)
-    expect_s3_class(obj, "fancyMask")
-    expect_false(obj$label.largest)
+    res <- fancyMask(mt, cols = "inherit", label = TRUE, label.largest = TRUE)
+    layer_data <- res[[2]]$data
+    expect_true(all(is.na(layer_data$.label_display[layer_data$part == "A#2"])))
+    expect_false(any(is.na(layer_data$.label_display[layer_data$part == "A#1"])))
 })
 
 test_that("cols='inherit' renders without error", {
@@ -216,4 +221,67 @@ test_that("cols='inherit' renders without error", {
     pf <- tempfile(fileext = ".pdf")
     expect_no_error(ggsave(p, file = pf, width = 5, height = 4))
     expect_true(file.exists(pf))
+})
+
+test_that("cols='inherit' border colors match point colors when factor has unused levels", {
+    # Ghost levels must not inflate the palette: ggplot2's drop=TRUE means only
+    # real clusters are trained, so mask and scatter colours must agree.
+    data("exampleMascarade")
+
+    clusters_with_ghosts <- factor(
+        exampleMascarade$clusters,
+        levels = c(levels(exampleMascarade$clusters), "ghost1", "ghost2")
+    )
+
+    mt <- generateMask(dims = exampleMascarade$dims,
+                       clusters = clusters_with_ghosts,
+                       gridSize = 50)
+
+    expect_true("ghost1" %in% levels(mt$cluster))
+    expect_false("ghost1" %in% as.character(mt$cluster))
+
+    plotData <- data.frame(exampleMascarade$dims, cluster = clusters_with_ghosts)
+    p <- ggplot(plotData) +
+        geom_point(aes(x = UMAP_1, y = UMAP_2, color = cluster), size = 0.5) +
+        fancyMask(mt, cols = "inherit")
+
+    pb           <- ggplot_build(p)
+    pt_colours   <- pb$data[[1]]$colour
+    mask_colours <- pb$data[[2]]$colour
+
+    cluster_char <- as.character(clusters_with_ghosts)
+    for (cl in unique(as.character(mt$cluster))) {
+        cell_idx <- which(cluster_char == cl)[1]
+        mask_idx <- which(as.character(mt$cluster) == cl)[1]
+        expect_equal(mask_colours[mask_idx], pt_colours[cell_idx],
+                     label = paste("cluster", cl))
+    }
+})
+
+test_that("cols='inherit' mask colours are identical regardless of scale_color_* order", {
+    mt <- make_mask_table()
+    data("exampleMascarade")
+    clusterLevels <- levels(mt$cluster)
+    myPal <- setNames(rainbow(length(clusterLevels)), clusterLevels)
+
+    plotData <- as.data.frame(do.call(cbind, exampleMascarade))
+    plotData$clusters <- factor(plotData$clusters, levels = clusterLevels)
+
+    # scale before fancyMask
+    p1 <- ggplot(plotData) +
+        geom_point(aes(x = UMAP_1, y = UMAP_2, color = clusters)) +
+        scale_color_manual(values = myPal) +
+        fancyMask(mt, cols = "inherit")
+
+    # scale after fancyMask — this was the broken case
+    p2 <- ggplot(plotData) +
+        geom_point(aes(x = UMAP_1, y = UMAP_2, color = clusters)) +
+        fancyMask(mt, cols = "inherit") +
+        scale_color_manual(values = myPal)
+
+    mask_idx <- length(p1$layers)
+    b1_colours <- ggplot_build(p1)$data[[mask_idx]]$colour
+    b2_colours <- ggplot_build(p2)$data[[mask_idx]]$colour
+
+    expect_equal(b1_colours, b2_colours)
 })
