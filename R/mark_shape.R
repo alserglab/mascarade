@@ -346,6 +346,8 @@ makeContent.shape_enc <- function(x) {
             x$labeldim <- x$labeldim[surviving]
             if (!is.null(anchor_x)) anchor_x <- anchor_x[surviving]
             if (!is.null(anchor_y)) anchor_y <- anchor_y[surviving]
+            mark$gp    <- mark$gp[surviving]
+            x$con.gp   <- subset_gp(x$con.gp, surviving)
         }
         labels <- my_make_label(
             labels = x$label, dims = x$labeldim, polygons = polygons,
