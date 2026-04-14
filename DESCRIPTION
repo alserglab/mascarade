@@ -31,7 +31,6 @@ Suggests:
     rmarkdown,
     knitr,
     patchwork,
-    ggnewscale,
     ggsci,
     Seurat,
     scales,

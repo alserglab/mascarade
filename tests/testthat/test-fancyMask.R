@@ -96,6 +96,12 @@ test_that("fancyMask renders without error with custom cols", {
     expect_true(file.exists(pf))
 })
 
+test_that("fancyMask with cols='auto' returns a fancyMask S3 object", {
+    mt <- make_mask_table()
+    res <- fancyMask(mt)
+    expect_true(inherits(res, "fancyMask"))
+})
+
 test_that("fancyMask with cols='inherit' returns a plain list", {
     mt <- make_mask_table()
     res <- fancyMask(mt, cols = "inherit")
@@ -256,6 +262,31 @@ test_that("cols='inherit' border colors match point colors when factor has unuse
         expect_equal(mask_colours[mask_idx], pt_colours[cell_idx],
                      label = paste("cluster", cl))
     }
+})
+
+test_that("cols='auto' works when base plot uses a continuous colour scale", {
+    # Regression: the old cols="inherit" unconditionally injected
+    # aes(colour=cluster) which conflicted with a continuous scale and threw
+    # "Discrete value supplied to a continuous scale." cols="auto" detects the
+    # continuous mapping and falls back to baked-in hue_pal() colours instead.
+    data("exampleMascarade")
+    mt <- make_mask_table()
+
+    plotData <- data.frame(exampleMascarade$dims,
+                           GNLY = exampleMascarade$features[, "GNLY"])
+
+    # With explicit continuous scale
+    p1 <- ggplot(plotData, aes(x = UMAP_1, y = UMAP_2)) +
+        geom_point(aes(color = GNLY), size = 0.5) +
+        scale_color_gradient2(low = "#404040", high = "red") +
+        fancyMask(mt, ratio = 1)
+    expect_no_error(ggplot_build(p1))
+
+    # Without explicit scale (auto-created continuous scale at build time)
+    p2 <- ggplot(plotData, aes(x = UMAP_1, y = UMAP_2)) +
+        geom_point(aes(color = GNLY), size = 0.5) +
+        fancyMask(mt, ratio = 1)
+    expect_no_error(ggplot_build(p2))
 })
 
 test_that("cols='inherit' mask colours are identical regardless of scale_color_* order", {

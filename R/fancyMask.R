@@ -32,10 +32,17 @@
 #'   `geom_mark_shape()`. Default is `"plain"`.
 #' @param cols Color specification for cluster outlines (and labels). One of:
 #'
-#'   * `"inherit"` (default) — maps `colour` as an aesthetic (`aes(colour =
-#'     cluster)`) so that ggplot2 resolves colours at build time against
-#'     whatever `scale_color_*()` the user has added, regardless of order.
-#'     If no colour scale is present, ggplot2's default discrete scale applies.
+#'   * `"auto"` (default) — inspects the plot at the time `fancyMask()` is
+#'     added with `+`. If a layer maps `colour` to a discrete (non-numeric)
+#'     variable, the mask joins that scale via `aes(colour = cluster)` so
+#'     colours stay in sync regardless of `scale_color_*()` order. Otherwise
+#'     (continuous colour, constant colour, or no colour aesthetic) explicit
+#'     colours from `scales::hue_pal()` are baked in and the plot's scale
+#'     system is left untouched.
+#'   * `"inherit"` — always maps `colour` as an aesthetic (`aes(colour =
+#'     cluster)`), unconditionally joining whatever colour scale is present.
+#'     Useful when you want to force scale sharing; will error if the existing
+#'     scale is continuous.
 #'   * A palette function that accepts a single integer `n` and returns `n`
 #'     colors (e.g., `scales::hue_pal()`, `rainbow`).
 #'   * A single color string — applied to every cluster.
@@ -84,7 +91,7 @@ fancyMask <- function(maskTable,
                       limits.expand = ifelse(label, 0.1, 0.05),
                       linewidth=1,
                       shape.expand=linewidth*unit(-1, "pt"),
-                      cols="inherit",
+                      cols="auto",
                       label=TRUE,
                       label.largest=TRUE,
                       label.fontsize = 10,
@@ -94,19 +101,90 @@ fancyMask <- function(maskTable,
                       simp_ratio = 0.001
                       ) {
 
-    buildFancyMaskLayers(maskTable = maskTable,
-                         ratio = ratio,
-                         limits.expand = limits.expand,
-                         linewidth = linewidth,
-                         shape.expand = shape.expand,
-                         cols = cols,
-                         label = label,
-                         label.largest = label.largest,
-                         label.fontsize = label.fontsize,
-                         label.buffer = label.buffer,
-                         label.fontface = label.fontface,
-                         label.margin = label.margin,
-                         simp_ratio = simp_ratio)
+    if (identical(cols, "auto")) {
+        # Defer: colour strategy is decided in ggplot_add.fancyMask once the
+        # plot context (other layers and their aesthetics) is known.
+        structure(
+            list(maskTable    = maskTable,
+                 ratio        = ratio,
+                 limits.expand = limits.expand,
+                 linewidth    = linewidth,
+                 shape.expand = shape.expand,
+                 cols         = cols,
+                 label        = label,
+                 label.largest = label.largest,
+                 label.fontsize = label.fontsize,
+                 label.buffer = label.buffer,
+                 label.fontface = label.fontface,
+                 label.margin = label.margin,
+                 simp_ratio   = simp_ratio),
+            class = "fancyMask"
+        )
+    } else {
+        buildFancyMaskLayers(maskTable = maskTable,
+                             ratio = ratio,
+                             limits.expand = limits.expand,
+                             linewidth = linewidth,
+                             shape.expand = shape.expand,
+                             cols = cols,
+                             label = label,
+                             label.largest = label.largest,
+                             label.fontsize = label.fontsize,
+                             label.buffer = label.buffer,
+                             label.fontface = label.fontface,
+                             label.margin = label.margin,
+                             simp_ratio = simp_ratio)
+    }
+}
+
+# Returns TRUE if any layer (or the global plot mapping) maps 'colour' to a
+# non-numeric (discrete) variable. Used by ggplot_add.fancyMask to decide
+# whether to join the existing scale or bake in explicit colours.
+hasDiscreteColour <- function(plot) {
+    checkMapping <- function(mapping, data) {
+        col_q <- mapping[["colour"]]
+        if (is.null(col_q) || is.null(data) || inherits(data, "waiver")) {
+            return(FALSE)
+        }
+        tryCatch({
+            vals <- rlang::eval_tidy(col_q, data = as.data.frame(data))
+            !is.numeric(vals)
+        }, error = function(e) FALSE)
+    }
+
+    if (checkMapping(plot$mapping, plot$data)) return(TRUE)
+
+    for (layer in plot$layers) {
+        layer_data <- layer$data
+        if (inherits(layer_data, "waiver")) layer_data <- plot$data
+        if (is.function(layer_data)) next
+        if (checkMapping(layer$mapping, layer_data)) return(TRUE)
+    }
+
+    FALSE
+}
+
+#' @export
+#' @importFrom ggplot2 ggplot_add
+#' @importFrom rlang eval_tidy
+ggplot_add.fancyMask <- function(object, plot, ...) {
+    cols <- if (hasDiscreteColour(plot)) "inherit" else scales::hue_pal()
+    layers <- buildFancyMaskLayers(
+        maskTable     = object$maskTable,
+        ratio         = object$ratio,
+        limits.expand = object$limits.expand,
+        linewidth     = object$linewidth,
+        shape.expand  = object$shape.expand,
+        cols          = cols,
+        label         = object$label,
+        label.largest = object$label.largest,
+        label.fontsize = object$label.fontsize,
+        label.buffer  = object$label.buffer,
+        label.fontface = object$label.fontface,
+        label.margin  = object$label.margin,
+        simp_ratio    = object$simp_ratio
+    )
+    ggplot2::ggplot_add(layers, plot, ...)
 }
 
 getClusterLevels <- function(x) {
@@ -251,4 +329,3 @@ buildFancyMaskLayers <- function(maskTable, ratio, limits.expand, linewidth,
         shapes
     )
 }
-
