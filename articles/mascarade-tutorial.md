@@ -370,9 +370,9 @@ sessionInfo()
     ## [1] stats     graphics  grDevices utils     datasets  methods   base     
     ## 
     ## other attached packages:
-    ## [1] Seurat_5.4.0        SeuratObject_5.4.0  sp_2.2-1           
-    ## [4] ggforce_0.5.0       ggplot2_4.0.2       data.table_1.18.2.1
-    ## [7] mascarade_0.3.4    
+    ## [1] Seurat_5.4.0         SeuratObject_5.4.0   sp_2.2-1            
+    ## [4] ggforce_0.5.0        ggplot2_4.0.2        data.table_1.18.2.1 
+    ## [7] mascarade_0.3.4.9000
     ## 
     ## loaded via a namespace (and not attached):
     ##   [1] pbapply_1.7-4          deldir_2.0-4           gridExtra_2.3         
@@ -388,24 +388,24 @@ sessionInfo()
     ##  [31] irlba_2.3.7            parallel_4.5.3         cluster_2.1.8.2       
     ##  [34] R6_2.6.1               ica_1.0-3              stringi_1.8.7         
     ##  [37] bslib_0.10.0           RColorBrewer_1.1-3     spatstat.data_3.1-9   
-    ##  [40] reticulate_1.46.0      parallelly_1.46.1      spatstat.univar_3.1-7 
+    ##  [40] reticulate_1.46.0      parallelly_1.47.0      spatstat.univar_3.1-7 
     ##  [43] scattermore_1.2        lmtest_0.9-40          jquerylib_0.1.4       
-    ##  [46] Rcpp_1.1.1             knitr_1.51             tensor_1.5.1          
+    ##  [46] Rcpp_1.1.1-1           knitr_1.51             tensor_1.5.1          
     ##  [49] future.apply_1.20.2    zoo_1.8-15             sctransform_0.4.3     
     ##  [52] httpuv_1.6.17          Matrix_1.7-4           splines_4.5.3         
-    ##  [55] igraph_2.2.3           tidyselect_1.2.1       abind_1.4-8           
+    ##  [55] igraph_2.3.0           tidyselect_1.2.1       abind_1.4-8           
     ##  [58] yaml_2.3.12            codetools_0.2-20       spatstat.random_3.4-5 
     ##  [61] miniUI_0.1.2           spatstat.explore_3.8-0 listenv_0.10.1        
     ##  [64] plyr_1.8.9             lattice_0.22-9         tibble_3.3.1          
-    ##  [67] shiny_1.13.0           withr_3.0.2            S7_0.2.1              
+    ##  [67] shiny_1.13.0           withr_3.0.2            S7_0.2.1-1            
     ##  [70] ROCR_1.0-12            evaluate_1.0.5         Rtsne_0.17            
     ##  [73] future_1.70.0          fastDummies_1.7.5      desc_1.4.3            
     ##  [76] survival_3.8-6         polyclip_1.10-7        fitdistrplus_1.2-6    
     ##  [79] pillar_1.11.1          KernSmooth_2.23-26     plotly_4.12.0         
     ##  [82] generics_0.1.4         RcppHNSW_0.6.0         scales_1.4.0          
-    ##  [85] xtable_1.8-8           globals_0.19.1         glue_1.8.0            
+    ##  [85] xtable_1.8-8           globals_0.19.1         glue_1.8.1            
     ##  [88] lazyeval_0.2.3         tools_4.5.3            RSpectra_0.16-2       
-    ##  [91] RANN_2.6.2             fs_2.0.1               dotCall64_1.2         
+    ##  [91] RANN_2.6.2             fs_2.1.0               dotCall64_1.2         
     ##  [94] cowplot_1.2.0          grid_4.5.3             tidyr_1.3.2           
     ##  [97] patchwork_1.3.2        nlme_3.1-168           cli_3.6.6             
     ## [100] spatstat.sparse_3.1-0  textshaping_1.0.5      spam_2.11-3           
