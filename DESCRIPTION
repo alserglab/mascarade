@@ -1,7 +1,7 @@
 Package: mascarade
 Type: Package
 Title: Generating Cluster Masks for Single-Cell Dimensional Reduction Plots
-Version: 0.3.4
+Version: 0.3.4.9000
 Authors@R: person("Alexey", "Sergushichev", email = "alsergbox@gmail.com", role = c("aut", "cre"))
 Description: Implements a procedure to automatically generate 2D masks
     for clusters on dimensional reduction plots from methods like 
@@ -10,7 +10,7 @@ Description: Implements a procedure to automatically generate 2D masks
     with a focus on single-cell RNA-sequencing data.
 Imports:
     data.table,
-    spatstat.geom,
+    spatstat.geom (>=3.7-3),
     spatstat.explore,
     lifecycle,
     ggplot2,
