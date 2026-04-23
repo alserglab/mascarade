@@ -10,7 +10,7 @@ Description: Implements a procedure to automatically generate 2D masks
     with a focus on single-cell RNA-sequencing data.
 Imports:
     data.table,
-    spatstat.geom (>=3.7-3),
+    spatstat.geom (>= 3.7-3),
     spatstat.explore,
     lifecycle,
     ggplot2,
