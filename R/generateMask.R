@@ -167,6 +167,8 @@ getPartDensityClipped <- function(curPoints, part, window, smoothSigma, pixelSiz
     }
 
     # TODO: should it be not a geometric mean, but minimum?
+    # Also, for a vertical/horizontal line, partSimga will be zero.
+    # Probably one pixel should be added as a minimum
     partSigma <- sqrt(bw.nrd(partPoints$x) * bw.nrd(partPoints$y)) * 1.5
     if (!is.na(smoothSigma)) {
         partSigma <- sqrt(partSigma * smoothSigma)
@@ -175,6 +177,12 @@ getPartDensityClipped <- function(curPoints, part, window, smoothSigma, pixelSiz
 
     extPart <- dilation(part, r=2*partSigma)
     partPoints <- curPoints[extPart]
+
+    # dilation can reduce pixels (https://github.com/spatstat/spatstat.geom/issues/27)
+    if (partPoints$n < 2) {
+        return(spatstat.geom::as.im(window) * 0)
+    }
+
 
     toCrop <- boundingbox(partPoints)
     extD <- 2*partSigma + 1.5*pixelSize

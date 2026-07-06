@@ -1,3 +1,6 @@
+# mascarade 0.3.5
+* bug fixes
+
 # mascarade 0.3.4
 * bug fixes
 

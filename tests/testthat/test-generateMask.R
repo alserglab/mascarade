@@ -65,3 +65,28 @@ test_that("generateMask errors when clusters length does not match nrow(dims)", 
         fixed = TRUE
     )
 })
+
+test_that("getPartDensityClipped handles a part emptied out by dilation() (issue #7)", {
+    # `part` is a small plus-shaped, 5-pixel island. Dilation makes it empty
+    # (https://github.com/spatstat/spatstat.geom/issues/27)
+    pixelSize <- 0.1
+    window <- spatstat.geom::as.mask(
+        spatstat.geom::owin(xrange = c(0, 4), yrange = c(0, 4)), eps = pixelSize)
+
+    part <- window
+    part$m[] <- FALSE
+    rowc <- 34; colc <- 34
+    part$m[rowc,   colc]   <- TRUE
+    part$m[rowc-1, colc]   <- TRUE
+    part$m[rowc+1, colc]   <- TRUE
+    part$m[rowc,   colc-1] <- TRUE
+    part$m[rowc,   colc+1] <- TRUE
+
+    truexy <- spatstat.geom::raster.xy(part, drop = TRUE)
+    curPoints <- spatstat.geom::ppp(truexy$x, truexy$y, window = window)
+    expect_equal(curPoints[part]$n, 5)
+
+    expect_no_error(
+        getPartDensityClipped(curPoints, part, window, smoothSigma = NA, pixelSize = pixelSize)
+    )
+})
