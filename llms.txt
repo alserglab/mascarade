@@ -15,12 +15,14 @@ for examples on different datasets.
 The package stable version can be installed from CRAN:
 
 ``` r
+
 install.packages("mascarade")
 ```
 
 The most recent development version can be installed from GitHub:
 
 ``` r
+
 remotes::install_github("alserglab/mascarade")
 ```
 
@@ -29,6 +31,7 @@ remotes::install_github("alserglab/mascarade")
 Loading necessary libraries:
 
 ``` r
+
 library(mascarade)
 library(ggplot2)
 library(data.table)
@@ -38,6 +41,7 @@ library(Seurat)
 Loading get the example PBMC3K dataset:
 
 ``` r
+
 pbmc3k <- readRDS(url("https://alserglab.wustl.edu/files/mascarade/examples/pbmc3k_seurat5.rds"))
 pbmc3k <- NormalizeData(pbmc3k)
 pbmc3k
@@ -54,12 +58,14 @@ pbmc3k
 Generating masks:
 
 ``` r
+
 maskTable <- generateMaskSeurat(pbmc3k)
 ```
 
 `DimPlot` with the mask and labels:
 
 ``` r
+
 DimPlot(pbmc3k) + NoLegend() +
     fancyMask(maskTable, ratio=1)
 ```
@@ -69,6 +75,7 @@ DimPlot(pbmc3k) + NoLegend() +
 `DimPlot` with the just the labels
 
 ``` r
+
 DimPlot(pbmc3k) + NoLegend() +
     fancyMask(maskTable, linewidth=0, ratio=1)
 ```
@@ -79,6 +86,7 @@ DimPlot(pbmc3k) + NoLegend() +
 to NK cells:
 
 ``` r
+
 FeaturePlot(pbmc3k, "GNLY", cols=c("grey90", "red")) +
     fancyMask(maskTable, ratio=1)
 ```

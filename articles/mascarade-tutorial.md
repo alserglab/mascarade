@@ -8,6 +8,7 @@ clusters on 2D dimensional reduction plots like UMAP or t-SNE.
 The package stable version can be installed from CRAN:
 
 ``` r
+
 install.packages("mascarade")
 ```
 
@@ -15,14 +16,27 @@ The most recent development version of the package can be installed from
 GitHub:
 
 ``` r
+
 remotes::install_github("alserglab/mascarade")
 ```
 
 ### Loading necessary libraries
 
 ``` r
+
 library(mascarade)
 library(data.table)
+```
+
+    ## 
+    ## Attaching package: 'data.table'
+
+    ## The following object is masked from 'package:base':
+    ## 
+    ##     %notin%
+
+``` r
+
 library(ggplot2)
 library(ggforce)
 ```
@@ -33,12 +47,14 @@ Loading example data from PBMC 3K processed with Seurat (see below for
 more details).
 
 ``` r
+
 data("exampleMascarade")
 ```
 
 UMAP coordinates:
 
 ``` r
+
 head(exampleMascarade$dims)
 ```
 
@@ -53,6 +69,7 @@ head(exampleMascarade$dims)
 Cluster annotations:
 
 ``` r
+
 head(exampleMascarade$clusters)
 ```
 
@@ -65,6 +82,7 @@ head(exampleMascarade$clusters)
 Expression table for several genes:
 
 ``` r
+
 head(exampleMascarade$features)
 ```
 
@@ -86,6 +104,7 @@ head(exampleMascarade$features)
 Let’s plot these data:
 
 ``` r
+
 data <- data.table(exampleMascarade$dims, 
                    cluster=exampleMascarade$clusters,
                    exampleMascarade$features)
@@ -100,6 +119,7 @@ ggplot(data, aes(x=UMAP_1, y=UMAP_2)) +
 Now let’s generate cluster masks:
 
 ``` r
+
 maskTable <- generateMask(dims=exampleMascarade$dims, 
                           clusters=exampleMascarade$clusters)
 ```
@@ -109,6 +129,7 @@ can have multiple connected parts, and one a single part can contain
 multiple border lines (groups).
 
 ``` r
+
 head(maskTable)
 ```
 
@@ -125,6 +146,7 @@ Now we can use this table to draw the borders with `geom_path` (`group`
 column should be used as the group aesthetics):
 
 ``` r
+
 ggplot(data, aes(x=UMAP_1, y=UMAP_2)) + 
     geom_point(aes(color=cluster)) + 
     geom_path(data=maskTable, aes(group=group)) +
@@ -137,6 +159,7 @@ ggplot(data, aes(x=UMAP_1, y=UMAP_2)) +
 Or we can color the borders instead of points:
 
 ``` r
+
 ggplot(data, aes(x=UMAP_1, y=UMAP_2)) + 
     geom_point(color="grey") + 
     geom_path(data=maskTable, aes(group=group, color=cluster), linewidth=1) +
@@ -150,6 +173,7 @@ We can use `ggforce` package to make the borders touch instead of
 overlap:
 
 ``` r
+
 ggplot(data, aes(x=UMAP_1, y=UMAP_2)) + 
     geom_point(color="grey") + 
     ggforce::geom_shape(data=maskTable, aes(group=group, color=cluster),
@@ -164,6 +188,7 @@ In the presence of small clusters it can help to expand the borders a
 bit further away from the points.
 
 ``` r
+
 maskTable <- generateMask(dims=exampleMascarade$dims, 
                           clusters=exampleMascarade$clusters,
                           expand=0.02)
@@ -181,6 +206,7 @@ With the help of `ggforce`-based function `geom_mark_shape` we can also
 put the labels within the plot itself.
 
 ``` r
+
 myMask <- list(
     geom_mark_shape(data=maskTable, aes(group=cluster, color=cluster, label = cluster),
                     fill = NA,
@@ -212,6 +238,7 @@ The same can be achived with the
 helper function:
 
 ``` r
+
 ggplot(data, aes(x=UMAP_1, y=UMAP_2)) +
     geom_point(color="grey") +
     fancyMask(maskTable, ratio=1, cols = scales::hue_pal()) +
@@ -225,6 +252,7 @@ particular genes, such as GNLY being a good marker for NK cells in this
 dataset.
 
 ``` r
+
 ggplot(data, aes(x=UMAP_1, y=UMAP_2)) + 
     geom_point(aes(color=GNLY), size=0.5) +
     scale_color_gradient2(low = "#404040", high="red") + 
@@ -237,6 +265,7 @@ ggplot(data, aes(x=UMAP_1, y=UMAP_2)) +
 We can focus on a single cluster too:
 
 ``` r
+
 ggplot(data, aes(x=UMAP_1, y=UMAP_2)) + 
     geom_point(aes(color=GNLY), size=0.5) + 
     scale_color_gradient2(low = "#404040", high="red") + 
@@ -252,12 +281,14 @@ ggplot(data, aes(x=UMAP_1, y=UMAP_2)) +
 For this part of the vignette you need `Seurat`package.
 
 ``` r
+
 library(Seurat)
 ```
 
 Let’s get the example PBMC3K dataset:
 
 ``` r
+
 pbmc3k <- readRDS(url("https://alserglab.wustl.edu/files/mascarade/examples/pbmc3k_seurat5.rds"))
 pbmc3k <- NormalizeData(pbmc3k)
 pbmc3k
@@ -273,6 +304,7 @@ The same object can be obtained using `SeuratData` package (can be
 installed with `remotes::install_github('satijalab/seurat-data')`):
 
 ``` r
+
 if (requireNamespace("SeuratData")) {
     if (!AvailableData()["pbmc3k", "Installed"]) {
         InstallData("pbmc3k")    
@@ -287,6 +319,7 @@ if (requireNamespace("SeuratData")) {
 Generate masks using a helper function:
 
 ``` r
+
 maskTable <- generateMaskSeurat(pbmc3k)
 ```
 
@@ -295,6 +328,7 @@ We can use
 now, here it reuses colors from `DimPlot` automatically:
 
 ``` r
+
 DimPlot(pbmc3k) + NoLegend() +
     fancyMask(maskTable, ratio=1)
 ```
@@ -304,6 +338,7 @@ DimPlot(pbmc3k) + NoLegend() +
 For the `DimPlot`, the borders can be viewed as redundant and removed:
 
 ``` r
+
 DimPlot(pbmc3k) + NoLegend() +
     fancyMask(maskTable, linewidth = 0, ratio=1)
 ```
@@ -313,6 +348,7 @@ DimPlot(pbmc3k) + NoLegend() +
 Let’s plot an NK cell marker:
 
 ``` r
+
 FeaturePlot(pbmc3k, "GNLY", cols=c("grey90", "red")) +
     fancyMask(maskTable, ratio=1)
 ```
@@ -323,6 +359,7 @@ Or multiple markers (skipping the labels to save space, but adding
 colors):
 
 ``` r
+
 featureList <- c("MS4A1", "GNLY", "CD3E", "CD14")
 FeaturePlot(pbmc3k, features=featureList, cols=c("grey90", "red")) *
     fancyMask(maskTable, ratio=1, linewidth=0.5, label=FALSE, cols = scales::hue_pal())
@@ -333,6 +370,7 @@ FeaturePlot(pbmc3k, features=featureList, cols=c("grey90", "red")) *
 Works with t-SNE too:
 
 ``` r
+
 pbmc3k <- RunTSNE(pbmc3k)
 
 maskTable <- generateMaskSeurat(pbmc3k, reduction = "tsne")
@@ -346,10 +384,11 @@ FeaturePlot(pbmc3k, features=featureList, reduction = "tsne", cols=c("grey90", "
 ### Session info
 
 ``` r
+
 sessionInfo()
 ```
 
-    ## R version 4.5.3 (2026-03-11)
+    ## R version 4.6.1 (2026-06-24)
     ## Platform: x86_64-pc-linux-gnu
     ## Running under: Ubuntu 24.04.4 LTS
     ## 
@@ -370,48 +409,48 @@ sessionInfo()
     ## [1] stats     graphics  grDevices utils     datasets  methods   base     
     ## 
     ## other attached packages:
-    ## [1] Seurat_5.4.0         SeuratObject_5.4.0   sp_2.2-1            
-    ## [4] ggforce_0.5.0        ggplot2_4.0.2        data.table_1.18.2.1 
+    ## [1] Seurat_5.5.1         SeuratObject_5.4.0   sp_2.2-1            
+    ## [4] ggforce_0.5.0        ggplot2_4.0.3        data.table_1.18.4   
     ## [7] mascarade_0.3.4.9000
     ## 
     ## loaded via a namespace (and not attached):
-    ##   [1] pbapply_1.7-4          deldir_2.0-4           gridExtra_2.3         
+    ##   [1] pbapply_1.7-4          deldir_2.0-4           gridExtra_2.3.1       
     ##   [4] rlang_1.2.0            magrittr_2.0.5         RcppAnnoy_0.0.23      
     ##   [7] otel_0.2.0             matrixStats_1.5.0      ggridges_0.5.7        
-    ##  [10] compiler_4.5.3         spatstat.geom_3.7-3    reshape2_1.4.5        
+    ##  [10] compiler_4.6.1         spatstat.geom_3.8-1    reshape2_1.4.5        
     ##  [13] png_0.1-9              systemfonts_1.3.2      vctrs_0.7.3           
     ##  [16] stringr_1.6.0          pkgconfig_2.0.3        fastmap_1.2.0         
     ##  [19] labeling_0.4.3         promises_1.5.0         rmarkdown_2.31        
-    ##  [22] ragg_1.5.2             purrr_1.2.2            xfun_0.57             
+    ##  [22] ragg_1.5.2             purrr_1.2.2            xfun_0.59             
     ##  [25] cachem_1.1.0           jsonlite_2.0.0         goftest_1.2-3         
-    ##  [28] later_1.4.8            spatstat.utils_3.2-2   tweenr_2.0.3          
-    ##  [31] irlba_2.3.7            parallel_4.5.3         cluster_2.1.8.2       
+    ##  [28] later_1.4.8            spatstat.utils_3.2-3   tweenr_2.0.3          
+    ##  [31] irlba_2.3.7            parallel_4.6.1         cluster_2.1.8.2       
     ##  [34] R6_2.6.1               ica_1.0-3              stringi_1.8.7         
-    ##  [37] bslib_0.10.0           RColorBrewer_1.1-3     spatstat.data_3.1-9   
-    ##  [40] reticulate_1.46.0      parallelly_1.47.0      spatstat.univar_3.1-7 
+    ##  [37] bslib_0.11.0           RColorBrewer_1.1-3     spatstat.data_3.1-9   
+    ##  [40] reticulate_1.46.0      parallelly_1.48.0      spatstat.univar_3.2-0 
     ##  [43] scattermore_1.2        lmtest_0.9-40          jquerylib_0.1.4       
-    ##  [46] Rcpp_1.1.1-1           knitr_1.51             tensor_1.5.1          
+    ##  [46] Rcpp_1.1.1-1.1         knitr_1.51             tensor_1.5.1          
     ##  [49] future.apply_1.20.2    zoo_1.8-15             sctransform_0.4.3     
-    ##  [52] httpuv_1.6.17          Matrix_1.7-4           splines_4.5.3         
-    ##  [55] igraph_2.3.0           tidyselect_1.2.1       abind_1.4-8           
-    ##  [58] yaml_2.3.12            codetools_0.2-20       spatstat.random_3.4-5 
-    ##  [61] miniUI_0.1.2           spatstat.explore_3.8-0 listenv_0.10.1        
+    ##  [52] httpuv_1.6.17          Matrix_1.7-5           splines_4.6.1         
+    ##  [55] igraph_2.3.3           tidyselect_1.2.1       abind_1.4-8           
+    ##  [58] yaml_2.3.12            codetools_0.2-20       spatstat.random_3.5-0 
+    ##  [61] miniUI_0.1.2           spatstat.explore_3.8-1 listenv_1.0.0         
     ##  [64] plyr_1.8.9             lattice_0.22-9         tibble_3.3.1          
-    ##  [67] shiny_1.13.0           withr_3.0.2            S7_0.2.1-1            
+    ##  [67] shiny_1.14.0           withr_3.0.3            S7_0.2.2              
     ##  [70] ROCR_1.0-12            evaluate_1.0.5         Rtsne_0.17            
-    ##  [73] future_1.70.0          fastDummies_1.7.5      desc_1.4.3            
+    ##  [73] future_1.70.0          fastDummies_1.7.6      desc_1.4.3            
     ##  [76] survival_3.8-6         polyclip_1.10-7        fitdistrplus_1.2-6    
     ##  [79] pillar_1.11.1          KernSmooth_2.23-26     plotly_4.12.0         
-    ##  [82] generics_0.1.4         RcppHNSW_0.6.0         scales_1.4.0          
+    ##  [82] generics_0.1.4         RcppHNSW_0.7.0         scales_1.4.0          
     ##  [85] xtable_1.8-8           globals_0.19.1         glue_1.8.1            
-    ##  [88] lazyeval_0.2.3         tools_4.5.3            RSpectra_0.16-2       
+    ##  [88] lazyeval_0.2.3         tools_4.6.1            RSpectra_0.16-2       
     ##  [91] RANN_2.6.2             fs_2.1.0               dotCall64_1.2         
-    ##  [94] cowplot_1.2.0          grid_4.5.3             tidyr_1.3.2           
-    ##  [97] patchwork_1.3.2        nlme_3.1-168           cli_3.6.6             
-    ## [100] spatstat.sparse_3.1-0  textshaping_1.0.5      spam_2.11-3           
+    ##  [94] cowplot_1.2.0          grid_4.6.1             tidyr_1.3.2           
+    ##  [97] patchwork_1.3.2        nlme_3.1-169           cli_3.6.6             
+    ## [100] spatstat.sparse_3.2-0  textshaping_1.0.5      spam_2.11-4           
     ## [103] viridisLite_0.4.3      dplyr_1.2.1            uwot_0.2.4            
     ## [106] gtable_0.3.6           sass_0.4.10            digest_0.6.39         
-    ## [109] progressr_0.19.0       ggrepel_0.9.8          htmlwidgets_1.6.4     
+    ## [109] progressr_1.0.0        ggrepel_0.9.8          htmlwidgets_1.6.4     
     ## [112] farver_2.1.2           htmltools_0.5.9        pkgdown_2.2.0         
     ## [115] lifecycle_1.0.5        httr_1.4.8             mime_0.13             
     ## [118] MASS_7.3-65

@@ -1,5 +1,9 @@
 # Changelog
 
+## mascarade 0.3.5
+
+- bug fixes
+
 ## mascarade 0.3.4
 
 CRAN release: 2026-04-14
