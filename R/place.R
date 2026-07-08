@@ -83,6 +83,8 @@ placeLabels <- function(geom, xlim, ylim, hw, hh, char_h,
                         MU = 55, iters = 120L, hard_ll = TRUE) {
   poi <- geom$poi; K <- nrow(poi)
   pad <- 0.05 * char_h; gap <- 0.25 * char_h
+  if (K == 1) return(.geoCols(data.table::data.table(label = 1L, cx = poi[1, 1], cy = poi[1, 2]),
+                              hw, hh, poi, pad))                    # single label sits on its pole
 
   seed <- .reorderBase(poi, hw, hh, xlim, gap)                      # guaranteed-clean fallback slot / label
   cand <- data.table::as.data.table(radialCandidates(

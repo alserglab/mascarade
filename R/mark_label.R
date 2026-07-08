@@ -67,19 +67,40 @@ my_place_labels <- function(rects, polygons, bounds, anchors, ghosts,
   active <- which(vapply(rects, function(r) !all(r == 0), logical(1)))
   if (length(active) == 0) return(res)
 
-  polys_a <- polygons[active]
-  px <- lapply(polys_a, `[[`, 'x')
-  py <- lapply(polys_a, `[[`, 'y')
-  poimat <- t(vapply(polys_a, function(p) { pl <- polylabelr::poi(p$x, p$y); c(pl$x, pl$y) }, numeric(2)))
+  # clean each polygon: drop non-finite vertices; guarantee >= 3 points so the C++ box-fit
+  # and pole solver never receive an empty/degenerate ring (draw-stage polygons can be
+  # cropped by axis limits, dropped by expansion, or reduced to a point).
+  polys_a <- lapply(polygons[active], function(p) {
+    ok <- is.finite(p$x) & is.finite(p$y); x <- p$x[ok]; y <- p$y[ok]
+    if (length(x) < 3) {
+      cx <- if (length(x)) mean(x) else 0; cy <- if (length(y)) mean(y) else 0
+      x <- cx + c(-1e-3, 1e-3, 0); y <- cy + c(-1e-3, -1e-3, 1e-3)
+    }
+    list(x = x, y = y)
+  })
+  poimat <- t(vapply(polys_a, function(p) {
+    pl <- tryCatch(polylabelr::poi(p$x, p$y), error = function(e) NULL)
+    if (is.null(pl) || !is.finite(pl$x) || !is.finite(pl$y)) c(mean(p$x), mean(p$y)) else c(pl$x, pl$y)
+  }, numeric(2)))
 
-  if (length(active) == 1) { res[[active]] <- poimat[1, ]; return(res) }  # single label: sit on its pole
+  # anchor fallback if anything is still degenerate
+  anchorFallback <- function() {
+    for (j in seq_along(active)) res[[active[j]]] <<- as.numeric(anchors[[active[j]]])
+    res
+  }
+  if (any(!is.finite(poimat)) || any(!is.finite(bounds)) || bounds[1] <= 0 || bounds[2] <= 0)
+    return(anchorFallback())
+  if (length(active) == 1) { res[[active]] <- poimat[1, ]; return(res) }
 
   hw <- vapply(active, function(i) rects[[i]][1] / 2, 0)
   hh <- vapply(active, function(i) rects[[i]][2] / 2, 0)
   char_h <- stats::median(2 * hh)
+  px <- lapply(polys_a, `[[`, 'x'); py <- lapply(polys_a, `[[`, 'y')
   geom <- list(poi = poimat, rtree = buildBoxFit(px, py), polysx = px, polysy = py)
 
-  lay <- placeLabels(geom, c(0, bounds[1]), c(0, bounds[2]), hw, hh, char_h)
+  lay <- tryCatch(placeLabels(geom, c(0, bounds[1]), c(0, bounds[2]), hw, hh, char_h),
+                  error = function(e) NULL)
+  if (is.null(lay)) return(anchorFallback())
   lay <- lay[order(lay$label)]
   for (j in seq_along(active)) res[[active[j]]] <- c(lay$cx[j], lay$cy[j])
   res
