@@ -35,14 +35,17 @@ of every stage** to prevent drift. Each stage ends by committing and re-reading 
   This is the anchor every later stage must not regress against.
 - **Commit** ("plan + golden baselines"). **Reread plan + design doc.**
 
-## Stage 1 — De-risk spikes (no package changes yet)
-- (a) **BH R-tree spike**: minimal Rcpp+BH program building a Boost.Geometry rtree over a few
-  polygons and answering a box-intersect query. If it doesn't compile/run here → fall back to
-  the integral-image grid (documented rollback) and note it.
-- (b) **Label hook**: trace exactly where `geom_mark_shape()`/`ggforce_mark_label` set label
-  positions, and identify where our `(cx,cy)` + leader must be injected.
-- (c) **Poles**: confirm `polylabelr::poi` on the mask polygons reproduces the prototype poles.
-- Write findings into this file.
+## Stage 1 — De-risk spikes (no package changes yet) — DONE
+Findings (2026-07-08):
+- (a) **BH R-tree**: `spike_rtree.cpp` (rtree of polygon envelopes + `bg::intersects` on hits)
+  compiles via `Rcpp::sourceCpp` (`[[Rcpp::depends(BH)]]`) in ~7.5 s and returns correct
+  box-fit results. **Viable — no rollback to the integral-image grid needed.**
+- (b) **Label hook**: `R/mark_label.R` is already a local fork (`my_make_label` @108 calls
+  `my_place_labels` @57 → `labelpos`; positions set @146-149, connectors ~159). **Inject our
+  placement by replacing `my_place_labels` with the `placeLabels` result** (label centres +
+  leader endpoints). Clean single-point replacement.
+- (c) **Poles**: `polylabelr::poi` available and correct; it's exactly what the prototype's
+  `build_base` already uses, so poles reproduce.
 - **Commit** ("spike notes"). **Reread plan + design doc.**
 
 ## Stage 2 — C++ kernels → `src/`
