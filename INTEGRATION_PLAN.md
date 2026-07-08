@@ -90,6 +90,13 @@ Findings (2026-07-08):
 - `devtools::check()` clean (or documented residual notes).
 - **Commit** ("cleanup + docs + check"). **Reread plan + design doc.**
 
+## Golden policy (updated 2026-07-08)
+Golden is a **reference gate, not an exact match**: the package uses real text metrics +
+exact R-tree box-fit, which intentionally shift the candidate set ~1% vs the prototype
+baseline. Tests assert **conflict-free (0/0/0) AND total length within a small tolerance**
+of golden (`len <= golden$len * 1.05`), not equality. To find an exact diff vs the prototype,
+`git checkout` an earlier commit. Do NOT regenerate the golden from the package.
+
 ## Deferred (explicitly out of scope for this pass)
 - Overflow / "not enough space" behaviour beyond the boundary-slot fallback + `overflow` flag.
 - Placement memoisation and resize warm-start (v2).
