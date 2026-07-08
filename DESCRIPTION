@@ -15,11 +15,16 @@ Imports:
     lifecycle,
     ggplot2,
     polyclip,
+    polylabelr,
     ggforce,
     vctrs,
     rlang,
     cli,
-    systemfonts
+    systemfonts,
+    Rcpp
+LinkingTo:
+    Rcpp,
+    BH
 License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true

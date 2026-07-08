@@ -3,3 +3,5 @@
 .RData
 .Ruserdata
 docs
+src/*.o
+src/*.so
