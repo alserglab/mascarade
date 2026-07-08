@@ -84,11 +84,16 @@ Findings (2026-07-08):
 - **Verify**: `devtools::test()` green.
 - **Commit** ("score helper + tests"). **Reread plan + design doc.**
 
-## Stage 6 — Cleanup, docs, check
-- Remove prototype (`label_iters/`, `tmp/`, old reports) per design doc "drop" list.
-- `devtools::document()`; NEWS; finalise DESCRIPTION.
-- `devtools::check()` clean (or documented residual notes).
+## Stage 6 — Cleanup, docs, check — DONE
+- `.Rbuildignore` excludes all dev scratch (label_iters/, reports, copd_*, etc.); the
+  prototype stays on disk as reference (untracked, not shipped) rather than deleted.
+- NEWS 0.4.0 entry; DESCRIPTION version 0.4.0; NAMESPACE regenerated (useDynLib + polylabelr).
+- `R CMD check` **Status: OK** (clean; the only --as-cran NOTE is the standard new-version
+  note; a `svglite`-suggested ERROR is an env artifact, passes with suggests not forced).
+  Full test suite: 76 pass, 0 fail, 1 skip.
 - **Commit** ("cleanup + docs + check"). **Reread plan + design doc.**
+
+## STATUS: all six stages complete on branch feat/label-placement.
 
 ## Golden policy (updated 2026-07-08)
 Golden is a **reference gate, not an exact match**: the package uses real text metrics +
