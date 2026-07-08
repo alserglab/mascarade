@@ -52,54 +52,36 @@ simplify_outer <- function(poly, max_area, min_vertices = 4L) {
   list(x = rx, y = ry)
 }
 
-#' @importFrom polyclip polyoffset polyminkowski polyclip
-#' @importFrom grid convertX convertY
+# Label placement (mascarade boundary-seed placer). Runs at draw time in the panel's
+# millimetre space, where `rects` are the measured label box sizes (w, h in mm), `polygons`
+# are the cluster rings in mm, and `bounds` is the panel size in mm. Returns, per label, its
+# placed centre c(x, y) in mm (NULL for labels not drawn). Poles and the box-fit R-tree are
+# recomputed here each draw (cheap: ~20 ms for ~40 clusters); the expensive mask is not.
+# `anchors`/`ghosts`/`simp_ratio` are accepted for call-compatibility; ghosts are not yet
+# avoided (deferred), and non-labelled polygon parts are treated as the placed set.
+#' @importFrom polylabelr poi
+#' @importFrom stats median
 my_place_labels <- function(rects, polygons, bounds, anchors, ghosts,
                             simp_ratio = 0.001) {
   res <- vector('list', length(rects))
-  bbox <- list(
-    x = c(0, bounds[1], bounds[1], 0),
-    y = c(0, 0, bounds[2], bounds[2])
-  )
-  if (!is.null(ghosts) && length(ghosts$x) > 0) {
-    ghosts$x <- convertX(ghosts$x, 'mm', TRUE)
-    ghosts$y <- convertY(ghosts$y, 'mm', TRUE)
-    ghosts <- Map(
-      function(xmin, xmax, ymin, ymax) {
-        list(x = c(xmin, xmax, xmax, xmin), y = c(ymin, ymin, ymax, ymax))
-      },
-      xmin = ghosts$x - 2,
-      xmax = ghosts$x + 2,
-      ymin = ghosts$y - 2,
-      ymax = ghosts$y + 2
-    )
-    ghosts <- polyoffset(ghosts, 0)
-    polygons <- c(polygons, ghosts)
-  }
-  if (simp_ratio > 0 && length(polygons) > 0) {
-    all_x <- unlist(lapply(polygons, `[[`, 'x'))
-    all_y <- unlist(lapply(polygons, `[[`, 'y'))
-    bbox_area <- diff(range(all_x)) * diff(range(all_y))
-    max_area  <- simp_ratio * bbox_area
-    polygons  <- lapply(polygons, simplify_outer, max_area = max_area)
-  }
-  for (i in seq_along(rects)) {
-    if (all(rects[[i]] == 0)) next()
-    r <- rects[[i]] / 2 + 2
-    rect <- list(x = c(-r[1], r[1], r[1], -r[1]),
-                 y = c(-r[2], -r[2], r[2], r[2]))
-    b <- polyminkowski(bbox, rect)
-    for (p in polygons) {
-      b <- polyclip(b, polyminkowski(p, rect)[1], 'union')
-    }
-    if (length(b) == 1) next()
-    b <- lapply(b[-1], function(p) cbind(p$x, p$y))
-    closest <- points_to_path(matrix(anchors[[i]], ncol = 2), b, TRUE)
-    res[[i]] <- closest$proj
-    rect$x <- rect$x + closest$proj[1]
-    rect$y <- rect$y + closest$proj[2]
-    polygons[[length(polygons) + 1]] <- rect
-  }
+  active <- which(vapply(rects, function(r) !all(r == 0), logical(1)))
+  if (length(active) == 0) return(res)
+
+  polys_a <- polygons[active]
+  px <- lapply(polys_a, `[[`, 'x')
+  py <- lapply(polys_a, `[[`, 'y')
+  poimat <- t(vapply(polys_a, function(p) { pl <- polylabelr::poi(p$x, p$y); c(pl$x, pl$y) }, numeric(2)))
+
+  if (length(active) == 1) { res[[active]] <- poimat[1, ]; return(res) }  # single label: sit on its pole
+
+  hw <- vapply(active, function(i) rects[[i]][1] / 2, 0)
+  hh <- vapply(active, function(i) rects[[i]][2] / 2, 0)
+  char_h <- stats::median(2 * hh)
+  geom <- list(poi = poimat, rtree = buildBoxFit(px, py), polysx = px, polysy = py)
+
+  lay <- placeLabels(geom, c(0, bounds[1]), c(0, bounds[2]), hw, hh, char_h)
+  lay <- lay[order(lay$label)]
+  for (j in seq_along(active)) res[[active[j]]] <- c(lay$cx[j], lay$cy[j])
   res
 }
 #' @importFrom polyclip polyoffset
