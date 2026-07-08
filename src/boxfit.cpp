@@ -1,9 +1,10 @@
 #include "geometry.h"
+#include <utility>
 using namespace Rcpp;
 
 // Build the box-fit R-tree from cluster polygons (parallel x/y lists, one per cluster).
-// Returns an external pointer to a BoxFit; fancyMask holds it and passes it to the
-// candidate/polish kernels so the tree is built once and reused across draws.
+// Returns an external pointer to a BoxFit, passed to the candidate/polish kernels for
+// box-fit queries within a placement (rebuilt per placement; the mask itself is not).
 // [[Rcpp::export]]
 SEXP buildBoxFit(List polysx, List polysy) {
   int np = polysx.size();

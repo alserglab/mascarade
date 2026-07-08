@@ -2,30 +2,30 @@
 # Generator token: 10BE3573-1514-4C36-9D1C-5A225CD40393
 
 hungarian <- function(cost) {
-    .Call('_mascarade_hungarian', PACKAGE = 'mascarade', cost)
+    .Call(`_mascarade_hungarian`, cost)
 }
 
 buildBoxFit <- function(polysx, polysy) {
-    .Call('_mascarade_buildBoxFit', PACKAGE = 'mascarade', polysx, polysy)
+    .Call(`_mascarade_buildBoxFit`, polysx, polysy)
 }
 
 radialCandidates <- function(boxfit, poi, hw, hh, pad, xlo, xhi, ylo, yhi, ndir, step, rstart, rmax, intfill, dedup) {
-    .Call('_mascarade_radialCandidates', PACKAGE = 'mascarade', boxfit, poi, hw, hh, pad, xlo, xhi, ylo, yhi, ndir, step, rstart, rmax, intfill, dedup)
+    .Call(`_mascarade_radialCandidates`, boxfit, poi, hw, hh, pad, xlo, xhi, ylo, yhi, ndir, step, rstart, rmax, intfill, dedup)
 }
 
 foreignLength <- function(ex, ey, tx, ty, lab, polysx, polysy) {
-    .Call('_mascarade_foreignLength', PACKAGE = 'mascarade', ex, ey, tx, ty, lab, polysx, polysy)
+    .Call(`_mascarade_foreignLength`, ex, ey, tx, ty, lab, polysx, polysy)
 }
 
 forcePolish <- function(boxfit, cx0, cy0, hw, hh, tx, ty, pad, xlo, xhi, ylo, yhi, iters, step, MU, pad_tgt, stepmin, ll_hard = TRUE, sq = TRUE) {
-    .Call('_mascarade_forcePolish', PACKAGE = 'mascarade', boxfit, cx0, cy0, hw, hh, tx, ty, pad, xlo, xhi, ylo, yhi, iters, step, MU, pad_tgt, stepmin, ll_hard, sq)
+    .Call(`_mascarade_forcePolish`, boxfit, cx0, cy0, hw, hh, tx, ty, pad, xlo, xhi, ylo, yhi, iters, step, MU, pad_tgt, stepmin, ll_hard, sq)
 }
 
 oneMoveSweep <- function(cxmin, cxmax, cymin, cymax, ex, ey, tx, ty, len, rows, init, maxpass) {
-    .Call('_mascarade_oneMoveSweep', PACKAGE = 'mascarade', cxmin, cxmax, cymin, cymax, ex, ey, tx, ty, len, rows, init, maxpass)
+    .Call(`_mascarade_oneMoveSweep`, cxmin, cxmax, cymin, cymax, ex, ey, tx, ty, len, rows, init, maxpass)
 }
 
 twoMoveBnB <- function(cxmin, cxmax, cymin, cymax, ex, ey, tx, ty, len, rows, init, maxpass, sq) {
-    .Call('_mascarade_twoMoveBnB', PACKAGE = 'mascarade', cxmin, cxmax, cymin, cymax, ex, ey, tx, ty, len, rows, init, maxpass, sq)
+    .Call(`_mascarade_twoMoveBnB`, cxmin, cxmax, cymin, cymax, ex, ey, tx, ty, len, rows, init, maxpass, sq)
 }
 

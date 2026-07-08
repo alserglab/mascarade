@@ -1,5 +1,6 @@
 #include "geometry.h"
 #include <vector>
+#include <algorithm>
 using namespace Rcpp;
 
 // Force-directed polish: one energy (squared leader length + box-box padding) under a hard

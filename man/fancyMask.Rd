@@ -79,12 +79,9 @@ Default is \code{10}.}
 \item{label.margin}{Label margin passed to
 \code{geom_mark_shape()}. Default is \code{margin(2, 2, 2, 2, "pt")}.}
 
-\item{simp_ratio}{Fraction of the polygon bounding box area used as the
-label-placement simplification threshold. Cluster polygons are simplified
-before the label placement search by removing small concave vertices,
-which reduces computation while guaranteeing the simplified polygon
-encloses the original. Larger values simplify more aggressively;
-set to \code{0} to disable. Default is \code{0.001}.}
+\item{simp_ratio}{Deprecated and ignored since label placement was replaced by
+the boundary-seed placer; retained for backward compatibility and slated for
+removal in a future version.}
 }
 \value{
 A list of ggplot2 components suitable for adding to a plot with \code{+},

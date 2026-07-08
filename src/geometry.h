@@ -25,7 +25,8 @@ typedef bg::model::box<mpt>              mbox;
 typedef std::pair<mbox, unsigned>        mval;
 
 // Box-fit acceleration structure: R-tree of cluster-polygon envelopes + the polygons.
-// Built once (per data) in fancyMask via buildBoxFit(); reused across draws via an XPtr.
+// Built from the cluster polygons via buildBoxFit() and passed to the candidate/polish
+// kernels as an XPtr handle for box-fit queries within a single placement.
 struct BoxFit {
   std::vector<mpoly> polys;
   bgi::rtree<mval, bgi::quadratic<16> > tree;

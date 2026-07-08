@@ -6,8 +6,8 @@
 # pool, per-label row lists, index maps, and the derived box/leader geometry columns).
 #
 # `placeLabels()` is pure given the per-label box half-sizes (hw, hh) and line height
-# (char_h) in data units; `labelBoxes()`/`fancyMask()` supply those from text metrics at
-# draw time. `geom` is the compute-once structure built by `fancyMask()`:
+# (char_h); the draw-stage hook supplies those from text metrics in the panel's mm space.
+# `geom` is the box-fit structure the caller builds from the cluster polygons:
 #   list(poi = K x 2 pole matrix, rtree = XPtr<BoxFit>, polysx, polysy = per-cluster rings)
 
 # pool-adjacent-violators (non-increasing L2 fit)
@@ -79,41 +79,47 @@
 
 # Place labels for one view. Returns a data.table (one row per cluster) with cx, cy and
 # the derived box/leader columns. Conflict-free by construction given a feasible pool.
-placeLabels <- function(geom, xlim, ylim, hw, hh, char_h,
-                        MU = 55, iters = 120L, hard_ll = TRUE) {
+placeLabels <- function(geom, xlim, ylim, hw, hh, char_h, MU = 55, iters = 120L) {
   poi <- geom$poi; K <- nrow(poi)
-  pad <- 0.05 * char_h; gap <- 0.25 * char_h
+  pad <- 0.05 * char_h                                             # hard box clearance
+  gap <- 0.25 * char_h                                             # seed column spacing
   if (K == 1) return(.geoCols(data.table::data.table(label = 1L, cx = poi[1, 1], cy = poi[1, 2]),
                               hw, hh, poi, pad))                    # single label sits on its pole
 
-  seed <- .reorderBase(poi, hw, hh, xlim, gap)                      # guaranteed-clean fallback slot / label
+  # radial candidate parameters (all in char_h units)
+  ndir <- 48L; radStep <- 0.3 * char_h; radStart <- 0.2 * char_h
+  radReach <- 16 * char_h; radFill <- 1.2 * char_h; dedup <- 0.3 * char_h
+
+  seed <- .reorderBase(poi, hw, hh, xlim, gap)                     # guaranteed-clean fallback slot / label
   cand <- data.table::as.data.table(radialCandidates(
     geom$rtree, poi, hw, hh, pad, xlim[1], xlim[2], ylim[1], ylim[2],
-    48L, 0.3 * char_h, 0.2 * char_h, 16 * char_h, 1.2 * char_h, 0.3 * char_h))
+    ndir, radStep, radStart, radReach, radFill, dedup))
 
   cand$isb <- FALSE
   sb <- data.table::data.table(label = seed$label, cx = seed$cx, cy = seed$cy, isb = TRUE)
   allc <- rbind(cand, sb)                                          # boundary slot = feasibility fallback
   pool <- .geoCols(allc, hw, hh, poi, pad)
   pool$isb <- allc$isb
-  ord <- order(pool$label, pool$len); pool <- pool[ord]
-  pool$idx <- seq_len(nrow(pool)) - 1L
+  pool <- pool[order(pool$label, pool$len)]
+  pool$idx <- seq_len(nrow(pool)) - 1L                             # 0-based for the C++ kernels
   rows <- lapply(seq_len(K), function(i) pool$idx[pool$label == i])
   init <- vapply(seq_len(K), function(i) {
     sel <- pool$label == i; pool$idx[sel][pool$isb[sel]][1] }, 0L)
 
+  # effective length = leader length + length inside a foreign cluster (routes leaders around)
   elen <- pool$len + foreignLength(pool$ex, pool$ey, pool$tx, pool$ty,
                                    as.integer(pool$label), geom$polysx, geom$polysy)
-  a <- list(pool$cxmin, pool$cxmax, pool$cymin, pool$cymax,
-            pool$ex, pool$ey, pool$tx, pool$ty, elen, rows)
-  rs <- do.call(oneMoveSweep, c(a, list(as.integer(init), 100L)))
-  tw <- do.call(twoMoveBnB, c(a, list(as.integer(rs), 50L, TRUE)))
+  # shared geometry args; NAMED so do.call binds by name (mis-ordering errors loudly)
+  geomArgs <- list(cxmin = pool$cxmin, cxmax = pool$cxmax, cymin = pool$cymin, cymax = pool$cymax,
+                   ex = pool$ex, ey = pool$ey, tx = pool$tx, ty = pool$ty, len = elen, rows = rows)
+  rs <- do.call(oneMoveSweep, c(geomArgs, list(init = as.integer(init), maxpass = 100L)))
+  tw <- do.call(twoMoveBnB, c(geomArgs, list(init = as.integer(rs), maxpass = 50L, sq = TRUE)))
 
   two <- .geoCols(pool[tw + 1L], hw, hh, poi, pad)
   two <- two[order(two$label)]
   r <- forcePolish(geom$rtree, two$cx, two$cy, hw, hh, poi[, 1], poi[, 2], pad,
                    xlim[1], xlim[2], ylim[1], ylim[2],
-                   as.integer(iters), 0.4 * char_h, MU, 0.6 * char_h, 0.03 * char_h,
-                   hard_ll, TRUE)
+                   iters = as.integer(iters), step = 0.4 * char_h, MU = MU,
+                   pad_tgt = 0.6 * char_h, stepmin = 0.03 * char_h)
   .geoCols(data.table::data.table(label = seq_len(K), cx = r$cx, cy = r$cy), hw, hh, poi, pad)
 }

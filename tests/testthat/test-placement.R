@@ -8,6 +8,10 @@ test_that("placeLabels produces a conflict-free layout on the example data", {
   expect_equal(unname(s["bb"]), 0)                 # no box-box overlap
   expect_equal(unname(s["ll"]), 0)                 # no leader-leader crossing
   expect_equal(unname(s["lb"]), 0)                 # no leader through a foreign box
+
+  # regression gate: no worse than the recorded golden (conflict-free + no longer total)
+  golden <- readRDS(test_path("fixtures", "golden_scores.rds"))$example_default
+  expect_false(scoreBetter(golden, s))             # golden must not beat the current layout
 })
 
 test_that("placement stays conflict-free across box scales (view-change property)", {

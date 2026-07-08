@@ -45,10 +45,11 @@ IntegerVector oneMoveSweep(NumericVector cxmin, NumericVector cxmax, NumericVect
 }
 
 // Two-move: length branch-and-bound traversal + lexicographic (dbb, dll, dlb, dlen)
-// selection among the visited pairs. Candidates are length-ascending; a shorter c1 needs
-// a partner only if blocked by exactly one label (that blocker is the partner). No cap
-// (evalcap dropped), no active-set bitset. At a conflict-free start this returns the exact
-// per-step lexicographic optimum; the lexicographic form is the hook for future overflow work.
+// selection among the visited pairs. Candidates are length-ascending; a shorter c1 needs a
+// partner only if it is blocked by exactly one label (that blocker is the partner: 0 blockers
+// = a single move, 2+ = unfixable by one partner). The length bound prunes the
+// length-increasing tail; among the pairs it visits the lexicographically best is chosen.
+// At a conflict-free start this is the exact per-step lexicographic optimum.
 // [[Rcpp::export]]
 IntegerVector twoMoveBnB(NumericVector cxmin, NumericVector cxmax, NumericVector cymin, NumericVector cymax,
                          NumericVector ex, NumericVector ey, NumericVector tx, NumericVector ty,

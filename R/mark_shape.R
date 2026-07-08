@@ -29,12 +29,9 @@
 #' - alpha
 #'
 #' @inheritParams ggforce::geom_mark_circle
-#' @param simp_ratio Fraction of the polygon bounding box area used as the
-#'   label-placement simplification threshold. Cluster polygons are simplified
-#'   before the label placement search by removing small concave vertices,
-#'   which reduces computation while guaranteeing the simplified polygon
-#'   encloses the original. Larger values simplify more aggressively;
-#'   set to `0` to disable. Default is `0.001`.
+#' @param simp_ratio Deprecated and ignored since label placement was replaced by
+#'   the boundary-seed placer; retained for backward compatibility and slated for
+#'   removal in a future version.
 #' @return A ggplot2 layer (`ggplot2::layer`) that adds polygonal shape annotations to a plot.
 #'
 #' @family mark geoms
