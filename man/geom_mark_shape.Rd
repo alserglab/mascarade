@@ -154,9 +154,11 @@ on all sides), or \code{"none"} (not going to explain that one).}
 \item{con.arrow}{An arrow specification for the connection using
 \code{\link[grid:arrow]{grid::arrow()}} for the end pointing towards the mark.}
 
-\item{simp_ratio}{Deprecated and ignored since label placement was replaced by
-the boundary-seed placer; retained for backward compatibility and slated for
-removal in a future version.}
+\item{simp_ratio}{Fraction of the polygon bounding-box area used to simplify
+cluster polygons before label placement (removes small inward vertices; the
+simplified ring encloses the original, so labels never overlap the real shape).
+Speeds up placement geometry. Larger values simplify more; \code{0} disables.
+Default \code{0.001}.}
 
 \item{...}{Other arguments passed on to \code{\link[ggplot2:layer]{layer()}}'s \code{params} argument. These
 arguments broadly fall into one of 4 categories below. Notably, further

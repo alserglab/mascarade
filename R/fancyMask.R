@@ -52,9 +52,12 @@
 #'     not matter.
 #' @param label.margin Label margin passed to
 #'   `geom_mark_shape()`. Default is `margin(2, 2, 2, 2, "pt")`.
-#' @param simp_ratio Deprecated and ignored since label placement was replaced by
-#'   the boundary-seed placer; retained for backward compatibility and slated for
-#'   removal in a future version.
+#' @param simp_ratio Fraction of the polygon bounding-box area used to simplify
+#'   cluster polygons before label placement: small inward (concave) vertices whose
+#'   cut-off area is below `simp_ratio * bbox_area` are removed, which speeds up the
+#'   box-fit and leader-routing geometry (both scale with vertex count). The
+#'   simplified polygon encloses the original, so labels never overlap the real
+#'   cluster. Larger values simplify more; set to `0` to disable. Default `0.001`.
 #'
 #' @return A list of ggplot2 components suitable for adding to a plot with `+`,
 #'   containing a `ggplot2::coord_cartesian()` specification and a
