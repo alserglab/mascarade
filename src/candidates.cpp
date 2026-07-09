@@ -8,6 +8,8 @@ using namespace Rcpp;
 // of the label's size (+pad) fits at (x,y) iff it overlaps no cluster polygon (BoxFit
 // R-tree query, replacing the prototype's occupancy integral image). Drop a candidate at
 // the near edge of every free interval + every intfill along wide ones.
+// Candidates may fall partly OUTSIDE the viewport: the effective-length overflow term ranks
+// them, so a crowded label can take a minimally-clipped edge slot instead of the far seed.
 // [[Rcpp::export]]
 DataFrame radialCandidates(SEXP boxfit, NumericMatrix poi, NumericVector hw, NumericVector hh, double pad,
                            double xlo, double xhi, double ylo, double yhi,
@@ -23,8 +25,9 @@ DataFrame radialCandidates(SEXP boxfit, NumericMatrix poi, NumericVector hw, Num
       bool prevfree = false; double lastadd = -1e18, r = rstart;
       while (r <= rmax) {
         double x = px + r * cx, y = py + r * cy;
-        bool inb = x - hw[i] >= xlo && x + hw[i] <= xhi && y - hh[i] >= ylo && y + hh[i] <= yhi;
-        bool free = inb && !bf->hit(x - hwi, x + hwi, y - hhi, y + hhi);
+        bool free = !bf->hit(x - hwi, x + hwi, y - hhi, y + hhi);   // cluster-free; viewport
+                                                                    // overflow is priced later
+
         if (free && (!prevfree || r - lastadd >= intfill)) {
           long kx = (long) std::lround(x / dedup), ky = (long) std::lround(y / dedup);
           if (seen.insert(std::make_pair(kx, ky)).second) { Lo.push_back(i + 1); Xo.push_back(x); Yo.push_back(y); }
