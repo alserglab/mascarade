@@ -13,34 +13,68 @@ IntegerVector oneMoveSweep(NumericVector cxmin, NumericVector cxmax, NumericVect
                            NumericVector len, List rows, IntegerVector init, int maxpass) {
   int K = rows.size();
   std::vector<std::vector<int> > byl(K);
-  for (int k = 0; k < K; ++k) { IntegerVector v = rows[k]; byl[k].assign(v.begin(), v.end()); }
+  for (int k = 0; k < K; ++k) {
+    IntegerVector v = rows[k];
+    byl[k].assign(v.begin(), v.end());
+  }
   std::vector<int> cur(init.begin(), init.end());
   auto obb = [&](int a, int b)->bool { return cxmin[a] < cxmax[b] && cxmin[b] < cxmax[a] && cymin[a] < cymax[b] && cymin[b] < cymax[a]; };
   auto olb = [&](int a, int b)->bool { return segbox(ex[a], ey[a], tx[a], ty[a], cxmin[b], cxmax[b], cymin[b], cymax[b])
                                             || segbox(ex[b], ey[b], tx[b], ty[b], cxmin[a], cxmax[a], cymin[a], cymax[a]); };
   auto oll = [&](int a, int b)->bool { return segcross(ex[a], ey[a], tx[a], ty[a], ex[b], ey[b], tx[b], ty[b]); };
-  auto ev = [&](int c, int L, int& b, int& x, int& l) { b = 0; x = 0; l = 0;
-    for (int M = 0; M < K; ++M) { if (M == L) continue; if (obb(c, cur[M])) ++b; if (oll(c, cur[M])) ++x; if (olb(c, cur[M])) ++l; } };
-  int applied = 0, passes = 0; std::vector<int> ord(K), cbb(K), cll(K), clb(K);
-  for (int pass = 0; pass < maxpass; ++pass) { ++passes;
-    for (int L = 0; L < K; ++L) { int b, x, l; ev(cur[L], L, b, x, l); cbb[L] = b; cll[L] = x; clb[L] = l; }
-    for (int i = 0; i < K; ++i) ord[i] = i;
-    std::sort(ord.begin(), ord.end(), [&](int a, int b) {
-      if (cbb[a] != cbb[b]) return cbb[a] > cbb[b];
-      if (cll[a] != cll[b]) return cll[a] > cll[b];
-      if (clb[a] != clb[b]) return clb[a] > clb[b];
-      return len[cur[a]] > len[cur[b]]; });
-    bool changed = false;
-    for (int oi = 0; oi < K; ++oi) { int L = ord[oi];
-      int bb_ = 1 << 30, ll_ = 1 << 30, lb_ = 1 << 30; double le_ = 1e18; int bc = cur[L];
-      for (int c : byl[L]) { int b, x, l; ev(c, L, b, x, l); double le = len[c];
-        if (b < bb_ || (b == bb_ && (x < ll_ || (x == ll_ && (l < lb_ || (l == lb_ && le < le_ - 1e-9)))))) { bb_ = b; ll_ = x; lb_ = l; le_ = le; bc = c; } }
-      if (bc != cur[L]) { cur[L] = bc; changed = true; ++applied; }
+  // conflict counts (box-box, leader-leader, leader-box) of candidate c placed for label L
+  auto ev = [&](int c, int L, int& b, int& x, int& l) {
+    b = 0; x = 0; l = 0;
+    for (int M = 0; M < K; ++M) {
+      if (M == L) { continue; }
+      if (obb(c, cur[M])) { ++b; }
+      if (oll(c, cur[M])) { ++x; }
+      if (olb(c, cur[M])) { ++l; }
     }
-    if (!changed) break;
+  };
+
+  int applied = 0, passes = 0;
+  std::vector<int> ord(K), cbb(K), cll(K), clb(K);
+  for (int pass = 0; pass < maxpass; ++pass) {
+    ++passes;
+    for (int L = 0; L < K; ++L) {
+      int b, x, l;
+      ev(cur[L], L, b, x, l);
+      cbb[L] = b; cll[L] = x; clb[L] = l;
+    }
+    for (int i = 0; i < K; ++i) {
+      ord[i] = i;
+    }
+    std::sort(ord.begin(), ord.end(), [&](int a, int b) {
+      if (cbb[a] != cbb[b]) { return cbb[a] > cbb[b]; }
+      if (cll[a] != cll[b]) { return cll[a] > cll[b]; }
+      if (clb[a] != clb[b]) { return clb[a] > clb[b]; }
+      return len[cur[a]] > len[cur[b]];
+    });
+    bool changed = false;
+    for (int oi = 0; oi < K; ++oi) {
+      int L = ord[oi];
+      int bb_ = 1 << 30, ll_ = 1 << 30, lb_ = 1 << 30; double le_ = 1e18; int bc = cur[L];
+      for (int c : byl[L]) {
+        int b, x, l;
+        ev(c, L, b, x, l);
+        double le = len[c];
+        if (b < bb_ || (b == bb_ && (x < ll_ || (x == ll_ && (l < lb_ || (l == lb_ && le < le_ - 1e-9)))))) {
+          bb_ = b; ll_ = x; lb_ = l; le_ = le; bc = c;
+        }
+      }
+      if (bc != cur[L]) {
+        cur[L] = bc; changed = true; ++applied;
+      }
+    }
+    if (!changed) { break; }
   }
-  IntegerVector out(K); for (int k = 0; k < K; ++k) out[k] = cur[k];
-  out.attr("passes") = passes; out.attr("applied") = applied;
+  IntegerVector out(K);
+  for (int k = 0; k < K; ++k) {
+    out[k] = cur[k];
+  }
+  out.attr("passes") = passes;
+  out.attr("applied") = applied;
   return out;
 }
 
