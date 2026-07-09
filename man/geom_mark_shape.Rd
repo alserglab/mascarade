@@ -24,10 +24,11 @@ geom_mark_shape(
   label.buffer = unit(10, "mm"),
   con.colour = "black",
   con.size = 0.5,
-  con.type = "elbow",
+  con.type = "cl",
   con.linetype = 1,
   con.border = "one",
   con.cap = unit(3, "mm"),
+  con.padding = NULL,
   con.arrow = NULL,
   simp_ratio = 0.001,
   ...,
@@ -139,8 +140,10 @@ mark. Use \code{"inherit"} to use the border colour of the enclosure or
 \item{con.size}{The width of the connector. Use \code{"inherit"} to use the border
 width of the enclosure.}
 
-\item{con.type}{The type of the connector. Either \code{"elbow"}, \code{"straight"}, or
-\code{"none"}.}
+\item{con.type}{Leader style: \code{"cl"} (corners + ledge) draws the leader from a box
+corner and a short horizontal ledge along the box edge; \code{"cm"} (corners + midpoints)
+draws it from the box corner or edge-midpoint facing the cluster, with no ledge;
+\code{"none"} draws no leader. Default \code{"cl"}.}
 
 \item{con.linetype}{The linetype of the connector. Use \code{"inherit"} to use the
 border linetype of the enclosure.}
@@ -150,6 +153,11 @@ line on the horizontal side closest to the mark), \code{"all"} (to draw a border
 on all sides), or \code{"none"} (not going to explain that one).}
 
 \item{con.cap}{The distance before the mark that the line should stop at.}
+
+\item{con.padding}{Minimum visible leader length — how far outside its mask each leader
+must be before a candidate position is accepted, and the offset of the boundary-seed
+columns from the cluster cloud. A grid unit, or \code{NULL} (default) to scale with the
+label height.}
 
 \item{con.arrow}{An arrow specification for the connection using
 \code{\link[grid:arrow]{grid::arrow()}} for the end pointing towards the mark.}

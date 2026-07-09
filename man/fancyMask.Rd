@@ -17,7 +17,9 @@ fancyMask(
   label.buffer = unit(0, "cm"),
   label.fontface = "plain",
   label.margin = margin(2, 2, 2, 2, "pt"),
-  simp_ratio = 0.001
+  simp_ratio = 0.001,
+  con.type = "cl",
+  con.padding = NULL
 )
 }
 \arguments{
@@ -85,6 +87,12 @@ cut-off area is below \code{simp_ratio * bbox_area} are removed, which speeds up
 box-fit and leader-routing geometry (both scale with vertex count). The
 simplified polygon encloses the original, so labels never overlap the real
 cluster. Larger values simplify more; set to \code{0} to disable. Default \code{0.001}.}
+
+\item{con.type}{Leader style passed to \code{geom_mark_shape()}: \code{"cl"} (corners + ledge,
+default), \code{"cm"} (corners + midpoints, no ledge), or \code{"none"}.}
+
+\item{con.padding}{Minimum visible leader length passed to \code{geom_mark_shape()}; a grid
+unit, or \code{NULL} (default) to scale with the label height.}
 }
 \value{
 A list of ggplot2 components suitable for adding to a plot with \code{+},

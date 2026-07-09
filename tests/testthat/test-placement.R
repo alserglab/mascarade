@@ -14,6 +14,17 @@ test_that("placeLabels produces a conflict-free layout on the example data", {
   expect_false(scoreBetter(golden, s))             # golden must not beat the current layout
 })
 
+test_that("both leader styles (cl, cm) produce conflict-free layouts", {
+  data("exampleMascarade", package = "mascarade")
+  g <- .buildTestGeom(exampleMascarade$dims, exampleMascarade$clusters)
+  for (ct in c("cl", "cm")) {
+    P <- placeLabels(g$geom, g$xlim, g$ylim, g$hw, g$hh, g$char_h, con_type = ct)
+    s <- layoutScore(P)
+    expect_true(s["bb"] == 0 && s["ll"] == 0 && s["lb"] == 0,
+                info = sprintf("con_type=%s gave bb/ll/lb = %d/%d/%d", ct, s["bb"], s["ll"], s["lb"]))
+  }
+})
+
 test_that("placement stays conflict-free across box scales (view-change property)", {
   data("exampleMascarade", package = "mascarade")
   for (frac in c(0.03, 0.06, 0.09)) {              # smaller/larger boxes = zoom in/out

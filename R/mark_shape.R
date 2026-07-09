@@ -29,6 +29,14 @@
 #' - alpha
 #'
 #' @inheritParams ggforce::geom_mark_circle
+#' @param con.type Leader style: `"cl"` (corners + ledge) draws the leader from a box
+#'   corner and a short horizontal ledge along the box edge; `"cm"` (corners + midpoints)
+#'   draws it from the box corner or edge-midpoint facing the cluster, with no ledge;
+#'   `"none"` draws no leader. Default `"cl"`.
+#' @param con.padding Minimum visible leader length — how far outside its mask each leader
+#'   must be before a candidate position is accepted, and the offset of the boundary-seed
+#'   columns from the cluster cloud. A grid unit, or `NULL` (default) to scale with the
+#'   label height.
 #' @param simp_ratio Fraction of the polygon bounding-box area used to simplify
 #'   cluster polygons before label placement (removes small inward vertices; the
 #'   simplified ring encloses the original, so labels never overlap the real shape).
@@ -78,10 +86,12 @@ geom_mark_shape <- function(mapping = NULL, data = NULL, stat = 'identity',
                            label.fontface = c('bold', 'plain'),
                            label.fill = 'white', label.colour = 'black',
                            label.buffer = unit(10, 'mm'), con.colour = 'black',
-                           con.size = 0.5, con.type = 'elbow', con.linetype = 1,
+                           con.size = 0.5, con.type = 'cl', con.linetype = 1,
                            con.border = 'one', con.cap = unit(3, 'mm'),
+                           con.padding = NULL,
                            con.arrow = NULL, simp_ratio = 0.001, ..., na.rm = FALSE,
                            show.legend = NA, inherit.aes = TRUE) {
+  con.type <- match.arg(con.type, c('cl', 'cm', 'none'))
   layer(
     data = data,
     mapping = mapping,
@@ -111,6 +121,7 @@ geom_mark_shape <- function(mapping = NULL, data = NULL, stat = 'identity',
       con.linetype = con.linetype,
       con.border = con.border,
       con.cap = con.cap,
+      con.padding = con.padding,
       con.arrow = con.arrow,
       simp_ratio = simp_ratio,
       ...
@@ -135,9 +146,9 @@ GeomMarkShape <- ggplot2::ggproto(
                           label.fontface = c('bold', 'plain'),
                           label.lineheight = 1,
                           label.fill = 'white', label.colour = 'black',
-                          con.colour = 'black', con.size = 0.5, con.type = 'elbow',
+                          con.colour = 'black', con.size = 0.5, con.type = 'cl',
                           con.linetype = 1, con.border = 'one',
-                          con.cap = unit(3, 'mm'), con.arrow = NULL,
+                          con.cap = unit(3, 'mm'), con.padding = NULL, con.arrow = NULL,
                           simp_ratio = 0.001) {
         if (nrow(data) == 0) return(ggplot2::zeroGrob())
 
@@ -214,6 +225,7 @@ GeomMarkShape <- ggplot2::ggproto(
                      con.type = con.type,
                      con.border = con.border,
                      con.cap = con.cap,
+                     con.padding = con.padding,
                      con.arrow = con.arrow,
                      anchor.x = first_rows$xmin,
                      anchor.y = first_rows$ymin
@@ -240,8 +252,8 @@ shapeEncGrob <- function(x = c(0, 0.5, 1, 0.5), y = c(0.5, 1, 0.5, 0), id = NULL
                         desc.gp = gpar(), con.gp = gpar(), label.margin = margin(),
                         label.width = NULL, label.minwidth = unit(50, 'mm'),
                         label.hjust = 0, label.buffer = unit(10, 'mm'),
-                        con.type = 'elbow', con.border = 'one',
-                        con.cap = unit(3, 'mm'), con.arrow = NULL,
+                        con.type = 'cl', con.border = 'one',
+                        con.cap = unit(3, 'mm'), con.padding = NULL, con.arrow = NULL,
                         anchor.x = NULL, anchor.y = NULL, vp = NULL,
                         simp_ratio = 0.001) {
     mark <- shapeGrob(
@@ -288,6 +300,7 @@ shapeEncGrob <- function(x = c(0, 0.5, 1, 0.5), y = c(0.5, 1, 0.5, 0), id = NULL
         mark = mark, label = label, labeldim = labeldim,
         buffer = label.buffer, ghosts = ghosts, con.gp = con.gp, con.type = con.type,
         con.cap = as_mm(con.cap, default.units), con.border = con.border,
+        con.padding = if (is.null(con.padding)) NULL else as_mm(con.padding, default.units),
         con.arrow = con.arrow, anchor.x = anchor.x, anchor.y = anchor.y,
         simp_ratio = simp_ratio, name = name,
         vp = vp, cl = 'shape_enc'
@@ -354,7 +367,7 @@ makeContent.shape_enc <- function(x) {
             con_border = x$con.border, con_cap = x$con.cap,
             con_gp = x$con.gp, anchor_mod = 2, anchor_x = anchor_x,
             anchor_y = anchor_y, arrow = x$con.arrow,
-            simp_ratio = x$simp_ratio
+            simp_ratio = x$simp_ratio, con_padding = x$con.padding
         )
         setChildren(x, rlang::inject(gList(!!!c(list(mark), labels))))
     } else {

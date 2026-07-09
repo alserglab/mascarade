@@ -62,12 +62,14 @@ simplify_outer <- function(poly, max_area, min_vertices = 4L) {
 # simplifies the polygons used for placement (box-fit + foreign-crossing) — see below.
 #' @importFrom polylabelr poi
 #' @importFrom stats median
-my_place_labels <- function(rects, polygons, bounds, anchors, simp_ratio = 0.001) {
+my_place_labels <- function(rects, polygons, bounds, anchors, simp_ratio = 0.001,
+                            con_type = "cl", con_padding = NULL) {
   res <- vector('list', length(rects))    # label centres (mm)
-  pol <- vector('list', length(rects))    # matching poles = leader targets (mm), for the drawn connector
-  withPoles <- function() { attr(res, "poles") <- pol; res }
+  lead <- vector('list', length(rects))   # per label c(ex, ey, bx, by, corner): leader start ->
+                                          # visible end (mask boundary) + ledge flag, for drawing
+  withLeaders <- function() { attr(res, "leaders") <- lead; res }
   active <- which(vapply(rects, function(r) !all(r == 0), logical(1)))
-  if (length(active) == 0) return(withPoles())
+  if (length(active) == 0) return(withLeaders())
 
   # clean each polygon: drop non-finite vertices; guarantee >= 3 points so the C++ box-fit
   # and pole solver never receive an empty/degenerate ring (draw-stage polygons can be
@@ -97,16 +99,20 @@ my_place_labels <- function(rects, polygons, bounds, anchors, simp_ratio = 0.001
     if (is.null(pl) || !is.finite(pl$x) || !is.finite(pl$y)) c(mean(p$x), mean(p$y)) else c(pl$x, pl$y)
   }, numeric(2)))
 
-  # anchor fallback if anything is still degenerate (pole = centre => no visible leader)
+  # anchor fallback if anything is still degenerate (start == end => no visible leader drawn)
   anchorFallback <- function() {
     for (j in seq_along(active)) {
-      a <- as.numeric(anchors[[active[j]]]); res[[active[j]]] <<- a; pol[[active[j]]] <<- a
+      a <- as.numeric(anchors[[active[j]]])
+      res[[active[j]]] <<- a; lead[[active[j]]] <<- c(a, a, 0)
     }
-    withPoles()
+    withLeaders()
   }
   if (any(!is.finite(poimat)) || any(!is.finite(bounds)) || bounds[1] <= 0 || bounds[2] <= 0)
     return(anchorFallback())
-  if (length(active) == 1) { res[[active]] <- poimat[1, ]; pol[[active]] <- poimat[1, ]; return(withPoles()) }
+  if (length(active) == 1) {
+    res[[active]] <- poimat[1, ]; lead[[active]] <- c(poimat[1, ], poimat[1, ], 0)
+    return(withLeaders())
+  }
 
   hw <- vapply(active, function(i) rects[[i]][1] / 2, 0)
   hh <- vapply(active, function(i) rects[[i]][2] / 2, 0)
@@ -114,21 +120,23 @@ my_place_labels <- function(rects, polygons, bounds, anchors, simp_ratio = 0.001
   px <- lapply(polys_a, `[[`, 'x'); py <- lapply(polys_a, `[[`, 'y')
   geom <- list(poi = poimat, rtree = buildBoxFit(px, py), polysx = px, polysy = py)
 
-  lay <- tryCatch(placeLabels(geom, c(0, bounds[1]), c(0, bounds[2]), hw, hh, char_h),
+  lay <- tryCatch(placeLabels(geom, c(0, bounds[1]), c(0, bounds[2]), hw, hh, char_h,
+                              con_type = con_type, con_padding = con_padding),
                   error = function(e) NULL)
   if (is.null(lay)) return(anchorFallback())
   lay <- lay[order(lay$label)]
   for (j in seq_along(active)) {
-    res[[active[j]]] <- c(lay$cx[j], lay$cy[j]); pol[[active[j]]] <- poimat[j, ]
+    res[[active[j]]] <- c(lay$cx[j], lay$cy[j])
+    lead[[active[j]]] <- c(lay$ex[j], lay$ey[j], lay$bx[j], lay$by[j], as.numeric(lay$corner[j]))
   }
-  withPoles()
+  withLeaders()
 }
 #' @importFrom polyclip polyoffset
 #' @importFrom grid convertWidth convertHeight nullGrob polylineGrob
 #' @importFrom stats runif
 my_make_label <- function(labels, dims, polygons, ghosts, buffer, con_type,
                        con_border, con_cap, con_gp, anchor_mod, anchor_x,
-                       anchor_y, arrow, simp_ratio = 0.001) {
+                       anchor_y, arrow, simp_ratio = 0.001, con_padding = NULL) {
   polygons <- lapply(polygons, function(p) {
     if (length(p$x) == 1 & length(p$y) == 1) {
       list(
@@ -169,50 +177,45 @@ my_make_label <- function(labels, dims, polygons, ghosts, buffer, con_type,
     convertWidth(unit(1, 'npc'), 'mm', TRUE),
     convertHeight(unit(1, 'npc'), 'mm', TRUE)
   )
-  labelpos <- my_place_labels(dims, p_big, area, anchors, simp_ratio = simp_ratio)
+  labelpos <- my_place_labels(dims, p_big, area, anchors, simp_ratio = simp_ratio,
+                              con_type = con_type, con_padding = con_padding)
   if (all(lengths(labelpos) == 0)) {
     return(list(nullGrob()))
   }
   labels_drawn <- which(!vapply(labelpos, is.null, logical(1)))
+  leaders <- attr(labelpos, "leaders")
   labels <- Map(function(lab, pos) {
     if (is.null(pos) || inherits(lab, 'null')) return(nullGrob())
     lab$vp$x <- unit(pos[1], 'mm')
     lab$vp$y <- unit(pos[2], 'mm')
     lab
   }, lab = labels, pos = labelpos)
-  # Leader target = the cluster POLE the placer optimised each leader against, so the drawn
-  # connector (box-edge -> pole, straight() clips it at the box) matches the placement
-  # algorithm exactly. (Previously this projected onto the nearest polygon boundary point,
-  # which is a different endpoint and could look inconsistent with the optimised layout.)
-  # NOTE (future): the placement algorithm assumes STRAIGHT leaders; if we ever want the
-  # connectors drawn as elbows to also be conflict-free, the elbow geometry would have to be
-  # modelled inside the placer (box -> bend -> pole) -- worth exposing as a parameter then.
-  connect <- rlang::inject(rbind(!!!attr(labelpos, "poles")[lengths(labelpos) != 0]))
-  labeldims <- rlang::inject(rbind(!!!dims[lengths(labelpos) != 0])) / 2
-  labelpos <- rlang::inject(rbind(!!!labelpos))
-  if (con_type == 'none' || !con_type %in% c('elbow', 'straight')) {
+  # Draw each leader as the placer scored it: from the box anchor c(ex,ey) to the visible end
+  # c(bx,by) = the first mask boundary along anchor->pole (the part inside the cluster is
+  # hidden). For "cl" also draw the horizontal ledge along the box edge at the anchor's y.
+  # Each drawn line is one polyline id; `gi` maps it back to its label for the connector gp.
+  if (con_type == 'none') {
     connect <- nullGrob()
   } else {
-    con_fun <- switch(con_type, elbow = elbow, straight = straight)
-    connect <- con_fun(
-      labelpos[, 1] - labeldims[, 1], labelpos[, 1] + labeldims[, 1],
-      labelpos[, 2] - labeldims[, 2], labelpos[, 2] + labeldims[, 2],
-      connect[, 1], connect[, 2]
-    )
-    if (con_border == 'one') {
-      connect <- with_borderline(
-        labelpos[, 1] - labeldims[, 1],
-        labelpos[, 1] + labeldims[, 1], connect
-      )
+    xs <- list(); ys <- list(); gi <- integer(0); k <- 0L
+    for (i in seq_along(labels_drawn)) {
+      idx <- labels_drawn[i]; l <- leaders[[idx]]; ctr <- labelpos[[idx]]
+      if ((l[1] - l[3])^2 + (l[2] - l[4])^2 > 1e-9) {          # visible leader present
+        k <- k + 1L; xs[[k]] <- c(l[1], l[3]); ys[[k]] <- c(l[2], l[4]); gi[k] <- i
+      }
+      if (con_type == 'cl' && length(l) >= 5 && l[5] == 1) {    # ledge = box edge at anchor y
+        hw_i <- dims[[idx]][1] / 2
+        k <- k + 1L; xs[[k]] <- c(ctr[1] - hw_i, ctr[1] + hw_i); ys[[k]] <- c(l[2], l[2]); gi[k] <- i
+      }
     }
-    connect <- end_cap(connect, con_cap)
-    connect <- zip_points(connect)
-    if (!is.null(arrow)) arrow$ends <- 2L
-    con_gp <- subset_gp(con_gp, labels_drawn)
-    connect <- polylineGrob(connect$x, connect$y,
-      id = connect$id,
-      default.units = 'mm', gp = con_gp, arrow = arrow
-    )
+    if (k == 0) {
+      connect <- nullGrob()
+    } else {
+      if (!is.null(arrow)) arrow$ends <- 2L
+      gp <- subset_gp(subset_gp(con_gp, labels_drawn), gi)
+      connect <- polylineGrob(unlist(xs), unlist(ys), id = rep(seq_len(k), each = 2),
+                              default.units = 'mm', gp = gp, arrow = arrow)
+    }
   }
   c(labels, list(connect))
 }
