@@ -3,10 +3,12 @@
 #include <algorithm>
 using namespace Rcpp;
 
-// Force-directed polish: one energy (squared centre->pole length + box-box padding) under a
-// hard conflict guard, pattern-search descent. Free-space check (label box vs clusters) via
-// the BoxFit R-tree. Feasibility (conflict-freeness) is preserved: the starting layout is
-// kept as-is and only conflict-free neighbours are accepted.
+// Force-directed polish: one energy (squared centre->pole length + box-box padding + viewport
+// overflow) under a hard conflict guard, pattern-search descent. Free-space check (label box
+// vs clusters) via the BoxFit R-tree. Conflict-freeness is preserved (only conflict-free
+// neighbours are accepted); the viewport is a SOFT overflow penalty, not a hard clip, so an
+// off-panel seed can be walked back in-bounds (and a label may cross the edge only when that
+// lowers total energy).
 //
 // The leader START on the box is the anchor the placer draws/scores, NOT the box centre, so
 // `lead` mirrors R's .anchorPoint(): con_type 0 = "cl" (sign-quadrant corner), else "cm"/
@@ -38,8 +40,7 @@ List forcePolish(SEXP boxfit, NumericVector cx0, NumericVector cy0, NumericVecto
   // label box (no pad) must not overlap any cluster polygon
   auto forb = [&](int i, double X, double Y)->bool { return bf->hit(X - hw[i], X + hw[i], Y - hh[i], Y + hh[i]); };
   auto valid = [&](int i, double X, double Y)->bool {
-    if (X - hw[i] < xlo || X + hw[i] > xhi || Y - hh[i] < ylo || Y + hh[i] > yhi) return false;
-    if (forb(i, X, Y)) return false;
+    if (forb(i, X, Y)) return false;   // viewport bounds are a soft energy term, not a hard clip
     double bxm = X - hw[i] - pad, bxM = X + hw[i] + pad, bym = Y - hh[i] - pad, byM = Y + hh[i] + pad, ex, ey; lead(i, X, Y, ex, ey);
     for (int j = 0; j < n; ++j) { if (j == i) continue;
       if (bxm < CXM[j] && CXm[j] < bxM && bym < CYM[j] && CYm[j] < byM) return false;
@@ -51,6 +52,9 @@ List forcePolish(SEXP boxfit, NumericVector cx0, NumericVector cy0, NumericVecto
     double bxm = X - hw[i] - pad, bxM = X + hw[i] + pad, bym = Y - hh[i] - pad, byM = Y + hh[i] + pad;
     double d2 = (X - tx[i]) * (X - tx[i]) + (Y - ty[i]) * (Y - ty[i]);
     double e = sq ? d2 : std::sqrt(d2);
+    e += std::max(0.0, xlo - bxm) + std::max(0.0, bxM - xhi)   // viewport overflow (soft, 1:1),
+       + std::max(0.0, ylo - bym) + std::max(0.0, byM - yhi);  // so labels can leave the panel
+                                                               // only when it lowers total energy
     for (int j = 0; j < n; ++j) { if (j == i) continue;
       double gx = std::max(std::max(bxm - CXM[j], CXm[j] - bxM), 0.0), gy = std::max(std::max(bym - CYM[j], CYm[j] - byM), 0.0);
       double gp = std::sqrt(gx * gx + gy * gy); if (gp < pad_tgt) { double d = pad_tgt - gp; e += MU * d * d; } }
