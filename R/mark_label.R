@@ -63,9 +63,11 @@ simplify_outer <- function(poly, max_area, min_vertices = 4L) {
 #' @importFrom polylabelr poi
 #' @importFrom stats median
 my_place_labels <- function(rects, polygons, bounds, anchors, simp_ratio = 0.001) {
-  res <- vector('list', length(rects))
+  res <- vector('list', length(rects))    # label centres (mm)
+  pol <- vector('list', length(rects))    # matching poles = leader targets (mm), for the drawn connector
+  withPoles <- function() { attr(res, "poles") <- pol; res }
   active <- which(vapply(rects, function(r) !all(r == 0), logical(1)))
-  if (length(active) == 0) return(res)
+  if (length(active) == 0) return(withPoles())
 
   # clean each polygon: drop non-finite vertices; guarantee >= 3 points so the C++ box-fit
   # and pole solver never receive an empty/degenerate ring (draw-stage polygons can be
@@ -95,14 +97,16 @@ my_place_labels <- function(rects, polygons, bounds, anchors, simp_ratio = 0.001
     if (is.null(pl) || !is.finite(pl$x) || !is.finite(pl$y)) c(mean(p$x), mean(p$y)) else c(pl$x, pl$y)
   }, numeric(2)))
 
-  # anchor fallback if anything is still degenerate
+  # anchor fallback if anything is still degenerate (pole = centre => no visible leader)
   anchorFallback <- function() {
-    for (j in seq_along(active)) res[[active[j]]] <<- as.numeric(anchors[[active[j]]])
-    res
+    for (j in seq_along(active)) {
+      a <- as.numeric(anchors[[active[j]]]); res[[active[j]]] <<- a; pol[[active[j]]] <<- a
+    }
+    withPoles()
   }
   if (any(!is.finite(poimat)) || any(!is.finite(bounds)) || bounds[1] <= 0 || bounds[2] <= 0)
     return(anchorFallback())
-  if (length(active) == 1) { res[[active]] <- poimat[1, ]; return(res) }
+  if (length(active) == 1) { res[[active]] <- poimat[1, ]; pol[[active]] <- poimat[1, ]; return(withPoles()) }
 
   hw <- vapply(active, function(i) rects[[i]][1] / 2, 0)
   hh <- vapply(active, function(i) rects[[i]][2] / 2, 0)
@@ -114,8 +118,10 @@ my_place_labels <- function(rects, polygons, bounds, anchors, simp_ratio = 0.001
                   error = function(e) NULL)
   if (is.null(lay)) return(anchorFallback())
   lay <- lay[order(lay$label)]
-  for (j in seq_along(active)) res[[active[j]]] <- c(lay$cx[j], lay$cy[j])
-  res
+  for (j in seq_along(active)) {
+    res[[active[j]]] <- c(lay$cx[j], lay$cy[j]); pol[[active[j]]] <- poimat[j, ]
+  }
+  withPoles()
 }
 #' @importFrom polyclip polyoffset
 #' @importFrom grid convertWidth convertHeight nullGrob polylineGrob
@@ -161,16 +167,14 @@ my_make_label <- function(labels, dims, polygons, ghosts, buffer, con_type,
     lab$vp$y <- unit(pos[2], 'mm')
     lab
   }, lab = labels, pos = labelpos)
-  connect <- rlang::inject(rbind(!!!Map(function(pol, pos, dim) {
-    if (is.null(pos)) return(NULL)
-    dim <- dim / anchor_mod
-    pos <- cbind(
-      c(pos[1] - dim[1], pos[1] + dim[1], pos[1] + dim[1], pos[1] - dim[1]),
-      c(pos[2] - dim[2], pos[2] - dim[2], pos[2] + dim[2], pos[2] + dim[2])
-    )
-    pos <- points_to_path(pos, list(cbind(pol$x, pol$y)), TRUE)
-    pos$projection[which.min(pos$distance), ]
-  }, pol = polygons, pos = labelpos, dim = dims)))
+  # Leader target = the cluster POLE the placer optimised each leader against, so the drawn
+  # connector (box-edge -> pole, straight() clips it at the box) matches the placement
+  # algorithm exactly. (Previously this projected onto the nearest polygon boundary point,
+  # which is a different endpoint and could look inconsistent with the optimised layout.)
+  # NOTE (future): the placement algorithm assumes STRAIGHT leaders; if we ever want the
+  # connectors drawn as elbows to also be conflict-free, the elbow geometry would have to be
+  # modelled inside the placer (box -> bend -> pole) -- worth exposing as a parameter then.
+  connect <- rlang::inject(rbind(!!!attr(labelpos, "poles")[lengths(labelpos) != 0]))
   labeldims <- rlang::inject(rbind(!!!dims[lengths(labelpos) != 0])) / 2
   labelpos <- rlang::inject(rbind(!!!labelpos))
   if (con_type == 'none' || !con_type %in% c('elbow', 'straight')) {
