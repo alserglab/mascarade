@@ -1,3 +1,16 @@
+#' Enclosing polygon simplification
+#'
+#' Greedily removes small concave (inward) vertices from a ring: a vertex is dropped when the
+#' triangle it cuts off has area below `max_area`. Because only concave vertices are removed
+#' the simplified ring ENCLOSES the original, so the box-fit keep-out built from it stays
+#' conservative. Used to cut vertex counts before placement.
+#'
+#' @param poly A list with numeric `x`, `y` (the ring vertices).
+#' @param max_area Numeric area threshold; vertices whose cut-off triangle is smaller are removed.
+#' @param min_vertices Integer floor on the number of vertices kept.
+#' @return A list with simplified numeric `x`, `y`.
+#' @keywords internal
+#' @noRd
 simplify_outer <- function(poly, max_area, min_vertices = 4L) {
   x <- poly$x
   y <- poly$y
@@ -52,14 +65,25 @@ simplify_outer <- function(poly, max_area, min_vertices = 4L) {
   list(x = rx, y = ry)
 }
 
-# Label placement (mascarade boundary-seed placer). Runs at draw time in the panel's
-# millimetre space, where `rects` are the measured label box sizes (w, h in mm), `polygons`
-# are the cluster rings in mm, and `bounds` is the panel size in mm. Returns, per label, its
-# placed centre c(x, y) in mm (NULL for labels not drawn). Poles and the box-fit R-tree are
-# recomputed here each draw (cheap: ~20 ms for ~40 clusters); the expensive mask is not.
-# `anchors` is used only as the degenerate-input fallback; non-labelled polygon parts are
-# treated as the placed set (points to avoid / ghosts are not handled yet). `simp_ratio`
-# simplifies the polygons used for placement (box-fit + foreign-crossing) — see below.
+#' Draw-time label placement (boundary-seed placer)
+#'
+#' Runs at draw time in the panel's millimetre space: builds the poles and the box-fit R-tree
+#' from the cluster rings (cheap, ~20 ms for ~40 clusters; the expensive mask is not
+#' recomputed) and calls `placeLabels()`. The box-fit keep-out uses the dilated polygons while
+#' poles, leader ends and foreign-routing use the true ones, so leaders reach the real outline.
+#'
+#' @param rects List of measured label box sizes `c(w, h)` in mm (a zeroed entry = not drawn).
+#' @param polygons List of true cluster rings (`list(x, y)`) in mm.
+#' @param polygons_pad List of the same rings dilated by `label.buffer` (the box keep-out).
+#' @param bounds Numeric `c(width, height)` of the panel in mm.
+#' @param anchors List of fallback anchor points, used only for degenerate input.
+#' @param simp_ratio Numeric polygon-simplification fraction (see `simplify_outer()`).
+#' @param con_type Leader style: `"cl"`, `"cm"`, or `"none"`.
+#' @param buffer Numeric `label.buffer` in mm; the overflow viewport is inset by it.
+#' @return A list, one entry per input label: the placed centre `c(x, y)` in mm (`NULL` if not
+#'   drawn), carrying `attr(., "leaders")` with `c(ex, ey, bx, by, corner)` per drawn label.
+#' @keywords internal
+#' @noRd
 #' @importFrom polylabelr poi
 #' @importFrom stats median
 my_place_labels <- function(rects, polygons, polygons_pad, bounds, anchors,
@@ -138,6 +162,27 @@ my_place_labels <- function(rects, polygons, polygons_pad, bounds, anchors,
   }
   withLeaders()
 }
+#' Build the label + leader grobs for a mark
+#'
+#' Draw-time worker for `makeContent.shape_enc()`: dilates the cluster polygons by `buffer`
+#' (the box keep-out), calls `my_place_labels()` for the placement, positions the label box
+#' grobs and builds the leader polylines (anchor -> visible mask-boundary end, plus the
+#' horizontal ledge for `con_type == "cl"`).
+#'
+#' @param labels List of label-box grobs (one per mark part).
+#' @param dims List of measured label box sizes `c(w, h)` in mm.
+#' @param polygons List of cluster rings (`list(x, y)`) in mm.
+#' @param ghosts Points to avoid (currently unused by the placer).
+#' @param buffer Grid unit: the `label.buffer` polygon padding / box keep-out.
+#' @param con_type Leader style: `"cl"`, `"cm"`, or `"none"`.
+#' @param con_cap Numeric gap (mm) left between the leader end and the cluster.
+#' @param con_gp A `gpar` for the connectors (per drawn label).
+#' @param anchor_x,anchor_y Optional per-label anchor overrides.
+#' @param arrow Optional `grid::arrow` for the connectors.
+#' @param simp_ratio Numeric polygon-simplification fraction (see `simplify_outer()`).
+#' @return A `gList`-ready list: the positioned label grobs followed by the connector grob.
+#' @keywords internal
+#' @noRd
 #' @importFrom polyclip polyoffset
 #' @importFrom grid convertWidth convertHeight nullGrob polylineGrob
 #' @importFrom stats runif

@@ -17,7 +17,14 @@
 # passes polygons already dilated by `label.buffer`, so box-fit forbids boxes within that
 # distance of the true cluster (see my_make_label).
 
-# pool-adjacent-violators (non-increasing L2 fit)
+#' Pool-adjacent-violators isotonic fit (non-increasing)
+#'
+#' Weighted least-squares fit of a non-increasing step function to `y`.
+#'
+#' @param y Numeric vector to fit.
+#' @return Numeric vector, same length as `y`, of the non-increasing fitted values.
+#' @keywords internal
+#' @noRd
 .pavaDec <- function(y) {
   vals <- numeric(0); wts <- numeric(0)
   for (i in seq_along(y)) {
@@ -31,20 +38,38 @@
   rep(vals, wts)
 }
 
-# isotonic 1D placement: centres closest to targets t with min separation (h_i+h_j)/2 + gap
+#' Isotonic 1-D label stacking
+#'
+#' Places centres as close as possible to targets `t` while keeping a minimum separation of
+#' `(h_i + h_j)/2 + gap` between neighbours (solved via `.pavaDec()`).
+#'
+#' @param t Numeric target positions (e.g. cluster pole y-coordinates).
+#' @param h Numeric box sizes along the stacking axis (one per target).
+#' @param gap Numeric extra separation added between neighbours.
+#' @return Numeric vector of placed centres.
+#' @keywords internal
+#' @noRd
 .place1d <- function(t, h, gap) {
   n <- length(t); if (n == 1) return(t)
   d <- (h[-n] + h[-1]) / 2 + gap; S <- c(0, cumsum(d))
   e <- .pavaDec(t + S); e - S
 }
 
-# The point on the box border where the leader starts, aimed at the pole (tx,ty). xin/yin
-# mark whether the pole coordinate falls between the box edges (ggforce get_end_points rule).
-#   "cl": always the sign(dx),sign(dy) quadrant corner.
-#   else: corner only when the pole is fully to the side in BOTH axes; if the pole's x is
-#         between the vertical edges -> top/bottom edge centre; if its y is between the
-#         horizontal edges -> left/right edge centre.
-# Returns list(ex, ey, corner) (vectorised).
+#' Leader start anchor on a label box
+#'
+#' The point on the box border where the leader begins, aimed at the pole (`tx`, `ty`). For
+#' `con_type == "cl"` this is always the sign(dx),sign(dy) quadrant corner. Otherwise (the
+#' ggforce `get_end_points` rule) it is a corner only when the pole is fully to the side in
+#' both axes; if the pole's x lies between the vertical edges it is the top/bottom edge
+#' centre, and if its y lies between the horizontal edges it is the left/right edge centre.
+#'
+#' @param cx,cy Numeric box-centre coordinates (vectorised).
+#' @param hw,hh Numeric box half-width / half-height.
+#' @param tx,ty Numeric pole (leader target) coordinates.
+#' @param con_type Leader style: `"cl"`, `"cm"`, or `"none"`.
+#' @return A list with numeric `ex`, `ey` (the anchor) and logical `corner` (is it a corner?).
+#' @keywords internal
+#' @noRd
 .anchorPoint <- function(cx, cy, hw, hh, tx, ty, con_type) {
   dx <- tx - cx; dy <- ty - cy
   sX <- ifelse(dx >= 0, 1, -1); sY <- ifelse(dy >= 0, 1, -1)
@@ -56,9 +81,18 @@
        corner = !xin & !yin)
 }
 
-# First intersection of each leader (anchor_i -> pole) with a single polygon ring, as a
-# fraction t in (0,1] of the leader; visible length = t * |anchor - pole|. Vectorised over
-# anchors; the pole (tx,ty) is inside the ring. Returns list(vis, hx, hy).
+#' First mask-boundary hit along a leader
+#'
+#' For each leader (anchor -> pole) finds the first intersection with a single polygon ring,
+#' as a fraction `t` in (0, 1] of the leader; the visible leader length is `t` times the
+#' anchor-to-pole distance. The pole is assumed to lie inside the ring.
+#'
+#' @param ax,ay Numeric leader-start (anchor) coordinates (vectorised).
+#' @param tx,ty Numeric pole coordinates (shared target).
+#' @param px,py Numeric polygon ring coordinates (implicitly closed).
+#' @return A list with `vis` (visible length) and `hx`, `hy` (the hit point).
+#' @keywords internal
+#' @noRd
 .firstHit <- function(ax, ay, tx, ty, px, py) {
   n <- length(px); dx <- tx - ax; dy <- ty - ay
   best <- rep(Inf, length(ax))
@@ -77,8 +111,19 @@
   list(vis = best * d, hx = ax + dx * best, hy = ay + dy * best)
 }
 
-# derive box + leader geometry columns for a (label, cx, cy) table. `len` is the ranking
-# length (centre->pole distance); ex,ey,corner come from the anchor rule.
+#' Derive box + leader geometry columns
+#'
+#' From a `(label, cx, cy)` table build the padded box extents, the leader anchor (via
+#' `.anchorPoint()`) and the ranking length (centre-to-pole distance).
+#'
+#' @param dt A data.table/data.frame with columns `label`, `cx`, `cy`.
+#' @param hw,hh Numeric per-label box half-sizes (indexed by `label`).
+#' @param poi K x 2 matrix of cluster poles.
+#' @param pad Numeric hard box clearance added around each box.
+#' @param con_type Leader style passed to `.anchorPoint()`.
+#' @return A data.table with the box columns, `ex`, `ey`, `corner` and `len`.
+#' @keywords internal
+#' @noRd
 .geoCols <- function(dt, hw, hh, poi, pad, con_type) {
   L <- dt$label; h_w <- hw[L]; h_h <- hh[L]; tx <- poi[L, 1]; ty <- poi[L, 2]
   a <- .anchorPoint(dt$cx, dt$cy, h_w, h_h, tx, ty, con_type)
@@ -89,12 +134,25 @@
     ex = a$ex, ey = a$ey, corner = a$corner, len = sqrt((dt$cx - tx)^2 + (dt$cy - ty)^2))
 }
 
-# Conflict-free boundary seed (guaranteed for equal box heights). Two columns hang off the
-# cluster cloud on the vertical lines X = min/max polygon x (the polygons are already dilated
-# by label.buffer, so this sits a keep-out margin outside the true clusters); each box's
-# padded near edge sits on its line and the leader starts on the line (bottom corner for
-# "cl", edge centre otherwise), so it never clips a box. Labels are matched to stacked slots
-# by leader length via the Hungarian assignment (min total length => crossing-free).
+#' Conflict-free boundary seed
+#'
+#' Guaranteed-clean fallback placement (for equal box heights): two columns hang off the
+#' cluster cloud on the vertical lines x = min/max polygon x. Since the polygons are already
+#' dilated by `label.buffer`, those lines sit a keep-out margin outside the true clusters;
+#' each box's padded near edge sits on its line and the leader starts on the line (bottom
+#' corner for `"cl"`, edge centre otherwise), so it never clips a box. Labels are matched to
+#' stacked slots by leader length via the Hungarian assignment (minimum total length is
+#' crossing-free).
+#'
+#' @param poi K x 2 matrix of cluster poles.
+#' @param hw,hh Numeric per-label box half-sizes.
+#' @param polyxlim Numeric length-2 x-range of the (dilated) cluster polygons.
+#' @param gap Numeric seed column spacing.
+#' @param pad Numeric hard box clearance.
+#' @param con_type Leader style (`"cl"` anchors at the bottom corner, else the edge centre).
+#' @return A data.table with `label`, `cx`, `cy`, `ex`, `ey`, `corner`.
+#' @keywords internal
+#' @noRd
 .reorderBase <- function(poi, hw, hh, polyxlim, gap, pad, con_type) {
   K <- nrow(poi); fh <- 2 * hh
   ox <- order(poi[, 1]); cs <- cumsum(fh[ox]); k <- which(cs >= sum(fh) / 2)[1]
@@ -126,9 +184,25 @@
   s[]
 }
 
-# Place labels for one view. Returns a data.table (one row per cluster) with cx, cy, the box
-# columns, the leader anchor (ex, ey), its `corner` flag, and the visible leader end (bx, by
-# = first mask-boundary hit). Conflict-free by construction given a feasible pool.
+#' Place cluster labels for one view
+#'
+#' Boundary-seed placement driver: radial candidates (+ seed fallback) -> one-move sweep ->
+#' all-pairs two-move -> continuous force polish. Conflict-free by construction given a
+#' feasible pool. Pure given the per-label box half-sizes and line height (the draw hook
+#' supplies those from text metrics in the panel's mm space).
+#'
+#' @param geom Box-fit structure: a list with `poi` (K x 2 poles), `rtree` (`XPtr<BoxFit>`),
+#'   `polysx`/`polysy` (per-cluster rings) and optionally `pad_xrange` (dilated x-extent).
+#' @param xlim,ylim Numeric length-2 viewport bounds (already inset by `label.buffer`).
+#' @param hw,hh Numeric per-label box half-sizes (mm).
+#' @param char_h Numeric line height (mm) used to scale the internal spacing constants.
+#' @param con_type Leader style: `"cl"`, `"cm"`, or `"none"`.
+#' @param MU Numeric box-spacing weight for the force polish.
+#' @param iters Integer force-polish iteration count.
+#' @return A data.table (one row per cluster) with `cx`, `cy`, the box columns, the leader
+#'   anchor `ex`, `ey`, its `corner` flag and the visible leader end `bx`, `by`.
+#' @keywords internal
+#' @noRd
 placeLabels <- function(geom, xlim, ylim, hw, hh, char_h, con_type = "cl",
                         MU = 55, iters = 120L) {
   poi <- geom$poi; K <- nrow(poi)
