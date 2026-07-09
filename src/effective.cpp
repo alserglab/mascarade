@@ -33,9 +33,9 @@ NumericVector effectiveLength(NumericVector len, NumericVector ex, NumericVector
     bxmin[k] = xm; bxmax[k] = xM; bymin[k] = ym; bymax[k] = yM; }
   NumericVector out(n);
   for (int i = 0; i < n; ++i) { double ax = ex[i], ay = ey[i], bx = tx[i], by = ty[i];
-    // overflow: box extent outside the viewport, summed over both axes
-    double over = std::max(0.0, xlo - cxmin[i]) + std::max(0.0, cxmax[i] - xhi)
-                + std::max(0.0, ylo - cymin[i]) + std::max(0.0, cymax[i] - yhi);
+    // overflow: box extent outside the viewport (both axes), weight 3 (must match polish.cpp)
+    double over = 3.0 * (std::max(0.0, xlo - cxmin[i]) + std::max(0.0, cxmax[i] - xhi)
+                       + std::max(0.0, ylo - cymin[i]) + std::max(0.0, cymax[i] - yhi));
     double rx = bx - ax, ry = by - ay, seglen = std::sqrt(rx * rx + ry * ry);
     if (seglen <= 0) { out[i] = len[i] + over; continue; }
     double sxmin = std::min(ax, bx), sxmax = std::max(ax, bx), symin = std::min(ay, by), symax = std::max(ay, by);

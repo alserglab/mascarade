@@ -52,9 +52,10 @@ List forcePolish(SEXP boxfit, NumericVector cx0, NumericVector cy0, NumericVecto
     double bxm = X - hw[i] - pad, bxM = X + hw[i] + pad, bym = Y - hh[i] - pad, byM = Y + hh[i] + pad;
     double d2 = (X - tx[i]) * (X - tx[i]) + (Y - ty[i]) * (Y - ty[i]);
     double e = sq ? d2 : std::sqrt(d2);
-    e += std::max(0.0, xlo - bxm) + std::max(0.0, bxM - xhi)   // viewport overflow (soft, 1:1),
-       + std::max(0.0, ylo - bym) + std::max(0.0, byM - yhi);  // so labels can leave the panel
-                                                               // only when it lowers total energy
+    e += 3.0 * (std::max(0.0, xlo - bxm) + std::max(0.0, bxM - xhi)   // viewport overflow (soft,
+              + std::max(0.0, ylo - bym) + std::max(0.0, byM - yhi)); // weight 3, matches
+                                                                      // effective.cpp) -- labels
+    // leave the panel only when it lowers total energy
     for (int j = 0; j < n; ++j) { if (j == i) continue;
       double gx = std::max(std::max(bxm - CXM[j], CXm[j] - bxM), 0.0), gy = std::max(std::max(bym - CYM[j], CYm[j] - byM), 0.0);
       double gp = std::sqrt(gx * gx + gy * gy); if (gp < pad_tgt) { double d = pad_tgt - gp; e += MU * d * d; } }
