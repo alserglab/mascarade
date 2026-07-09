@@ -4,17 +4,32 @@
 #include <algorithm>
 using namespace Rcpp;
 
-// Force-directed polish: one energy (squared centre->pole length + box-box padding + viewport
-// overflow) under a hard conflict guard, pattern-search descent. Free-space check (label box
-// vs clusters) via the BoxFit R-tree. Conflict-freeness is preserved (only conflict-free
-// neighbours are accepted); the viewport is a SOFT overflow penalty, not a hard clip, so an
-// off-panel seed can be walked back in-bounds (and a label may cross the edge only when that
-// lowers total energy).
-//
-// The leader START on the box is the anchor the placer draws/scores, NOT the box centre, so
-// `lead` mirrors R's .anchorPoint(): con_type 0 = "cl" (sign-quadrant corner), else "cm"/
-// "none" (corner only when the pole is fully to the side in both axes, else the facing edge
-// centre). Keeping this identical to R means the conflict guard matches the drawn geometry.
+//' Continuous force-directed label polish
+//'
+//' Pattern-search descent on an energy (squared centre-to-pole length + box-box spacing +
+//' viewport overflow) under a hard conflict guard: starting from a conflict-free layout it
+//' only accepts conflict-free neighbours (free-space check via the BoxFit R-tree), so
+//' feasibility is preserved. The viewport is a SOFT overflow penalty, not a hard clip, so an
+//' off-panel label can be walked back in-bounds and a label leaves the panel only when that
+//' lowers total energy. The leader anchor rule mirrors R's `.anchorPoint()`, so the conflict
+//' guard matches the drawn geometry.
+//'
+//' @param boxfit External pointer from `buildBoxFit()` (the cluster keep-out).
+//' @param cx0,cy0 Numeric starting label-centre coordinates.
+//' @param hw,hh Numeric per-label box half-sizes.
+//' @param tx,ty Numeric per-label pole (leader target).
+//' @param pad Numeric hard box clearance.
+//' @param xlo,xhi,ylo,yhi Numeric viewport bounds.
+//' @param iters Integer iteration count.
+//' @param step Numeric initial pattern-search step.
+//' @param MU Numeric weight of the box-box spacing penalty.
+//' @param pad_tgt Numeric target inter-box spacing.
+//' @param stepmin Numeric smallest step tried before abandoning a direction.
+//' @param con_type Integer leader style: 0 = "cl" (corner), otherwise "cm"/"none".
+//' @param ll_hard Logical; if `TRUE`, leader-leader crossings are a hard constraint.
+//' @param sq Logical; if `TRUE`, the length term uses the squared distance.
+//' @return A list with numeric `cx`, `cy`: the polished label centres.
+//' @keywords internal
 // [[Rcpp::export]]
 List forcePolish(SEXP boxfit, NumericVector cx0, NumericVector cy0, NumericVector hw, NumericVector hh,
                  NumericVector tx, NumericVector ty, double pad,

@@ -19,13 +19,22 @@ static mpoly makePolygon(const NumericVector& vx, const NumericVector& vy) {
   return poly;
 }
 
-// Effective length the optimizer minimises (after the conflict counts, lexicographically),
-// per candidate:
-//       base leader length  (`len`)
-//     + arc of the leader inside any FOREIGN cluster        -> routes leaders around clusters
-//     + OVERFLOW_WEIGHT * box overflow beyond the viewport  -> steers labels in-bounds
-// `lab` is the candidate's own 1-indexed cluster; cx/cy min/max are the padded label box;
-// xlo/xhi/ylo/yhi are the (already label.buffer-inset) viewport.
+//' Effective length used to rank label candidates
+//'
+//' Per candidate, the length the optimizer minimises after the conflict counts: the base
+//' leader length, plus the arc of the leader inside any FOREIGN cluster (routes leaders around
+//' clusters), plus `OVERFLOW_WEIGHT` times how far the box overflows the viewport (steers
+//' labels in-bounds).
+//'
+//' @param len Numeric base leader length per candidate.
+//' @param ex,ey Numeric leader start (anchor) per candidate.
+//' @param tx,ty Numeric leader target (pole) per candidate.
+//' @param lab Integer 1-indexed own-cluster of each candidate.
+//' @param polysx,polysy Lists of parallel numeric x/y vectors, one ring per cluster.
+//' @param cxmin,cxmax,cymin,cymax Numeric padded box extents per candidate.
+//' @param xlo,xhi,ylo,yhi Numeric viewport bounds (already inset by label.buffer).
+//' @return Numeric vector of effective lengths, one per candidate.
+//' @keywords internal
 // [[Rcpp::export]]
 NumericVector effectiveLength(NumericVector len, NumericVector ex, NumericVector ey,
                               NumericVector tx, NumericVector ty, IntegerVector lab,

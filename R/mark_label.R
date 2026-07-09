@@ -10,7 +10,6 @@
 #' @param min_vertices Integer floor on the number of vertices kept.
 #' @return A list with simplified numeric `x`, `y`.
 #' @keywords internal
-#' @noRd
 simplify_outer <- function(poly, max_area, min_vertices = 4L) {
   x <- poly$x
   y <- poly$y
@@ -83,7 +82,6 @@ simplify_outer <- function(poly, max_area, min_vertices = 4L) {
 #' @return A list, one entry per input label: the placed centre `c(x, y)` in mm (`NULL` if not
 #'   drawn), carrying `attr(., "leaders")` with `c(ex, ey, bx, by, corner)` per drawn label.
 #' @keywords internal
-#' @noRd
 #' @importFrom polylabelr poi
 #' @importFrom stats median
 my_place_labels <- function(rects, polygons, polygons_pad, bounds, anchors,
@@ -182,7 +180,6 @@ my_place_labels <- function(rects, polygons, polygons_pad, bounds, anchors,
 #' @param simp_ratio Numeric polygon-simplification fraction (see `simplify_outer()`).
 #' @return A `gList`-ready list: the positioned label grobs followed by the connector grob.
 #' @keywords internal
-#' @noRd
 #' @importFrom polyclip polyoffset
 #' @importFrom grid convertWidth convertHeight nullGrob polylineGrob
 #' @importFrom stats runif

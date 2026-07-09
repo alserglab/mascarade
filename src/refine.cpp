@@ -3,10 +3,22 @@
 #include <algorithm>
 using namespace Rcpp;
 
-// Multi-pass single-move sweep (Gauss-Seidel). Each pass: reorder labels by their current
-// conflict vector (box-box, leader-leader, leader-box, leader length) descending, then visit
-// each once and move it to its lexicographically best candidate versus the current others
-// (including staying put). Stop when a pass makes no change.
+//' Single-move conflict sweep
+//'
+//' Multi-pass Gauss-Seidel refinement. Each pass reorders labels by their current conflict
+//' vector (box-box, leader-leader, leader-box, then leader length) descending, then moves each
+//' to its lexicographically best candidate versus the current others (including staying put).
+//' Stops when a pass makes no change.
+//'
+//' @param cxmin,cxmax,cymin,cymax Numeric padded box extents, one per candidate.
+//' @param ex,ey Numeric leader start (anchor) per candidate.
+//' @param tx,ty Numeric leader target (pole) per candidate.
+//' @param len Numeric ranking length per candidate.
+//' @param rows List of integer vectors: the 0-indexed candidate rows available to each label.
+//' @param init Integer vector: the starting candidate index per label.
+//' @param maxpass Integer cap on the number of sweeps.
+//' @return Integer vector: the chosen candidate index per label.
+//' @keywords internal
 // [[Rcpp::export]]
 IntegerVector oneMoveSweep(NumericVector cxmin, NumericVector cxmax,
                            NumericVector cymin, NumericVector cymax,
@@ -133,17 +145,27 @@ IntegerVector oneMoveSweep(NumericVector cxmin, NumericVector cxmax,
   return out;
 }
 
-// Two-move refinement, per label (heaviest leader first), picking the lexicographically best
-// move (by change in box-box, leader-leader, leader-box conflicts, then change in length) and
-// applying it if it is an improvement.
-//   * CONFLICT-FREE label: length branch-and-bound. Candidates are length-ascending; a shorter
-//     c1 needs a partner only if blocked by exactly one label (that blocker is the partner:
-//     0 blockers = a single move, 2+ = unfixable by one partner), and the length bound prunes
-//     the length-increasing tail. At a conflict-free start this is the exact per-step optimum.
-//   * CONFLICTED label: drop the length pruning and search ALL pairs of candidates (this
-//     label's c1 x every other label's c2), so conflicts present in the INPUT are driven out.
-//     Only conflicted labels pay this cost, so it stays far cheaper than an all-pairs search
-//     over every label, and it reaches a conflict-free layout quickly.
+//' Two-move conflict / length refinement
+//'
+//' Per label (heaviest leader first), picks the lexicographically best move (by change in
+//' box-box, leader-leader, leader-box conflicts, then change in length) and applies it if it
+//' improves. A CONFLICT-FREE label uses a length branch-and-bound: candidates are
+//' length-ascending and a shorter c1 needs a partner only when blocked by exactly one label
+//' (that blocker), with the length bound pruning the length-increasing tail -- the exact
+//' per-step optimum. A CONFLICTED label drops the pruning and searches ALL pairs of candidates
+//' (this label's against every other label's), driving out conflicts present in the input;
+//' only conflicted labels pay this cost.
+//'
+//' @param cxmin,cxmax,cymin,cymax Numeric padded box extents, one per candidate.
+//' @param ex,ey Numeric leader start (anchor) per candidate.
+//' @param tx,ty Numeric leader target (pole) per candidate.
+//' @param len Numeric ranking length per candidate.
+//' @param rows List of integer vectors: the 0-indexed candidate rows available to each label.
+//' @param init Integer vector: the starting candidate index per label.
+//' @param maxpass Integer cap on the number of passes.
+//' @param sq Logical; if `TRUE` the length objective uses the squared length.
+//' @return Integer vector: the chosen candidate index per label.
+//' @keywords internal
 // [[Rcpp::export]]
 IntegerVector twoMoveBnB(NumericVector cxmin, NumericVector cxmax,
                          NumericVector cymin, NumericVector cymax,

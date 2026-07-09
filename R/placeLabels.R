@@ -24,7 +24,6 @@
 #' @param y Numeric vector to fit.
 #' @return Numeric vector, same length as `y`, of the non-increasing fitted values.
 #' @keywords internal
-#' @noRd
 .pavaDec <- function(y) {
   vals <- numeric(0); wts <- numeric(0)
   for (i in seq_along(y)) {
@@ -48,7 +47,6 @@
 #' @param gap Numeric extra separation added between neighbours.
 #' @return Numeric vector of placed centres.
 #' @keywords internal
-#' @noRd
 .place1d <- function(t, h, gap) {
   n <- length(t); if (n == 1) return(t)
   d <- (h[-n] + h[-1]) / 2 + gap; S <- c(0, cumsum(d))
@@ -69,7 +67,6 @@
 #' @param con_type Leader style: `"cl"`, `"cm"`, or `"none"`.
 #' @return A list with numeric `ex`, `ey` (the anchor) and logical `corner` (is it a corner?).
 #' @keywords internal
-#' @noRd
 .anchorPoint <- function(cx, cy, hw, hh, tx, ty, con_type) {
   dx <- tx - cx; dy <- ty - cy
   sX <- ifelse(dx >= 0, 1, -1); sY <- ifelse(dy >= 0, 1, -1)
@@ -92,7 +89,6 @@
 #' @param px,py Numeric polygon ring coordinates (implicitly closed).
 #' @return A list with `vis` (visible length) and `hx`, `hy` (the hit point).
 #' @keywords internal
-#' @noRd
 .firstHit <- function(ax, ay, tx, ty, px, py) {
   n <- length(px); dx <- tx - ax; dy <- ty - ay
   best <- rep(Inf, length(ax))
@@ -123,7 +119,6 @@
 #' @param con_type Leader style passed to `.anchorPoint()`.
 #' @return A data.table with the box columns, `ex`, `ey`, `corner` and `len`.
 #' @keywords internal
-#' @noRd
 .geoCols <- function(dt, hw, hh, poi, pad, con_type) {
   L <- dt$label; h_w <- hw[L]; h_h <- hh[L]; tx <- poi[L, 1]; ty <- poi[L, 2]
   a <- .anchorPoint(dt$cx, dt$cy, h_w, h_h, tx, ty, con_type)
@@ -152,7 +147,6 @@
 #' @param con_type Leader style (`"cl"` anchors at the bottom corner, else the edge centre).
 #' @return A data.table with `label`, `cx`, `cy`, `ex`, `ey`, `corner`.
 #' @keywords internal
-#' @noRd
 .reorderBase <- function(poi, hw, hh, polyxlim, gap, pad, con_type) {
   K <- nrow(poi); fh <- 2 * hh
   ox <- order(poi[, 1]); cs <- cumsum(fh[ox]); k <- which(cs >= sum(fh) / 2)[1]
@@ -202,7 +196,6 @@
 #' @return A data.table (one row per cluster) with `cx`, `cy`, the box columns, the leader
 #'   anchor `ex`, `ey`, its `corner` flag and the visible leader end `bx`, `by`.
 #' @keywords internal
-#' @noRd
 placeLabels <- function(geom, xlim, ylim, hw, hh, char_h, con_type = "cl",
                         MU = 55, iters = 120L) {
   poi <- geom$poi; K <- nrow(poi)

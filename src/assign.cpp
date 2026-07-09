@@ -2,9 +2,15 @@
 #include <vector>
 using namespace Rcpp;
 
-// O(n^3) Hungarian / Jonker-Volgenant assignment on a square cost matrix.
-// Returns res[i] = 0-indexed column assigned to row i, minimizing total cost.
-// Used by the min-cost boundary seed (one Hungarian solve per column).
+//' Hungarian (Jonker-Volgenant) assignment
+//'
+//' O(n^3) minimum-cost assignment on a square cost matrix. Used by the boundary seed (one
+//' solve per column) to match labels to stacked slots.
+//'
+//' @param cost Square numeric cost matrix (`cost[i, j]` = cost of assigning row i to column j).
+//' @return Integer vector `res` where `res[i]` is the 0-indexed column assigned to row i,
+//'   minimising the total cost.
+//' @keywords internal
 // [[Rcpp::export]]
 IntegerVector hungarian(NumericMatrix cost) {
   int n = cost.nrow();

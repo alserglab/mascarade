@@ -4,12 +4,27 @@
 #include <utility>
 using namespace Rcpp;
 
-// Radial free-space candidate generation. From each label's pole, march ndir rays; a box
-// of the label's size (+pad) fits at (x,y) iff it overlaps no cluster polygon (BoxFit
-// R-tree query, replacing the prototype's occupancy integral image). Drop a candidate at
-// the near edge of every free interval + every intfill along wide ones.
-// Candidates may fall partly OUTSIDE the viewport: the effective-length overflow term ranks
-// them, so a crowded label can take a minimally-clipped edge slot instead of the far seed.
+//' Radial free-space label candidates
+//'
+//' From each cluster pole, marches `ndir` rays outward and emits a candidate box centre
+//' wherever a box of the label's size (plus `pad`) is cluster-free (a BoxFit R-tree query): at
+//' the near edge of every free interval and every `intfill` along wide ones. Candidates may
+//' fall partly outside the viewport -- the effective-length overflow term ranks them, so a
+//' crowded label can take a minimally-clipped edge slot instead of the far seed.
+//'
+//' @param boxfit External pointer from `buildBoxFit()`.
+//' @param poi K x 2 matrix of cluster poles (the ray origins).
+//' @param hw,hh Numeric per-label box half-sizes.
+//' @param pad Numeric hard box clearance added around each box.
+//' @param xlo,xhi,ylo,yhi Numeric viewport bounds (kept for context; candidates are no longer
+//'   clipped to them).
+//' @param ndir Integer number of rays per pole.
+//' @param step Numeric radial step along each ray.
+//' @param rstart,rmax Numeric first and last radius searched.
+//' @param intfill Numeric spacing of extra candidates along a wide free interval.
+//' @param dedup Numeric grid size for de-duplicating nearby candidates.
+//' @return A data.frame with integer `label` (1-indexed) and numeric `cx`, `cy`.
+//' @keywords internal
 // [[Rcpp::export]]
 DataFrame radialCandidates(SEXP boxfit, NumericMatrix poi, NumericVector hw, NumericVector hh, double pad,
                            double xlo, double xhi, double ylo, double yhi,
