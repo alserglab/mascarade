@@ -53,12 +53,18 @@
 
 # min-cost boundary seed: height-balanced x-cut split, per-column Hungarian matching
 # (crossing-free); returns a (label, cx, cy) table. hw/hh are half-sizes.
-.reorderBase <- function(poi, hw, hh, xlim, gap) {
+# The two label columns are anchored to the polygon cloud, NOT the panel: the left
+# column sits just left of the leftmost polygon (min polygon x minus the column's max
+# half-width, so its boxes clear the clusters), the right column mirror-image on the
+# right. This keeps the seed independent of the plot limits/expansion; columns may
+# overflow the panel in x, and y is never clamped (labels overflow rather than pile up).
+# `polyxlim` is the x-range of all cluster polygons.
+.reorderBase <- function(poi, hw, hh, polyxlim, gap) {
   K <- nrow(poi); fh <- 2 * hh
   ox <- order(poi[, 1]); cs <- cumsum(fh[ox]); k <- which(cs >= sum(fh) / 2)[1]
   if (is.na(k)) k <- K; k <- max(1L, min(k, K - 1L))
   Lset <- ox[seq_len(k)]; Rset <- ox[(k + 1L):K]
-  XcL <- xlim[1] + max(hw[Lset]); XcR <- xlim[2] - max(hw[Rset])
+  XcL <- polyxlim[1] - max(hw[Lset]); XcR <- polyxlim[2] + max(hw[Rset])
   col <- function(set, Xc) {
     m <- length(set)
     if (m == 1) return(data.table::data.table(label = set, cx = Xc, cy = poi[set, 2]))
@@ -90,7 +96,8 @@ placeLabels <- function(geom, xlim, ylim, hw, hh, char_h, MU = 55, iters = 120L)
   ndir <- 48L; radStep <- 0.3 * char_h; radStart <- 0.2 * char_h
   radReach <- 16 * char_h; radFill <- 1.2 * char_h; dedup <- 0.3 * char_h
 
-  seed <- .reorderBase(poi, hw, hh, xlim, gap)                     # guaranteed-clean fallback slot / label
+  polyxlim <- range(unlist(geom$polysx))                           # cluster cloud x-extent
+  seed <- .reorderBase(poi, hw, hh, polyxlim, gap)                 # guaranteed-clean fallback slot / label
   cand <- data.table::as.data.table(radialCandidates(
     geom$rtree, poi, hw, hh, pad, xlim[1], xlim[2], ylim[1], ylim[2],
     ndir, radStep, radStart, radReach, radFill, dedup))
