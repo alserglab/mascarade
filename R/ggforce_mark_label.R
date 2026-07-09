@@ -172,9 +172,13 @@ as_mm <- function(x, def, width = TRUE) {
   }
 }
 straight <- function(xmin, xmax, ymin, ymax, x, y) {
-  conn_point <- get_end_points(xmin, xmax, ymin, ymax, x, y)
+  # Attach the leader where the (box-centre -> target) ray exits the box, i.e. aimed at the
+  # label centre and cut at the bbox. This is exactly the leader the placer scores (see
+  # .leaderEdges in placeLabels.R), so the drawn connector matches the optimised layout.
+  e <- .leaderEdges((xmin + xmax) / 2, (ymin + ymax) / 2,
+                    (xmax - xmin) / 2, (ymax - ymin) / 2, x, y)
   list(
-    as.matrix(conn_point),
+    cbind(x = e$ex, y = e$ey),
     cbind(x = x, y = y)
   )
 }

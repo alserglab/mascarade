@@ -261,6 +261,7 @@ buildFancyMaskLayers <- function(maskTable, ratio, limits.expand, linewidth,
                                      label.lineheight = 0,
                                      con.cap = 0,
                                      con.type = "straight",
+                                     con.border = "none",
                                      con.colour = "inherit")
         } else {
             shapes <- geom_shape(data = maskTable,
@@ -309,6 +310,7 @@ buildFancyMaskLayers <- function(maskTable, ratio, limits.expand, linewidth,
                                  label.lineheight = 0,
                                  con.cap=0,
                                  con.type = "straight",
+                                 con.border = "none",
                                  con.colour = "inherit")
     } else {
         shapes <- geom_shape(data=maskTable,

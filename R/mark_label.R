@@ -150,7 +150,20 @@ my_make_label <- function(labels, dims, polygons, ghosts, buffer, con_type,
     if (length(anchor_y) == length(polygons) && !is.na(anchor_y[i])) y <- anchor_y[i]
     c(x, y)
   })
-  p_big <- polyoffset(polygons, convertWidth(buffer, 'mm', TRUE))
+  # Buffer each polygon INDIVIDUALLY. polyoffset() on the whole list reorders its output
+  # (and can merge overlapping rings), which breaks the 1:1 mapping the placer relies on:
+  # my_place_labels pairs polygon i with rects[i]/anchors[i] and returns results indexed to
+  # match labels/con.gp. Offsetting per polygon keeps the output aligned with the input order.
+  delta <- convertWidth(buffer, 'mm', TRUE)
+  p_big <- lapply(polygons, function(p) {
+    off <- polyoffset(list(p), delta)
+    if (length(off) == 0) return(p)          # degenerate offset: keep the original ring
+    if (length(off) == 1) return(off[[1]])
+    # a ring can split into pieces; keep the largest so exactly one ring maps to this label
+    a <- vapply(off, function(q)
+      abs(sum(q$x * c(q$y[-1], q$y[1]) - c(q$x[-1], q$x[1]) * q$y)) / 2, numeric(1))
+    off[[which.max(a)]]
+  })
 
   area <- c(
     convertWidth(unit(1, 'npc'), 'mm', TRUE),
