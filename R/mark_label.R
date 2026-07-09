@@ -135,7 +135,7 @@ my_place_labels <- function(rects, polygons, bounds, anchors, simp_ratio = 0.001
 #' @importFrom grid convertWidth convertHeight nullGrob polylineGrob
 #' @importFrom stats runif
 my_make_label <- function(labels, dims, polygons, ghosts, buffer, con_type,
-                       con_border, con_cap, con_gp, anchor_mod, anchor_x,
+                       con_cap, con_gp, anchor_x,
                        anchor_y, arrow, simp_ratio = 0.001, con_padding = NULL) {
   polygons <- lapply(polygons, function(p) {
     if (length(p$x) == 1 & length(p$y) == 1) {
@@ -200,8 +200,13 @@ my_make_label <- function(labels, dims, polygons, ghosts, buffer, con_type,
     xs <- list(); ys <- list(); gi <- integer(0); k <- 0L
     for (i in seq_along(labels_drawn)) {
       idx <- labels_drawn[i]; l <- leaders[[idx]]; ctr <- labelpos[[idx]]
-      if ((l[1] - l[3])^2 + (l[2] - l[4])^2 > 1e-9) {          # visible leader present
-        k <- k + 1L; xs[[k]] <- c(l[1], l[3]); ys[[k]] <- c(l[2], l[4]); gi[k] <- i
+      x0 <- l[1]; y0 <- l[2]; x1 <- l[3]; y1 <- l[4]
+      d <- sqrt((x1 - x0)^2 + (y1 - y0)^2)
+      if (d > 1e-4) {                                          # visible leader present
+        if (con_cap > 0 && d > con_cap) {                      # leave con.cap gap at the cluster
+          f <- (d - con_cap) / d; x1 <- x0 + (x1 - x0) * f; y1 <- y0 + (y1 - y0) * f
+        }
+        k <- k + 1L; xs[[k]] <- c(x0, x1); ys[[k]] <- c(y0, y1); gi[k] <- i
       }
       if (con_type == 'cl' && length(l) >= 5 && l[5] == 1) {    # ledge = box edge at anchor y
         hw_i <- dims[[idx]][1] / 2

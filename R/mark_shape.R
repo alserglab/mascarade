@@ -364,8 +364,7 @@ makeContent.shape_enc <- function(x) {
         labels <- my_make_label(
             labels = x$label, dims = x$labeldim, polygons = polygons,
             ghosts = x$ghosts, buffer = x$buffer, con_type = x$con.type,
-            con_border = x$con.border, con_cap = x$con.cap,
-            con_gp = x$con.gp, anchor_mod = 2, anchor_x = anchor_x,
+            con_cap = x$con.cap, con_gp = x$con.gp, anchor_x = anchor_x,
             anchor_y = anchor_y, arrow = x$con.arrow,
             simp_ratio = x$simp_ratio, con_padding = x$con.padding
         )

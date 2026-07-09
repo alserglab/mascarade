@@ -114,7 +114,10 @@
                            Xline = Xline, side = side)
   }
   s <- rbind(col(Lset, XL, -1), col(Rset, XR, +1))
-  s[, `:=`(cx = Xline + side * (hw[label] + pad), ex = Xline,
+  # box centre so the padded near edge sits on the line; leader starts at the true (unpadded)
+  # near edge so a "cl" ledge meets it. It stays a padded-margin width inside the line, still
+  # clear of every other column box (they are separated in y by gap > pad).
+  s[, `:=`(cx = Xline + side * (hw[label] + pad), ex = Xline + side * pad,
            ey = if (con_type == "cl") cy - hh[label] else cy, corner = con_type == "cl")]
   s[]
 }

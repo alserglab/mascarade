@@ -17,10 +17,6 @@ foreignLength <- function(ex, ey, tx, ty, lab, polysx, polysy) {
     .Call(`_mascarade_foreignLength`, ex, ey, tx, ty, lab, polysx, polysy)
 }
 
-forcePolish <- function(boxfit, cx0, cy0, hw, hh, tx, ty, pad, xlo, xhi, ylo, yhi, iters, step, MU, pad_tgt, stepmin, ll_hard = TRUE, sq = TRUE) {
-    .Call(`_mascarade_forcePolish`, boxfit, cx0, cy0, hw, hh, tx, ty, pad, xlo, xhi, ylo, yhi, iters, step, MU, pad_tgt, stepmin, ll_hard, sq)
-}
-
 oneMoveSweep <- function(cxmin, cxmax, cymin, cymax, ex, ey, tx, ty, len, rows, init, maxpass) {
     .Call(`_mascarade_oneMoveSweep`, cxmin, cxmax, cymin, cymax, ex, ey, tx, ty, len, rows, init, maxpass)
 }
