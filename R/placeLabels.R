@@ -1,9 +1,10 @@
 # Anchor-leader label placement driver.
 #
 # Pipeline: boundary seed -> radial candidates (+ seed fallback, visible-length filtered)
-# -> one-move sweep -> all-pairs two-move (length B&B, lexicographic). The leader START on
-# the label box is decoupled from the box centre (see .anchorPoint); the C++ kernels in src/
-# score conflicts on the actual anchor->pole segment. This file is the R orchestration.
+# -> one-move sweep -> all-pairs two-move (length B&B, lexicographic) -> continuous force
+# polish (off the candidate grid). The leader START on the label box is decoupled from the
+# box centre (see .anchorPoint); the C++ kernels in src/ score conflicts on the actual
+# anchor->pole segment (forcePolish mirrors .anchorPoint). This file is the R orchestration.
 #
 # `placeLabels()` is pure given the per-label box half-sizes (hw, hh) and line height
 # (char_h); the draw-stage hook supplies those from text metrics in the panel's mm space.
@@ -125,7 +126,8 @@
 # Place labels for one view. Returns a data.table (one row per cluster) with cx, cy, the box
 # columns, the leader anchor (ex, ey), its `corner` flag, and the visible leader end (bx, by
 # = first mask-boundary hit). Conflict-free by construction given a feasible pool.
-placeLabels <- function(geom, xlim, ylim, hw, hh, char_h, con_type = "cl", con_padding = NULL) {
+placeLabels <- function(geom, xlim, ylim, hw, hh, char_h, con_type = "cl", con_padding = NULL,
+                        MU = 55, iters = 120L) {
   poi <- geom$poi; K <- nrow(poi)
   pad <- 0.05 * char_h                                             # hard box clearance
   gap <- 0.25 * char_h                                             # seed column spacing
@@ -180,7 +182,14 @@ placeLabels <- function(geom, xlim, ylim, hw, hh, char_h, con_type = "cl", con_p
   rs <- do.call(oneMoveSweep, c(geomArgs, list(init = as.integer(init), maxpass = 100L)))
   tw <- do.call(twoMoveBnB, c(geomArgs, list(init = as.integer(rs), maxpass = 50L, sq = TRUE)))
 
-  res <- pool[tw + 1L][order(label)]
+  # continuous force-directed polish off the candidate grid (anchor-aware; preserves the
+  # discrete solution's conflict-freeness). con_type 0 = "cl" corner, else "cm"/"none".
+  two <- pool[tw + 1L][order(label)]
+  r <- forcePolish(geom$rtree, two$cx, two$cy, hw, hh, poi[, 1], poi[, 2], pad,
+                   xlim[1], xlim[2], ylim[1], ylim[2], as.integer(iters), 0.4 * char_h, MU,
+                   0.6 * char_h, 0.03 * char_h, if (con_type == "cl") 0L else 1L)
+  res <- .geoCols(data.table::data.table(label = seq_len(K), cx = r$cx, cy = r$cy),
+                  hw, hh, poi, pad, con_type)[order(label)]
   # visible leader end (first mask-boundary hit) for drawing
   hit <- do.call(rbind, lapply(seq_len(nrow(res)), function(i) {
     L <- res$label[i]
