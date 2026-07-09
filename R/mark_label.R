@@ -63,7 +63,7 @@ simplify_outer <- function(poly, max_area, min_vertices = 4L) {
 #' @importFrom polylabelr poi
 #' @importFrom stats median
 my_place_labels <- function(rects, polygons, polygons_pad, bounds, anchors,
-                            simp_ratio = 0.001, con_type = "cl") {
+                            simp_ratio = 0.001, con_type = "cl", buffer = 0) {
   res <- vector('list', length(rects))    # label centres (mm)
   lead <- vector('list', length(rects))   # per label c(ex, ey, bx, by, corner): leader start ->
                                           # visible end (mask boundary) + ledge flag, for drawing
@@ -124,7 +124,10 @@ my_place_labels <- function(rects, polygons, polygons_pad, bounds, anchors,
   geom <- list(poi = poimat, rtree = buildBoxFit(pxd, pyd), polysx = pxt, polysy = pyt,
                pad_xrange = range(unlist(pxd)))
 
-  lay <- tryCatch(placeLabels(geom, c(0, bounds[1]), c(0, bounds[2]), hw, hh, char_h,
+  # Inset the overflow viewport by label.buffer, so labels keep the same gap from the panel
+  # edge that they keep from clusters (overflow is measured against xhi - buffer, etc.).
+  vb <- min(buffer, 0.4 * min(bounds))
+  lay <- tryCatch(placeLabels(geom, c(vb, bounds[1] - vb), c(vb, bounds[2] - vb), hw, hh, char_h,
                               con_type = con_type),
                   error = function(e) NULL)
   if (is.null(lay)) return(anchorFallback())
@@ -184,7 +187,7 @@ my_make_label <- function(labels, dims, polygons, ghosts, buffer, con_type,
     convertHeight(unit(1, 'npc'), 'mm', TRUE)
   )
   labelpos <- my_place_labels(dims, polygons, p_big, area, anchors, simp_ratio = simp_ratio,
-                              con_type = con_type)
+                              con_type = con_type, buffer = delta)
   if (all(lengths(labelpos) == 0)) {
     return(list(nullGrob()))
   }
