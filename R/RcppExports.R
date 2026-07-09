@@ -13,8 +13,8 @@ radialCandidates <- function(boxfit, poi, hw, hh, pad, xlo, xhi, ylo, yhi, ndir,
     .Call(`_mascarade_radialCandidates`, boxfit, poi, hw, hh, pad, xlo, xhi, ylo, yhi, ndir, step, rstart, rmax, intfill, dedup)
 }
 
-foreignLength <- function(ex, ey, tx, ty, lab, polysx, polysy) {
-    .Call(`_mascarade_foreignLength`, ex, ey, tx, ty, lab, polysx, polysy)
+effectiveLength <- function(len, ex, ey, tx, ty, lab, polysx, polysy, cxmin, cxmax, cymin, cymax, xlo, xhi, ylo, yhi) {
+    .Call(`_mascarade_effectiveLength`, len, ex, ey, tx, ty, lab, polysx, polysy, cxmin, cxmax, cymin, cymax, xlo, xhi, ylo, yhi)
 }
 
 forcePolish <- function(boxfit, cx0, cy0, hw, hh, tx, ty, pad, xlo, xhi, ylo, yhi, iters, step, MU, pad_tgt, stepmin, con_type, ll_hard = TRUE, sq = TRUE) {

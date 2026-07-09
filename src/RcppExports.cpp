@@ -58,12 +58,13 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// foreignLength
-NumericVector foreignLength(NumericVector ex, NumericVector ey, NumericVector tx, NumericVector ty, IntegerVector lab, List polysx, List polysy);
-RcppExport SEXP _mascarade_foreignLength(SEXP exSEXP, SEXP eySEXP, SEXP txSEXP, SEXP tySEXP, SEXP labSEXP, SEXP polysxSEXP, SEXP polysySEXP) {
+// effectiveLength
+NumericVector effectiveLength(NumericVector len, NumericVector ex, NumericVector ey, NumericVector tx, NumericVector ty, IntegerVector lab, List polysx, List polysy, NumericVector cxmin, NumericVector cxmax, NumericVector cymin, NumericVector cymax, double xlo, double xhi, double ylo, double yhi);
+RcppExport SEXP _mascarade_effectiveLength(SEXP lenSEXP, SEXP exSEXP, SEXP eySEXP, SEXP txSEXP, SEXP tySEXP, SEXP labSEXP, SEXP polysxSEXP, SEXP polysySEXP, SEXP cxminSEXP, SEXP cxmaxSEXP, SEXP cyminSEXP, SEXP cymaxSEXP, SEXP xloSEXP, SEXP xhiSEXP, SEXP yloSEXP, SEXP yhiSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< NumericVector >::type len(lenSEXP);
     Rcpp::traits::input_parameter< NumericVector >::type ex(exSEXP);
     Rcpp::traits::input_parameter< NumericVector >::type ey(eySEXP);
     Rcpp::traits::input_parameter< NumericVector >::type tx(txSEXP);
@@ -71,7 +72,15 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< IntegerVector >::type lab(labSEXP);
     Rcpp::traits::input_parameter< List >::type polysx(polysxSEXP);
     Rcpp::traits::input_parameter< List >::type polysy(polysySEXP);
-    rcpp_result_gen = Rcpp::wrap(foreignLength(ex, ey, tx, ty, lab, polysx, polysy));
+    Rcpp::traits::input_parameter< NumericVector >::type cxmin(cxminSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type cxmax(cxmaxSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type cymin(cyminSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type cymax(cymaxSEXP);
+    Rcpp::traits::input_parameter< double >::type xlo(xloSEXP);
+    Rcpp::traits::input_parameter< double >::type xhi(xhiSEXP);
+    Rcpp::traits::input_parameter< double >::type ylo(yloSEXP);
+    Rcpp::traits::input_parameter< double >::type yhi(yhiSEXP);
+    rcpp_result_gen = Rcpp::wrap(effectiveLength(len, ex, ey, tx, ty, lab, polysx, polysy, cxmin, cxmax, cymin, cymax, xlo, xhi, ylo, yhi));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -155,7 +164,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_mascarade_hungarian", (DL_FUNC) &_mascarade_hungarian, 1},
     {"_mascarade_buildBoxFit", (DL_FUNC) &_mascarade_buildBoxFit, 2},
     {"_mascarade_radialCandidates", (DL_FUNC) &_mascarade_radialCandidates, 15},
-    {"_mascarade_foreignLength", (DL_FUNC) &_mascarade_foreignLength, 7},
+    {"_mascarade_effectiveLength", (DL_FUNC) &_mascarade_effectiveLength, 16},
     {"_mascarade_forcePolish", (DL_FUNC) &_mascarade_forcePolish, 20},
     {"_mascarade_oneMoveSweep", (DL_FUNC) &_mascarade_oneMoveSweep, 12},
     {"_mascarade_twoMoveBnB", (DL_FUNC) &_mascarade_twoMoveBnB, 13},

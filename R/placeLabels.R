@@ -168,9 +168,12 @@ placeLabels <- function(geom, xlim, ylim, hw, hh, char_h, con_type = "cl",
   init <- vapply(seq_len(K), function(i) {
     sel <- pool$label == i; pool$idx[sel][pool$isb[sel]][1] }, 0L)
 
-  # effective length = leader length + length inside a foreign cluster (routes leaders around)
-  elen <- pool$len + foreignLength(pool$ex, pool$ey, pool$tx, pool$ty,
-                                   as.integer(pool$label), geom$polysx, geom$polysy)
+  # effective length = leader length + arc inside foreign clusters (routes leaders around them)
+  #                    + how far the box overflows the viewport (steers labels in-bounds)
+  elen <- effectiveLength(pool$len, pool$ex, pool$ey, pool$tx, pool$ty,
+                          as.integer(pool$label), geom$polysx, geom$polysy,
+                          pool$cxmin, pool$cxmax, pool$cymin, pool$cymax,
+                          xlim[1], xlim[2], ylim[1], ylim[2])
   geomArgs <- list(cxmin = pool$cxmin, cxmax = pool$cxmax, cymin = pool$cymin, cymax = pool$cymax,
                    ex = pool$ex, ey = pool$ey, tx = pool$tx, ty = pool$ty, len = elen, rows = rows)
   rs <- do.call(oneMoveSweep, c(geomArgs, list(init = as.integer(init), maxpass = 100L)))

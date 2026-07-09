@@ -12,12 +12,17 @@ static inline bool pip(double x, double y, const std::vector<double>& X, const s
   return in;
 }
 
-// For each candidate leader (ex,ey)->(tx,ty), total arc length lying inside any FOREIGN
-// cluster polygon (lab = candidate's own 1-indexed cluster). Feeds the effective-length
-// order that routes leaders around clusters.
+// Effective length ranked by the optimizer (after conflicts, lexicographically). Per candidate:
+//   base leader length  +  arc of the leader inside any FOREIGN cluster (routes leaders around
+//   clusters)  +  how far the label box overflows the viewport on x and y (steers labels
+//   in-bounds). lab = candidate's own 1-indexed cluster; cx/cy min/max are the padded box.
 // [[Rcpp::export]]
-NumericVector foreignLength(NumericVector ex, NumericVector ey, NumericVector tx, NumericVector ty,
-                            IntegerVector lab, List polysx, List polysy) {
+NumericVector effectiveLength(NumericVector len, NumericVector ex, NumericVector ey,
+                              NumericVector tx, NumericVector ty, IntegerVector lab,
+                              List polysx, List polysy,
+                              NumericVector cxmin, NumericVector cxmax,
+                              NumericVector cymin, NumericVector cymax,
+                              double xlo, double xhi, double ylo, double yhi) {
   int n = ex.size(), K = polysx.size();
   std::vector<std::vector<double> > PX(K), PY(K);
   std::vector<double> bxmin(K), bxmax(K), bymin(K), bymax(K);
@@ -28,7 +33,11 @@ NumericVector foreignLength(NumericVector ex, NumericVector ey, NumericVector tx
     bxmin[k] = xm; bxmax[k] = xM; bymin[k] = ym; bymax[k] = yM; }
   NumericVector out(n);
   for (int i = 0; i < n; ++i) { double ax = ex[i], ay = ey[i], bx = tx[i], by = ty[i];
-    double rx = bx - ax, ry = by - ay, seglen = std::sqrt(rx * rx + ry * ry); if (seglen <= 0) continue;
+    // overflow: box extent outside the viewport, summed over both axes
+    double over = std::max(0.0, xlo - cxmin[i]) + std::max(0.0, cxmax[i] - xhi)
+                + std::max(0.0, ylo - cymin[i]) + std::max(0.0, cymax[i] - yhi);
+    double rx = bx - ax, ry = by - ay, seglen = std::sqrt(rx * rx + ry * ry);
+    if (seglen <= 0) { out[i] = len[i] + over; continue; }
     double sxmin = std::min(ax, bx), sxmax = std::max(ax, bx), symin = std::min(ay, by), symax = std::max(ay, by);
     double acc = 0;
     for (int k = 0; k < K; ++k) { if (lab[i] == k + 1) continue;
@@ -43,6 +52,6 @@ NumericVector foreignLength(NumericVector ex, NumericVector ey, NumericVector tx
       for (std::size_t j = 0; j + 1 < ts.size(); ++j) { double t0 = ts[j], t1 = ts[j + 1]; if (t1 - t0 < 1e-12) continue;
         double tmid = 0.5 * (t0 + t1);
         if (pip(ax + tmid * rx, ay + tmid * ry, X, Y)) acc += (t1 - t0) * seglen; } }
-    out[i] = acc; }
+    out[i] = len[i] + acc + over; }
   return out;
 }
