@@ -62,8 +62,8 @@ simplify_outer <- function(poly, max_area, min_vertices = 4L) {
 # simplifies the polygons used for placement (box-fit + foreign-crossing) — see below.
 #' @importFrom polylabelr poi
 #' @importFrom stats median
-my_place_labels <- function(rects, polygons, bounds, anchors, simp_ratio = 0.001,
-                            con_type = "cl", con_padding = NULL) {
+my_place_labels <- function(rects, polygons, polygons_pad, bounds, anchors,
+                            simp_ratio = 0.001, con_type = "cl") {
   res <- vector('list', length(rects))    # label centres (mm)
   lead <- vector('list', length(rects))   # per label c(ex, ey, bx, by, corner): leader start ->
                                           # visible end (mask boundary) + ledge flag, for drawing
@@ -71,30 +71,30 @@ my_place_labels <- function(rects, polygons, bounds, anchors, simp_ratio = 0.001
   active <- which(vapply(rects, function(r) !all(r == 0), logical(1)))
   if (length(active) == 0) return(withLeaders())
 
-  # clean each polygon: drop non-finite vertices; guarantee >= 3 points so the C++ box-fit
-  # and pole solver never receive an empty/degenerate ring (draw-stage polygons can be
-  # cropped by axis limits, dropped by expansion, or reduced to a point).
-  polys_a <- lapply(polygons[active], function(p) {
-    ok <- is.finite(p$x) & is.finite(p$y); x <- p$x[ok]; y <- p$y[ok]
-    if (length(x) < 3) {
-      cx <- if (length(x)) mean(x) else 0; cy <- if (length(y)) mean(y) else 0
-      x <- cx + c(-1e-3, 1e-3, 0); y <- cy + c(-1e-3, -1e-3, 1e-3)
+  # Clean + simplify a polygon list (aligned to `active`). Clean: drop non-finite vertices and
+  # guarantee >= 3 points so the C++ box-fit / pole solver never see a degenerate ring (draw-
+  # stage polygons can be cropped by axis limits, dropped by expansion, or reduced to a point).
+  # Simplify: drop small inward dents -- a big speed-up (box-fit and foreignLength walk every
+  # edge), and since simplify_outer only removes concave vertices the ring ENCLOSES the
+  # original, so the box-fit keep-out stays conservative.
+  prep <- function(polys) {
+    pa <- lapply(polys[active], function(p) {
+      ok <- is.finite(p$x) & is.finite(p$y); x <- p$x[ok]; y <- p$y[ok]
+      if (length(x) < 3) {
+        cx <- if (length(x)) mean(x) else 0; cy <- if (length(y)) mean(y) else 0
+        x <- cx + c(-1e-3, 1e-3, 0); y <- cy + c(-1e-3, -1e-3, 1e-3)
+      }
+      list(x = x, y = y)
+    })
+    if (simp_ratio > 0) {
+      ax <- unlist(lapply(pa, `[[`, 'x')); ay <- unlist(lapply(pa, `[[`, 'y'))
+      pa <- lapply(pa, simplify_outer, max_area = simp_ratio * diff(range(ax)) * diff(range(ay)))
     }
-    list(x = x, y = y)
-  })
-
-  # Simplify the placement polygons (drop small inward dents). This is a big speed-up:
-  # box-fit `intersects(box, polygon)` and `foreignLength` both walk every polygon edge,
-  # and mask rings can have hundreds of vertices. Because `simplify_outer` only removes
-  # concave vertices the simplified ring ENCLOSES the original, so box-fit stays
-  # conservative (never lets a box onto the real cluster). Placement only; the drawn
-  # connectors still project onto the full-resolution polygons in my_make_label().
-  if (simp_ratio > 0 && length(active) > 0) {
-    ax <- unlist(lapply(polys_a, `[[`, 'x')); ay <- unlist(lapply(polys_a, `[[`, 'y'))
-    max_area <- simp_ratio * diff(range(ax)) * diff(range(ay))
-    polys_a <- lapply(polys_a, simplify_outer, max_area = max_area)
+    pa
   }
-  poimat <- t(vapply(polys_a, function(p) {
+  polys_t <- prep(polygons)               # true clusters: poles, leader ends, foreign routing
+  polys_d <- prep(polygons_pad)           # dilated by label.buffer: box-fit keep-out only
+  poimat <- t(vapply(polys_t, function(p) {
     pl <- tryCatch(polylabelr::poi(p$x, p$y), error = function(e) NULL)
     if (is.null(pl) || !is.finite(pl$x) || !is.finite(pl$y)) c(mean(p$x), mean(p$y)) else c(pl$x, pl$y)
   }, numeric(2)))
@@ -117,11 +117,15 @@ my_place_labels <- function(rects, polygons, bounds, anchors, simp_ratio = 0.001
   hw <- vapply(active, function(i) rects[[i]][1] / 2, 0)
   hh <- vapply(active, function(i) rects[[i]][2] / 2, 0)
   char_h <- stats::median(2 * hh)
-  px <- lapply(polys_a, `[[`, 'x'); py <- lapply(polys_a, `[[`, 'y')
-  geom <- list(poi = poimat, rtree = buildBoxFit(px, py), polysx = px, polysy = py)
+  pxt <- lapply(polys_t, `[[`, 'x'); pyt <- lapply(polys_t, `[[`, 'y')
+  pxd <- lapply(polys_d, `[[`, 'x'); pyd <- lapply(polys_d, `[[`, 'y')
+  # box-fit keep-out from the dilated polygons; poles/foreign/leader-ends from the true ones,
+  # so leaders are drawn to the actual cluster outline. Seed columns use the dilated extent.
+  geom <- list(poi = poimat, rtree = buildBoxFit(pxd, pyd), polysx = pxt, polysy = pyt,
+               pad_xrange = range(unlist(pxd)))
 
   lay <- tryCatch(placeLabels(geom, c(0, bounds[1]), c(0, bounds[2]), hw, hh, char_h,
-                              con_type = con_type, con_padding = con_padding),
+                              con_type = con_type),
                   error = function(e) NULL)
   if (is.null(lay)) return(anchorFallback())
   lay <- lay[order(lay$label)]
@@ -136,7 +140,7 @@ my_place_labels <- function(rects, polygons, bounds, anchors, simp_ratio = 0.001
 #' @importFrom stats runif
 my_make_label <- function(labels, dims, polygons, ghosts, buffer, con_type,
                        con_cap, con_gp, anchor_x,
-                       anchor_y, arrow, simp_ratio = 0.001, con_padding = NULL) {
+                       anchor_y, arrow, simp_ratio = 0.001) {
   polygons <- lapply(polygons, function(p) {
     if (length(p$x) == 1 & length(p$y) == 1) {
       list(
@@ -158,10 +162,12 @@ my_make_label <- function(labels, dims, polygons, ghosts, buffer, con_type,
     if (length(anchor_y) == length(polygons) && !is.na(anchor_y[i])) y <- anchor_y[i]
     c(x, y)
   })
-  # Buffer each polygon INDIVIDUALLY. polyoffset() on the whole list reorders its output
-  # (and can merge overlapping rings), which breaks the 1:1 mapping the placer relies on:
-  # my_place_labels pairs polygon i with rects[i]/anchors[i] and returns results indexed to
-  # match labels/con.gp. Offsetting per polygon keeps the output aligned with the input order.
+  # `label.buffer` polygon padding: dilate each cluster by `buffer` to form the label
+  # keep-out zone. Offset each polygon INDIVIDUALLY -- polyoffset() on the whole list reorders
+  # (and can merge) its output, breaking the 1:1 mapping the placer relies on (polygon i is
+  # paired with rects[i]/anchors[i]). The dilated set is used only for the box-fit keep-out;
+  # poles, leader ends and foreign-routing use the true `polygons` so leaders reach the
+  # actual cluster outline.
   delta <- convertWidth(buffer, 'mm', TRUE)
   p_big <- lapply(polygons, function(p) {
     off <- polyoffset(list(p), delta)
@@ -177,8 +183,8 @@ my_make_label <- function(labels, dims, polygons, ghosts, buffer, con_type,
     convertWidth(unit(1, 'npc'), 'mm', TRUE),
     convertHeight(unit(1, 'npc'), 'mm', TRUE)
   )
-  labelpos <- my_place_labels(dims, p_big, area, anchors, simp_ratio = simp_ratio,
-                              con_type = con_type, con_padding = con_padding)
+  labelpos <- my_place_labels(dims, polygons, p_big, area, anchors, simp_ratio = simp_ratio,
+                              con_type = con_type)
   if (all(lengths(labelpos) == 0)) {
     return(list(nullGrob()))
   }

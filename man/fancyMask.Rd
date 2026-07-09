@@ -14,12 +14,11 @@ fancyMask(
   label = TRUE,
   label.largest = TRUE,
   label.fontsize = 10,
-  label.buffer = unit(0, "cm"),
+  label.buffer = unit(2, "mm"),
   label.fontface = "plain",
   label.margin = margin(2, 2, 2, 2, "pt"),
   simp_ratio = 0.001,
-  con.type = "cl",
-  con.padding = NULL
+  con.type = "cl"
 )
 }
 \arguments{
@@ -72,8 +71,9 @@ not labelled. When \code{FALSE}, all parts are labelled. Ignored when
 \item{label.fontsize}{Label font size passed to \code{geom_mark_shape()}.
 Default is \code{10}.}
 
-\item{label.buffer}{Label buffer distance passed to
-\code{geom_mark_shape()}. Default is \code{unit(0, "cm")}.}
+\item{label.buffer}{Polygon padding passed to \code{geom_mark_shape()}: cluster polygons are
+dilated by this distance and labels are kept out of the dilated zone, so each label
+keeps a gap from its cluster outline. Default \code{unit(2, "mm")}; \code{unit(0, "mm")} disables.}
 
 \item{label.fontface}{Label font face passed to
 \code{geom_mark_shape()}. Default is \code{"plain"}.}
@@ -90,9 +90,6 @@ cluster. Larger values simplify more; set to \code{0} to disable. Default \code{
 
 \item{con.type}{Leader style passed to \code{geom_mark_shape()}: \code{"cl"} (corners + ledge,
 default), \code{"cm"} (corners + midpoints, no ledge), or \code{"none"}.}
-
-\item{con.padding}{Minimum visible leader length passed to \code{geom_mark_shape()}; a grid
-unit, or \code{NULL} (default) to scale with the label height.}
 }
 \value{
 A list of ggplot2 components suitable for adding to a plot with \code{+},

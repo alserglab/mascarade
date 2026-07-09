@@ -28,7 +28,6 @@ geom_mark_shape(
   con.linetype = 1,
   con.border = "one",
   con.cap = unit(3, "mm"),
-  con.padding = NULL,
   con.arrow = NULL,
   simp_ratio = 0.001,
   ...,
@@ -130,8 +129,9 @@ two elements the first will be used for the label and the second for the
 description. Use \code{"inherit"} to use the border colour of the enclosure or
 \code{"inherit_fill"} to use the fill colour from the enclosure.}
 
-\item{label.buffer}{The size of the region around the mark where labels
-cannot be placed.}
+\item{label.buffer}{Polygon padding: cluster polygons are dilated by this distance and
+labels are kept out of the dilated zone, leaving a gap between each label and its
+cluster outline. A grid unit; \code{unit(0, "mm")} disables it.}
 
 \item{con.colour}{The colour for the line connecting the annotation to the
 mark. Use \code{"inherit"} to use the border colour of the enclosure or
@@ -153,11 +153,6 @@ line on the horizontal side closest to the mark), \code{"all"} (to draw a border
 on all sides), or \code{"none"} (not going to explain that one).}
 
 \item{con.cap}{The distance before the mark that the line should stop at.}
-
-\item{con.padding}{Minimum visible leader length — how far outside its mask each leader
-must be before a candidate position is accepted, and the offset of the boundary-seed
-columns from the cluster cloud. A grid unit, or \code{NULL} (default) to scale with the
-label height.}
 
 \item{con.arrow}{An arrow specification for the connection using
 \code{\link[grid:arrow]{grid::arrow()}} for the end pointing towards the mark.}

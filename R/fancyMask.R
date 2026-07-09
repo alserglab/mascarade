@@ -26,8 +26,9 @@
 #'   `label = FALSE`.
 #' @param label.fontsize Label font size passed to `geom_mark_shape()`.
 #'   Default is `10`.
-#' @param label.buffer Label buffer distance passed to
-#'   `geom_mark_shape()`. Default is `unit(0, "cm")`.
+#' @param label.buffer Polygon padding passed to `geom_mark_shape()`: cluster polygons are
+#'   dilated by this distance and labels are kept out of the dilated zone, so each label
+#'   keeps a gap from its cluster outline. Default `unit(2, "mm")`; `unit(0, "mm")` disables.
 #' @param label.fontface Label font face passed to
 #'   `geom_mark_shape()`. Default is `"plain"`.
 #' @param cols Color specification for cluster outlines (and labels). One of:
@@ -60,8 +61,6 @@
 #'   cluster. Larger values simplify more; set to `0` to disable. Default `0.001`.
 #' @param con.type Leader style passed to `geom_mark_shape()`: `"cl"` (corners + ledge,
 #'   default), `"cm"` (corners + midpoints, no ledge), or `"none"`.
-#' @param con.padding Minimum visible leader length passed to `geom_mark_shape()`; a grid
-#'   unit, or `NULL` (default) to scale with the label height.
 #'
 #' @return A list of ggplot2 components suitable for adding to a plot with `+`,
 #'   containing a `ggplot2::coord_cartesian()` specification and a
@@ -99,12 +98,11 @@ fancyMask <- function(maskTable,
                       label=TRUE,
                       label.largest=TRUE,
                       label.fontsize = 10,
-                      label.buffer = unit(0, "cm"),
+                      label.buffer = unit(2, "mm"),
                       label.fontface = "plain",
                       label.margin = margin(2, 2, 2, 2, "pt"),
                       simp_ratio = 0.001,
-                      con.type = "cl",
-                      con.padding = NULL
+                      con.type = "cl"
                       ) {
 
     if (identical(cols, "auto")) {
@@ -124,8 +122,7 @@ fancyMask <- function(maskTable,
                  label.fontface = label.fontface,
                  label.margin = label.margin,
                  simp_ratio   = simp_ratio,
-                 con.type     = con.type,
-                 con.padding  = con.padding),
+                 con.type     = con.type),
             class = "fancyMask"
         )
     } else {
@@ -142,8 +139,7 @@ fancyMask <- function(maskTable,
                              label.fontface = label.fontface,
                              label.margin = label.margin,
                              simp_ratio = simp_ratio,
-                             con.type = con.type,
-                             con.padding = con.padding)
+                             con.type = con.type)
     }
 }
 
@@ -193,8 +189,7 @@ ggplot_add.fancyMask <- function(object, plot, ...) {
         label.fontface = object$label.fontface,
         label.margin  = object$label.margin,
         simp_ratio    = object$simp_ratio,
-        con.type      = object$con.type,
-        con.padding   = object$con.padding
+        con.type      = object$con.type
     )
     ggplot2::ggplot_add(layers, plot, ...)
 }
@@ -229,7 +224,7 @@ buildFancyMaskLayers <- function(maskTable, ratio, limits.expand, linewidth,
                                  shape.expand, cols, label, label.largest,
                                  label.fontsize, label.buffer, label.fontface,
                                  label.margin, simp_ratio = 0.001,
-                                 con.type = "cl", con.padding = NULL) {
+                                 con.type = "cl") {
     xvar <- colnames(maskTable)[1]
     yvar <- colnames(maskTable)[2]
 
@@ -274,7 +269,6 @@ buildFancyMaskLayers <- function(maskTable, ratio, limits.expand, linewidth,
                                      label.lineheight = 0,
                                      con.cap = 0,
                                      con.type = con.type,
-                                     con.padding = con.padding,
                                      con.colour = "inherit")
         } else {
             shapes <- geom_shape(data = maskTable,
@@ -323,7 +317,6 @@ buildFancyMaskLayers <- function(maskTable, ratio, limits.expand, linewidth,
                                  label.lineheight = 0,
                                  con.cap=0,
                                  con.type = con.type,
-                                 con.padding = con.padding,
                                  con.colour = "inherit")
     } else {
         shapes <- geom_shape(data=maskTable,

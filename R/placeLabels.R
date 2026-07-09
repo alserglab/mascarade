@@ -13,7 +13,9 @@
 #
 # `con_type` selects the leader style: "cl" corners+ledge (one sign-quadrant corner),
 # "cm" corners+midpoints (8-point rule, no ledge), "none" (placed like cm, no connector).
-# `con_padding` is the minimum visible leader length (outside the mask) and the seed offset.
+# The keep-out padding between labels and clusters is baked into `geom` itself: the caller
+# passes polygons already dilated by `label.buffer`, so box-fit forbids boxes within that
+# distance of the true cluster (see my_make_label).
 
 # pool-adjacent-violators (non-increasing L2 fit)
 .pavaDec <- function(y) {
@@ -88,16 +90,17 @@
 }
 
 # Conflict-free boundary seed (guaranteed for equal box heights). Two columns hang off the
-# cluster cloud on vertical lines X = min/max polygon x -/+ con_padding; each box's padded
-# near edge sits on its line and the leader starts on the line (bottom corner for "cl", edge
-# centre otherwise), so it never clips a box. Labels are matched to stacked slots by leader
-# length via the Hungarian assignment (min total length => crossing-free).
-.reorderBase <- function(poi, hw, hh, polyxlim, gap, con_padding, pad, con_type) {
+# cluster cloud on the vertical lines X = min/max polygon x (the polygons are already dilated
+# by label.buffer, so this sits a keep-out margin outside the true clusters); each box's
+# padded near edge sits on its line and the leader starts on the line (bottom corner for
+# "cl", edge centre otherwise), so it never clips a box. Labels are matched to stacked slots
+# by leader length via the Hungarian assignment (min total length => crossing-free).
+.reorderBase <- function(poi, hw, hh, polyxlim, gap, pad, con_type) {
   K <- nrow(poi); fh <- 2 * hh
   ox <- order(poi[, 1]); cs <- cumsum(fh[ox]); k <- which(cs >= sum(fh) / 2)[1]
   if (is.na(k)) k <- K; k <- max(1L, min(k, K - 1L))
   Lset <- ox[seq_len(k)]; Rset <- ox[(k + 1L):K]
-  XL <- polyxlim[1] - con_padding; XR <- polyxlim[2] + con_padding
+  XL <- polyxlim[1]; XR <- polyxlim[2]
   col <- function(set, Xline, side) {              # side: -1 left column, +1 right column
     m <- length(set)
     if (m == 1) return(data.table::data.table(label = set, cy = poi[set, 2], Xline = Xline, side = side))
@@ -126,39 +129,30 @@
 # Place labels for one view. Returns a data.table (one row per cluster) with cx, cy, the box
 # columns, the leader anchor (ex, ey), its `corner` flag, and the visible leader end (bx, by
 # = first mask-boundary hit). Conflict-free by construction given a feasible pool.
-placeLabels <- function(geom, xlim, ylim, hw, hh, char_h, con_type = "cl", con_padding = NULL,
+placeLabels <- function(geom, xlim, ylim, hw, hh, char_h, con_type = "cl",
                         MU = 55, iters = 120L) {
   poi <- geom$poi; K <- nrow(poi)
   pad <- 0.05 * char_h                                             # hard box clearance
   gap <- 0.25 * char_h                                             # seed column spacing
-  if (is.null(con_padding)) con_padding <- 1.2 * char_h            # default min visible leader
   if (K == 1) {
     r <- .geoCols(data.table::data.table(label = 1L, cx = poi[1, 1], cy = poi[1, 2]),
                   hw, hh, poi, pad, con_type)
     return(r[, `:=`(bx = poi[1, 1], by = poi[1, 2])][])            # single label sits on its pole
   }
 
-  ndir <- 48L; radStep <- 0.3 * char_h; radStart <- max(0.2 * char_h, con_padding)
+  ndir <- 48L; radStep <- 0.3 * char_h; radStart <- 0.2 * char_h
   radReach <- 16 * char_h; radFill <- 1.2 * char_h; dedup <- 0.3 * char_h
-  polyxlim <- range(unlist(geom$polysx))
+  polyxlim <- geom$pad_xrange                                       # dilated extent (keep-out)
+  if (is.null(polyxlim)) polyxlim <- range(unlist(geom$polysx))     # undilated geom (tests)
 
   cand <- data.table::as.data.table(radialCandidates(
     geom$rtree, poi, hw, hh, pad, xlim[1], xlim[2], ylim[1], ylim[2],
     ndir, radStep, radStart, radReach, radFill, dedup))
   pool <- .geoCols(cand, hw, hh, poi, pad, con_type)
-
-  # keep only candidates whose leader is actually visible (>= con_padding outside its mask)
-  vis <- numeric(nrow(pool))
-  for (L in seq_len(K)) {
-    sel <- pool$label == L
-    if (any(sel)) vis[sel] <- .firstHit(pool$ex[sel], pool$ey[sel], poi[L, 1], poi[L, 2],
-                                        geom$polysx[[L]], geom$polysy[[L]])$vis
-  }
-  pool <- pool[vis >= con_padding]
   pool$isb <- FALSE
 
   # boundary seed = guaranteed-clean fallback slot / label
-  sd <- .reorderBase(poi, hw, hh, polyxlim, gap, con_padding, pad, con_type)
+  sd <- .reorderBase(poi, hw, hh, polyxlim, gap, pad, con_type)
   seed <- data.table::data.table(
     label = sd$label, cx = sd$cx, cy = sd$cy, hw = hw[sd$label], hh = hh[sd$label],
     tx = poi[sd$label, 1], ty = poi[sd$label, 2],
