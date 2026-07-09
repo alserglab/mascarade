@@ -31,62 +31,162 @@ using namespace Rcpp;
 //' @return A list with numeric `cx`, `cy`: the polished label centres.
 //' @keywords internal
 // [[Rcpp::export]]
-List forcePolish(SEXP boxfit, NumericVector cx0, NumericVector cy0, NumericVector hw, NumericVector hh,
-                 NumericVector tx, NumericVector ty, double pad,
-                 double xlo, double xhi, double ylo, double yhi,
+List forcePolish(SEXP boxfit, NumericVector cx0, NumericVector cy0,
+                 NumericVector hw, NumericVector hh, NumericVector tx, NumericVector ty,
+                 double pad, double xlo, double xhi, double ylo, double yhi,
                  int iters, double step, double MU, double pad_tgt, double stepmin,
                  int con_type, bool ll_hard = true, bool sq = true) {
-  XPtr<BoxFit> bf(boxfit);
+  XPtr<BoxFit> boxFit(boxfit);
   int n = cx0.size();
-  std::vector<double> cx(cx0.begin(), cx0.end()), cy(cy0.begin(), cy0.end());
-  std::vector<double> CXm(n), CXM(n), CYm(n), CYM(n), EX(n), EY(n);
-  auto lead = [&](int i, double X, double Y, double& ex, double& ey) {
-    double dx = tx[i] - X, dy = ty[i] - Y;
-    double sX = dx >= 0 ? 1.0 : -1.0, sY = dy >= 0 ? 1.0 : -1.0;
-    if (con_type == 0) {                          // cl: sign-quadrant corner
-      ex = X + sX * hw[i]; ey = Y + sY * hh[i];
-    } else {                                       // cm / none: 8-point rule
-      bool xin = std::fabs(dx) < hw[i], yin = std::fabs(dy) < hh[i];
-      ex = (xin && !yin) ? X : X + sX * hw[i];
-      ey = (!xin && yin) ? Y : Y + sY * hh[i];
-    } };
-  auto setg = [&](int i, double X, double Y) { CXm[i] = X - hw[i] - pad; CXM[i] = X + hw[i] + pad; CYm[i] = Y - hh[i] - pad; CYM[i] = Y + hh[i] + pad;
-    lead(i, X, Y, EX[i], EY[i]); };
-  for (int i = 0; i < n; ++i) setg(i, cx[i], cy[i]);
-  // label box (no pad) must not overlap any cluster polygon
-  auto forb = [&](int i, double X, double Y)->bool { return bf->hit(X - hw[i], X + hw[i], Y - hh[i], Y + hh[i]); };
-  auto valid = [&](int i, double X, double Y)->bool {
-    if (forb(i, X, Y)) return false;   // viewport bounds are a soft energy term, not a hard clip
-    double bxm = X - hw[i] - pad, bxM = X + hw[i] + pad, bym = Y - hh[i] - pad, byM = Y + hh[i] + pad, ex, ey; lead(i, X, Y, ex, ey);
-    for (int j = 0; j < n; ++j) { if (j == i) continue;
-      if (bxm < CXM[j] && CXm[j] < bxM && bym < CYM[j] && CYm[j] < byM) return false;
-      if (segbox(ex, ey, tx[i], ty[i], CXm[j], CXM[j], CYm[j], CYM[j])) return false;
-      if (segbox(EX[j], EY[j], tx[j], ty[j], bxm, bxM, bym, byM)) return false;
-      if (ll_hard && segcross(ex, ey, tx[i], ty[i], EX[j], EY[j], tx[j], ty[j])) return false; }
-    return true; };
-  auto energy = [&](int i, double X, double Y)->double {
-    double bxm = X - hw[i] - pad, bxM = X + hw[i] + pad, bym = Y - hh[i] - pad, byM = Y + hh[i] + pad;
-    double d2 = (X - tx[i]) * (X - tx[i]) + (Y - ty[i]) * (Y - ty[i]);
-    double e = sq ? d2 : std::sqrt(d2);
+  std::vector<double> cx(cx0.begin(), cx0.end());
+  std::vector<double> cy(cy0.begin(), cy0.end());
+  // padded box extents + leader anchor cached for each label's CURRENT placement
+  std::vector<double> boxXmin(n), boxXmax(n), boxYmin(n), boxYmax(n);
+  std::vector<double> anchorX(n), anchorY(n);
+
+  // Leader start on label i's box when its centre is (X, Y), aimed at the pole. Mirrors R's
+  // .anchorPoint(): con_type 0 = "cl" sign-quadrant corner, else the "cm"/"none" 8-point rule.
+  auto leaderAnchor = [&](int i, double X, double Y, double& ax, double& ay) {
+    double dx = tx[i] - X;
+    double dy = ty[i] - Y;
+    double sX = dx >= 0 ? 1.0 : -1.0;
+    double sY = dy >= 0 ? 1.0 : -1.0;
+    if (con_type == 0) {
+      ax = X + sX * hw[i];
+      ay = Y + sY * hh[i];
+    } else {
+      bool xin = std::fabs(dx) < hw[i];
+      bool yin = std::fabs(dy) < hh[i];
+      ax = (xin && !yin) ? X : X + sX * hw[i];
+      ay = (!xin && yin) ? Y : Y + sY * hh[i];
+    }
+  };
+  // cache label i's padded box + leader anchor for centre (X, Y)
+  auto updateGeom = [&](int i, double X, double Y) {
+    boxXmin[i] = X - hw[i] - pad;
+    boxXmax[i] = X + hw[i] + pad;
+    boxYmin[i] = Y - hh[i] - pad;
+    boxYmax[i] = Y + hh[i] + pad;
+    leaderAnchor(i, X, Y, anchorX[i], anchorY[i]);
+  };
+  for (int i = 0; i < n; ++i) {
+    updateGeom(i, cx[i], cy[i]);
+  }
+
+  // label i's box (no pad) must not overlap any cluster polygon
+  auto boxHitsCluster = [&](int i, double X, double Y) -> bool {
+    return boxFit->hit(X - hw[i], X + hw[i], Y - hh[i], Y + hh[i]);
+  };
+  // is centre (X, Y) for label i conflict-free? (the viewport is a soft energy term, not here)
+  auto conflictFree = [&](int i, double X, double Y) -> bool {
+    if (boxHitsCluster(i, X, Y)) {
+      return false;
+    }
+    double bxlo = X - hw[i] - pad;
+    double bxhi = X + hw[i] + pad;
+    double bylo = Y - hh[i] - pad;
+    double byhi = Y + hh[i] + pad;
+    double ax, ay;
+    leaderAnchor(i, X, Y, ax, ay);
+    for (int j = 0; j < n; ++j) {
+      if (j == i) {
+        continue;
+      }
+      // box-box overlap
+      if (bxlo < boxXmax[j] && boxXmin[j] < bxhi && bylo < boxYmax[j] && boxYmin[j] < byhi) {
+        return false;
+      }
+      // my leader through box j, or leader j through my box
+      if (segbox(ax, ay, tx[i], ty[i], boxXmin[j], boxXmax[j], boxYmin[j], boxYmax[j])) {
+        return false;
+      }
+      if (segbox(anchorX[j], anchorY[j], tx[j], ty[j], bxlo, bxhi, bylo, byhi)) {
+        return false;
+      }
+      // leaders crossing (hard constraint only when ll_hard)
+      if (ll_hard && segcross(ax, ay, tx[i], ty[i], anchorX[j], anchorY[j], tx[j], ty[j])) {
+        return false;
+      }
+    }
+    return true;
+  };
+  // energy of centre (X, Y) for label i: length to pole + soft viewport overflow + box spacing
+  auto energy = [&](int i, double X, double Y) -> double {
+    double bxlo = X - hw[i] - pad;
+    double bxhi = X + hw[i] + pad;
+    double bylo = Y - hh[i] - pad;
+    double byhi = Y + hh[i] + pad;
+    double dist2 = (X - tx[i]) * (X - tx[i]) + (Y - ty[i]) * (Y - ty[i]);
+    double e = sq ? dist2 : std::sqrt(dist2);
     // viewport overflow (soft): labels leave the panel only when it lowers total energy
-    e += OVERFLOW_WEIGHT * (std::max(0.0, xlo - bxm) + std::max(0.0, bxM - xhi)
-                         + std::max(0.0, ylo - bym) + std::max(0.0, byM - yhi));
-    for (int j = 0; j < n; ++j) { if (j == i) continue;
-      double gx = std::max(std::max(bxm - CXM[j], CXm[j] - bxM), 0.0), gy = std::max(std::max(bym - CYM[j], CYm[j] - byM), 0.0);
-      double gp = std::sqrt(gx * gx + gy * gy); if (gp < pad_tgt) { double d = pad_tgt - gp; e += MU * d * d; } }
-    return e; };
-  const int ND = 16; double dvx[ND + 1], dvy[ND + 1];
-  for (int k = 0; k < ND; ++k) { double th = 2 * M_PI * k / ND; dvx[k] = std::cos(th); dvy[k] = std::sin(th); }
-  for (int it = 0; it < iters; ++it) { bool moved = false;
-    for (int i = 0; i < n; ++i) { double X = cx[i], Y = cy[i];
-      double tl = std::sqrt((tx[i] - X) * (tx[i] - X) + (ty[i] - Y) * (ty[i] - Y));
-      dvx[ND] = tl > 1e-9 ? (tx[i] - X) / tl : 0; dvy[ND] = tl > 1e-9 ? (ty[i] - Y) / tl : 0;
-      double bestE = energy(i, X, Y), bX = X, bY = Y;
-      for (int k = 0; k <= ND; ++k) { double t = step;
-        while (t > stepmin) { double nx2 = X + t * dvx[k], ny2 = Y + t * dvy[k];
-          if (valid(i, nx2, ny2)) { double E = energy(i, nx2, ny2); if (E < bestE - 1e-9) { bestE = E; bX = nx2; bY = ny2; } break; } t *= 0.5; } }
-      if (bX != X || bY != Y) { cx[i] = bX; cy[i] = bY; setg(i, bX, bY); moved = true; } }
-    if (!moved) break; }
+    e += OVERFLOW_WEIGHT * (std::max(0.0, xlo - bxlo) + std::max(0.0, bxhi - xhi)
+                         + std::max(0.0, ylo - bylo) + std::max(0.0, byhi - yhi));
+    for (int j = 0; j < n; ++j) {
+      if (j == i) {
+        continue;
+      }
+      double gapX = std::max(std::max(bxlo - boxXmax[j], boxXmin[j] - bxhi), 0.0);
+      double gapY = std::max(std::max(bylo - boxYmax[j], boxYmin[j] - byhi), 0.0);
+      double gap = std::sqrt(gapX * gapX + gapY * gapY);
+      if (gap < pad_tgt) {
+        double deficit = pad_tgt - gap;
+        e += MU * deficit * deficit;
+      }
+    }
+    return e;
+  };
+
+  // search directions: nDir evenly around the circle, plus one straight at the pole (index nDir)
+  const int nDir = 16;
+  double dirX[nDir + 1];
+  double dirY[nDir + 1];
+  for (int k = 0; k < nDir; ++k) {
+    double theta = 2 * M_PI * k / nDir;
+    dirX[k] = std::cos(theta);
+    dirY[k] = std::sin(theta);
+  }
+
+  for (int iter = 0; iter < iters; ++iter) {
+    bool moved = false;
+    for (int i = 0; i < n; ++i) {
+      double X = cx[i];
+      double Y = cy[i];
+      double toPole = std::sqrt((tx[i] - X) * (tx[i] - X) + (ty[i] - Y) * (ty[i] - Y));
+      dirX[nDir] = toPole > 1e-9 ? (tx[i] - X) / toPole : 0;
+      dirY[nDir] = toPole > 1e-9 ? (ty[i] - Y) / toPole : 0;
+      double bestEnergy = energy(i, X, Y);
+      double bestX = X;
+      double bestY = Y;
+      for (int k = 0; k <= nDir; ++k) {
+        // halve the step until a conflict-free neighbour is found in this direction
+        double stepSize = step;
+        while (stepSize > stepmin) {
+          double nx = X + stepSize * dirX[k];
+          double ny = Y + stepSize * dirY[k];
+          if (conflictFree(i, nx, ny)) {
+            double candEnergy = energy(i, nx, ny);
+            if (candEnergy < bestEnergy - 1e-9) {
+              bestEnergy = candEnergy;
+              bestX = nx;
+              bestY = ny;
+            }
+            break;
+          }
+          stepSize *= 0.5;
+        }
+      }
+      if (bestX != X || bestY != Y) {
+        cx[i] = bestX;
+        cy[i] = bestY;
+        updateGeom(i, bestX, bestY);
+        moved = true;
+      }
+    }
+    if (!moved) {
+      break;
+    }
+  }
+
   return List::create(_["cx"] = NumericVector(cx.begin(), cx.end()),
                       _["cy"] = NumericVector(cy.begin(), cy.end()));
 }
