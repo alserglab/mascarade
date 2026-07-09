@@ -58,3 +58,34 @@ test_that("fancyMask renders a plot end-to-end (draw-stage placement)", {
   expect_error(ggplot2::ggsave(tmp, p, width = 8, height = 6, dpi = 90), NA)
   unlink(tmp)
 })
+
+test_that("twoMoveBnB resolves an input conflict that needs a longer candidate", {
+  # Global candidate list (0-based indices used by the kernel):
+  #   0 = A: label 1, SHORT leader, box overlaps B  -> the conflicting start pick
+  #   1 = C: label 1, LONG  leader, box far away    -> the resolution (length-pruned!)
+  #   2 = B: label 2, its only candidate
+  # Leaders point away from all boxes so the only conflict is A-B box-box overlap.
+  cxmin <- c(0, 10, 1); cxmax <- c(2, 12, 3)
+  cymin <- c(0, 10, 1); cymax <- c(2, 12, 3)
+  ex <- c(1, 11, 2);  ey <- c(-1, 9, 4)
+  tx <- c(1, 11, 2);  ty <- c(-2, 8, 5)
+  len <- c(1, 5, 1)                         # C (idx1) is far longer than A (idx0)
+  rows <- list(c(0L, 1L), c(2L))            # label1 -> {A, C} (length-ascending), label2 -> {B}
+  init <- c(0L, 2L)                         # start at A, B  -> A and B overlap (bb conflict)
+
+  # sanity: the starting layout really is in conflict
+  P0 <- data.frame(cxmin = cxmin[init + 1L], cxmax = cxmax[init + 1L],
+                   cymin = cymin[init + 1L], cymax = cymax[init + 1L],
+                   ex = ex[init + 1L], ey = ey[init + 1L], tx = tx[init + 1L], ty = ty[init + 1L],
+                   len = len[init + 1L])
+  expect_gt(unname(layoutScore(P0)["bb"]), 0)
+
+  sel <- mascarade:::twoMoveBnB(cxmin, cxmax, cymin, cymax, ex, ey, tx, ty, len,
+                                rows, init, maxpass = 50L, sq = TRUE) + 1L
+  P <- data.frame(cxmin = cxmin[sel], cxmax = cxmax[sel], cymin = cymin[sel], cymax = cymax[sel],
+                  ex = ex[sel], ey = ey[sel], tx = tx[sel], ty = ty[sel], len = len[sel])
+  s <- layoutScore(P)
+  expect_equal(unname(s["bb"]), 0)          # conflict resolved (label 1 moved A -> C)
+  expect_equal(unname(s["ll"]), 0)
+  expect_equal(unname(s["lb"]), 0)
+})
