@@ -9,19 +9,53 @@ using namespace Rcpp;
 struct CandidateSet {
   NumericVector cxmin, cxmax, cymin, cymax;   // padded box extents, one per candidate
   NumericVector ex, ey, tx, ty;               // leader per candidate: anchor -> pole
+  // per-candidate leader bounding box, cached by prepare() for the broad-phase rejects below
+  std::vector<double> lxmin, lxmax, lymin, lymax;
 
+  // cache each leader's axis-aligned bounding box (call once after construction). The pairwise
+  // predicates are dominated by the Boost segment tests, so a cheap AABB reject in front of them
+  // skips the (common) far-apart pairs without a full segment/segment or segment/box test.
+  void prepare() {
+    int n = ex.size();
+    lxmin.resize(n);
+    lxmax.resize(n);
+    lymin.resize(n);
+    lymax.resize(n);
+    for (int i = 0; i < n; ++i) {
+      lxmin[i] = std::min(ex[i], tx[i]);
+      lxmax[i] = std::max(ex[i], tx[i]);
+      lymin[i] = std::min(ey[i], ty[i]);
+      lymax[i] = std::max(ey[i], ty[i]);
+    }
+  }
   // do the padded boxes of candidates a and b overlap?
   bool boxesOverlap(int a, int b) const {
     return cxmin[a] < cxmax[b] && cxmin[b] < cxmax[a]
         && cymin[a] < cymax[b] && cymin[b] < cymax[a];
   }
+  // does leader `s` (its cached AABB) come near box `b`? (broad-phase for leaderBoxConflict)
+  bool leaderNearBox(int s, int b) const {
+    return lxmin[s] <= cxmax[b] && cxmin[b] <= lxmax[s]
+        && lymin[s] <= cymax[b] && cymin[b] <= lymax[s];
+  }
   // does either candidate's leader pass through the other's box?
   bool leaderBoxConflict(int a, int b) const {
-    return segbox(ex[a], ey[a], tx[a], ty[a], cxmin[b], cxmax[b], cymin[b], cymax[b])
-        || segbox(ex[b], ey[b], tx[b], ty[b], cxmin[a], cxmax[a], cymin[a], cymax[a]);
+    if (leaderNearBox(a, b)
+        && segbox(ex[a], ey[a], tx[a], ty[a], cxmin[b], cxmax[b], cymin[b], cymax[b])) {
+      return true;
+    }
+    if (leaderNearBox(b, a)
+        && segbox(ex[b], ey[b], tx[b], ty[b], cxmin[a], cxmax[a], cymin[a], cymax[a])) {
+      return true;
+    }
+    return false;
   }
   // do the two leaders cross?
   bool leadersCross(int a, int b) const {
+    if (lxmin[a] > lxmax[b] || lxmax[a] < lxmin[b]
+        || lymin[a] > lymax[b] || lymax[a] < lymin[b]) {
+      return false;
+    }
     return segcross(ex[a], ey[a], tx[a], ty[a], ex[b], ey[b], tx[b], ty[b]);
   }
   // any of the three conflict types between candidates a and b?
@@ -83,6 +117,7 @@ IntegerVector oneMoveSweep(NumericVector cxmin, NumericVector cxmax,
   }
   std::vector<int> cur(init.begin(), init.end());
   CandidateSet cs{cxmin, cxmax, cymin, cymax, ex, ey, tx, ty};
+  cs.prepare();
 
   int applied = 0;
   int passes = 0;
@@ -195,6 +230,7 @@ IntegerVector twoMoveBnB(NumericVector cxmin, NumericVector cxmax,
   }
   std::vector<int> cur(init.begin(), init.end());
   CandidateSet cs{cxmin, cxmax, cymin, cymax, ex, ey, tx, ty};
+  cs.prepare();
   // ranking length: squared (sq) or raw
   auto lengthCost = [&](int cand) -> double {
     return sq ? len[cand] * len[cand] : len[cand];
