@@ -14,11 +14,10 @@
 #include <boost/geometry/geometries/polygon.hpp>
 #include <boost/geometry/geometries/box.hpp>
 #include <boost/geometry/geometries/segment.hpp>
-#include <boost/geometry/geometries/linestring.hpp>
-#include <boost/geometry/geometries/multi_linestring.hpp>
 #include <boost/geometry/index/rtree.hpp>
 #include <vector>
 #include <cmath>
+#include <algorithm>
 
 namespace bg  = boost::geometry;
 namespace bgi = boost::geometry::index;
@@ -26,18 +25,66 @@ typedef bg::model::d2::point_xy<double>     mpt;
 typedef bg::model::polygon<mpt>             mpoly;
 typedef bg::model::box<mpt>                 mbox;
 typedef bg::model::segment<mpt>             mseg;
-typedef bg::model::linestring<mpt>          mline;
-typedef bg::model::multi_linestring<mline>  mmline;
 typedef std::pair<mbox, unsigned>           mval;
 
-// Build a Boost polygon (closed ring, consistent orientation) from parallel x/y vectors.
-static inline mpoly makePolygon(const Rcpp::NumericVector& vx, const Rcpp::NumericVector& vy) {
-  mpoly poly;
-  for (int e = 0; e < vx.size(); ++e) {
-    bg::append(poly.outer(), mpt(vx[e], vy[e]));
+// Even-odd ray-cast: is (px, py) inside the ring (vx, vy) of n vertices?
+static inline bool pointInPoly(double px, double py,
+                               const double* vx, const double* vy, int n) {
+  bool inside = false;
+  for (int i = 0, j = n - 1; i < n; j = i++) {
+    if (((vy[i] > py) != (vy[j] > py))
+        && (px < (vx[j] - vx[i]) * (py - vy[i]) / (vy[j] - vy[i]) + vx[i])) {
+      inside = !inside;
+    }
   }
-  bg::correct(poly);
-  return poly;
+  return inside;
+}
+
+// Length of segment (ax, ay)-(bx, by) that lies inside the simple polygon ring (vx, vy) of n
+// vertices. Collects the parameters t where the segment crosses a polygon edge, then sums the
+// sub-intervals that are inside (parity toggled from the inside-ness of the A endpoint). This
+// is the single-segment case of a linestring/areal intersection length, hand-rolled to avoid
+// Boost's general overlay machinery. `ts` is a caller-owned scratch buffer, reused per call.
+static inline double segInsidePolyLen(double ax, double ay, double bx, double by,
+                                      const double* vx, const double* vy, int n,
+                                      std::vector<double>& ts) {
+  double dx = bx - ax;
+  double dy = by - ay;
+  double segLen = std::sqrt(dx * dx + dy * dy);
+  if (segLen <= 0.0) {
+    return 0.0;
+  }
+  ts.clear();
+  for (int i = 0, j = n - 1; i < n; j = i++) {
+    double ex0 = vx[j];
+    double ey0 = vy[j];
+    double rx = vx[i] - ex0;
+    double ry = vy[i] - ey0;
+    double den = dx * ry - dy * rx;
+    if (std::fabs(den) < 1e-12) {
+      continue;                                          // segment parallel to this edge
+    }
+    double t = ((ex0 - ax) * ry - (ey0 - ay) * rx) / den;   // position along the segment
+    double u = ((ex0 - ax) * dy - (ey0 - ay) * dx) / den;   // position along the edge
+    if (t > 0.0 && t < 1.0 && u >= 0.0 && u <= 1.0) {
+      ts.push_back(t);
+    }
+  }
+  std::sort(ts.begin(), ts.end());
+  bool inside = pointInPoly(ax, ay, vx, vy, n);            // inside-ness of the A end (t = 0)
+  double prev = 0.0;
+  double frac = 0.0;
+  for (std::size_t c = 0; c < ts.size(); ++c) {
+    if (inside) {
+      frac += ts[c] - prev;
+    }
+    prev = ts[c];
+    inside = !inside;
+  }
+  if (inside) {
+    frac += 1.0 - prev;
+  }
+  return frac * segLen;
 }
 
 // Box-fit acceleration structure: an R-tree of cluster-polygon envelopes plus the polygons.

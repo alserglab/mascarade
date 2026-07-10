@@ -1,4 +1,4 @@
-#include "geometry.h"     // Rcpp + Boost.Geometry setup (bg, mpt, mpoly, mline, makePolygon)
+#include "geometry.h"     // Rcpp + Boost.Geometry setup; segInsidePolyLen for the arc term
 #include "constants.h"    // OVERFLOW_WEIGHT
 #include <vector>
 #include <algorithm>
@@ -29,12 +29,13 @@ NumericVector effectiveLength(NumericVector len, NumericVector ex, NumericVector
                               double xlo, double xhi, double ylo, double yhi) {
   int n = ex.size(), K = polysx.size();
 
-  // build each cluster polygon once + cache its bounding box for a cheap broad-phase reject
-  std::vector<mpoly> polys(K);
+  // cache each cluster ring's vertices (raw arrays) + its bounding box for a broad-phase reject
+  std::vector<std::vector<double> > cvx(K), cvy(K);
   std::vector<double> bxmin(K), bxmax(K), bymin(K), bymax(K);
   for (int k = 0; k < K; ++k) {
     NumericVector vx = polysx[k], vy = polysy[k];
-    polys[k] = makePolygon(vx, vy);
+    cvx[k].assign(vx.begin(), vx.end());
+    cvy[k].assign(vy.begin(), vy.end());
     bxmin[k] = *std::min_element(vx.begin(), vx.end());
     bxmax[k] = *std::max_element(vx.begin(), vx.end());
     bymin[k] = *std::min_element(vy.begin(), vy.end());
@@ -42,16 +43,15 @@ NumericVector effectiveLength(NumericVector len, NumericVector ex, NumericVector
   }
 
   NumericVector out(n);
+  std::vector<double> ts;                                          // crossing-param scratch
   for (int i = 0; i < n; ++i) {
     double overflow = std::max(0.0, xlo - cxmin[i]) + std::max(0.0, cxmax[i] - xhi)
                     + std::max(0.0, ylo - cymin[i]) + std::max(0.0, cymax[i] - yhi);
     double eff = len[i] + OVERFLOW_WEIGHT * overflow;
 
-    mline leader;
-    leader.push_back(mpt(ex[i], ey[i]));
-    leader.push_back(mpt(tx[i], ty[i]));
-    double sxmin = std::min(ex[i], tx[i]), sxmax = std::max(ex[i], tx[i]);
-    double symin = std::min(ey[i], ty[i]), symax = std::max(ey[i], ty[i]);
+    double ax = ex[i], ay = ey[i], bx = tx[i], by = ty[i];
+    double sxmin = std::min(ax, bx), sxmax = std::max(ax, bx);
+    double symin = std::min(ay, by), symax = std::max(ay, by);
 
     for (int k = 0; k < K; ++k) {
       if (lab[i] == k + 1) {
@@ -60,9 +60,8 @@ NumericVector effectiveLength(NumericVector len, NumericVector ex, NumericVector
       if (sxmin > bxmax[k] || sxmax < bxmin[k] || symin > bymax[k] || symax < bymin[k]) {
         continue;                                                  // leader bbox misses cluster
       }
-      mmline inside;
-      bg::intersection(leader, polys[k], inside);                  // parts of the leader inside k
-      eff += bg::length(inside);
+      eff += segInsidePolyLen(ax, ay, bx, by,
+                              cvx[k].data(), cvy[k].data(), (int) cvx[k].size(), ts);
     }
     out[i] = eff;
   }

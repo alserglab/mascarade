@@ -51,20 +51,23 @@ List forcePolish(SEXP boxfit, NumericVector cx0, NumericVector cy0,
   std::vector<double> boxXmin(n), boxXmax(n), boxYmin(n), boxYmax(n);
   std::vector<double> anchorX(n), anchorY(n);
 
-  // true cluster mask polygons for the foreign-cluster arc term, each with a cached bounding
-  // box for a cheap broad-phase reject (mirrors effectiveLength()). Label i's own cluster is i.
+  // true cluster mask rings (raw vertex arrays) for the foreign-cluster arc term, each with a
+  // cached bounding box for a cheap broad-phase reject (mirrors effectiveLength()). Label i's
+  // own cluster is i.
   int K = polysx.size();
-  std::vector<mpoly> polys(K);
+  std::vector<std::vector<double> > cvx(K), cvy(K);
   std::vector<double> polyXmin(K), polyXmax(K), polyYmin(K), polyYmax(K);
   for (int k = 0; k < K; ++k) {
     NumericVector vx = polysx[k];
     NumericVector vy = polysy[k];
-    polys[k] = makePolygon(vx, vy);
+    cvx[k].assign(vx.begin(), vx.end());
+    cvy[k].assign(vy.begin(), vy.end());
     polyXmin[k] = *std::min_element(vx.begin(), vx.end());
     polyXmax[k] = *std::max_element(vx.begin(), vx.end());
     polyYmin[k] = *std::min_element(vy.begin(), vy.end());
     polyYmax[k] = *std::max_element(vy.begin(), vy.end());
   }
+  std::vector<double> arcScratch;                        // crossing-param scratch for the arc
 
   // Leader start on label i's box when its centre is (X, Y), aimed at the pole. Mirrors R's
   // .anchorPoint(): con_type 0 = "cl" sign-quadrant corner, else the "cm"/"none" 8-point rule.
@@ -136,11 +139,9 @@ List forcePolish(SEXP boxfit, NumericVector cx0, NumericVector cy0,
   // polygon -- the routing term shared with effectiveLength(). Own cluster i is skipped; a
   // per-polygon bounding-box test rejects the common case where the leader misses the cluster.
   auto foreignArc = [&](int i, double ax, double ay) -> double {
-    mline leader;
-    leader.push_back(mpt(ax, ay));
-    leader.push_back(mpt(tx[i], ty[i]));
-    double sxmin = std::min(ax, tx[i]), sxmax = std::max(ax, tx[i]);
-    double symin = std::min(ay, ty[i]), symax = std::max(ay, ty[i]);
+    double bx = tx[i], by = ty[i];
+    double sxmin = std::min(ax, bx), sxmax = std::max(ax, bx);
+    double symin = std::min(ay, by), symax = std::max(ay, by);
     double arc = 0.0;
     for (int k = 0; k < K; ++k) {
       if (k == i) {
@@ -150,9 +151,8 @@ List forcePolish(SEXP boxfit, NumericVector cx0, NumericVector cy0,
           || symin > polyYmax[k] || symax < polyYmin[k]) {
         continue;
       }
-      mmline inside;
-      bg::intersection(leader, polys[k], inside);
-      arc += bg::length(inside);
+      arc += segInsidePolyLen(ax, ay, bx, by,
+                              cvx[k].data(), cvy[k].data(), (int) cvx[k].size(), arcScratch);
     }
     return arc;
   };
