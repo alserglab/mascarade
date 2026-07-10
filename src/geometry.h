@@ -4,24 +4,41 @@
 // Shared geometry for the label placer.
 //  - BoxFit: a Boost.Geometry R-tree over the cluster polygons, answering the "does a label
 //    box overlap free space?" query exactly (replaces the prototype's occupancy grid).
-//  - segcross / segbox: the per-pair predicates used by the refine and polish stages, kept
-//    hand-rolled so their conflict logic stays identical to the validated prototype.
+//  - segcross / segbox: the per-pair predicates used by the refine and polish stages, thin
+//    wrappers over Boost.Geometry's intersection tests (touching/collinear cases are treated
+//    as conflicts -- the extra edge cases do not matter for the conflict scoring).
 
 #include <Rcpp.h>
 #include <boost/geometry.hpp>
 #include <boost/geometry/geometries/point_xy.hpp>
 #include <boost/geometry/geometries/polygon.hpp>
 #include <boost/geometry/geometries/box.hpp>
+#include <boost/geometry/geometries/segment.hpp>
+#include <boost/geometry/geometries/linestring.hpp>
+#include <boost/geometry/geometries/multi_linestring.hpp>
 #include <boost/geometry/index/rtree.hpp>
 #include <vector>
 #include <cmath>
 
 namespace bg  = boost::geometry;
 namespace bgi = boost::geometry::index;
-typedef bg::model::d2::point_xy<double>  mpt;
-typedef bg::model::polygon<mpt>          mpoly;
-typedef bg::model::box<mpt>              mbox;
-typedef std::pair<mbox, unsigned>        mval;
+typedef bg::model::d2::point_xy<double>     mpt;
+typedef bg::model::polygon<mpt>             mpoly;
+typedef bg::model::box<mpt>                 mbox;
+typedef bg::model::segment<mpt>             mseg;
+typedef bg::model::linestring<mpt>          mline;
+typedef bg::model::multi_linestring<mline>  mmline;
+typedef std::pair<mbox, unsigned>           mval;
+
+// Build a Boost polygon (closed ring, consistent orientation) from parallel x/y vectors.
+static inline mpoly makePolygon(const Rcpp::NumericVector& vx, const Rcpp::NumericVector& vy) {
+  mpoly poly;
+  for (int e = 0; e < vx.size(); ++e) {
+    bg::append(poly.outer(), mpt(vx[e], vy[e]));
+  }
+  bg::correct(poly);
+  return poly;
+}
 
 // Box-fit acceleration structure: an R-tree of cluster-polygon envelopes plus the polygons.
 // Built from the cluster polygons via buildBoxFit() and passed to the candidate / polish
@@ -44,46 +61,21 @@ struct BoxFit {
   }
 };
 
-// Proper segment-segment crossing of a->b and c->d (interior only; touching endpoints do not
-// count).
+// Segment-segment intersection of a->b and c->d (Boost.Geometry; touching/collinear count).
 static inline bool segcross(double ax, double ay, double bx, double by,
                             double cx, double cy, double dx, double dy) {
-  double abx = bx - ax;
-  double aby = by - ay;
-  double cdx = dx - cx;
-  double cdy = dy - cy;
-  double den = abx * cdy - aby * cdx;
-  if (std::fabs(den) <= 1e-12) {
-    return false;
-  }
-  double t = ((cx - ax) * cdy - (cy - ay) * cdx) / den;   // position along a->b
-  double u = ((cx - ax) * aby - (cy - ay) * abx) / den;   // position along c->d
-  return t > 1e-9 && t < 1 - 1e-9 && u > 1e-9 && u < 1 - 1e-9;
+  mseg s1(mpt(ax, ay), mpt(bx, by));
+  mseg s2(mpt(cx, cy), mpt(dx, dy));
+  return bg::intersects(s1, s2);
 }
 
-// Segment (ax, ay)-(bx, by) versus the axis-aligned box [x0, x1] x [y0, y1]: a hit if either
-// endpoint is strictly inside the box or the segment crosses any box edge.
+// Segment (ax, ay)-(bx, by) versus the axis-aligned box [x0, x1] x [y0, y1] (Boost.Geometry):
+// a hit if the segment intersects the box (interior or boundary).
 static inline bool segbox(double ax, double ay, double bx, double by,
                           double x0, double x1, double y0, double y1) {
-  if (ax > x0 && ax < x1 && ay > y0 && ay < y1) {
-    return true;
-  }
-  if (bx > x0 && bx < x1 && by > y0 && by < y1) {
-    return true;
-  }
-  if (segcross(ax, ay, bx, by, x0, y0, x1, y0)) {
-    return true;
-  }
-  if (segcross(ax, ay, bx, by, x1, y0, x1, y1)) {
-    return true;
-  }
-  if (segcross(ax, ay, bx, by, x1, y1, x0, y1)) {
-    return true;
-  }
-  if (segcross(ax, ay, bx, by, x0, y1, x0, y0)) {
-    return true;
-  }
-  return false;
+  mseg s(mpt(ax, ay), mpt(bx, by));
+  mbox box(mpt(x0, y0), mpt(x1, y1));
+  return bg::intersects(s, box);
 }
 
 #endif

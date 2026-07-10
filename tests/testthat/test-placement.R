@@ -90,6 +90,46 @@ test_that("twoMoveBnB resolves an input conflict that needs a longer candidate",
   expect_equal(unname(s["lb"]), 0)
 })
 
+test_that("packLen stacks in order without overlap and minimises true leader length", {
+  set.seed(1)
+  K <- 6
+  px <- runif(K, 1, 12); py <- runif(K, -8, 8); h <- rep(1, K); gap <- 0.25
+  ord <- order(-py)                                   # fixed top-to-bottom order
+  dx <- 0 - px[ord]; slot <- gap / 5
+  cy <- mascarade:::packLen(dx, py[ord], h[ord], gap, slot, -10, 10)
+
+  sep <- (h[ord][-K] + h[ord][-1]) / 2 + gap
+  expect_true(all(diff(cy) < 0))                      # centres run strictly top-to-bottom
+  expect_true(all(-diff(cy) >= sep - 1e-9))           # separation respected (no box overlap)
+
+  # local optimality (necessary + sufficient here: separable convex cost on an ordered chain):
+  # perturbing any centre by one slot, keeping feasibility, never shortens the total.
+  totalLen <- function(y) sum(sqrt(dx^2 + (y - py[ord])^2))
+  base <- totalLen(cy)
+  for (i in seq_len(K)) {
+    for (d in c(-slot, slot)) {
+      y2 <- cy; y2[i] <- y2[i] + d
+      if (all(-diff(y2) >= sep - 1e-9)) {
+        expect_gte(totalLen(y2), base - 1e-9)
+      }
+    }
+  }
+})
+
+test_that("packLen leaves well-separated labels on their poles but spreads crowded ones", {
+  gap <- 0.25; slot <- gap / 5; h <- c(1, 1); dx <- c(2, 2)   # equal horizontal offset
+  # two poles far enough apart (> one box + gap): no packing needed, centres land on the poles
+  far <- mascarade:::packLen(dx, c(3, -3), h, gap, slot, -10, 10)
+  expect_equal(far, c(3, -3), tolerance = slot)
+  expect_true(all(-diff(far) >= (h[1] + h[2]) / 2 + gap - 1e-9))
+
+  # two poles closer than the minimum separation: pushed symmetrically apart about their midpoint
+  # (a real horizontal offset makes the length cost strictly convex, so the optimum is unique)
+  near <- mascarade:::packLen(dx, c(0.4, -0.4), h, gap, slot, -10, 10)
+  expect_equal(-diff(near), (h[1] + h[2]) / 2 + gap, tolerance = slot)  # exactly touching + gap
+  expect_equal(mean(near), 0, tolerance = slot)                        # centred on pole midpoint
+})
+
 test_that("hungarian solves a small assignment to the known optimum", {
   # each row's unique minimum sits in a distinct column -> optimal is that permutation, cost 3
   cost <- matrix(c(9, 1, 9,

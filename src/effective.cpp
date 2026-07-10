@@ -1,23 +1,8 @@
-#include "geometry.h"     // Rcpp + Boost.Geometry setup (bg, mpt, mpoly)
+#include "geometry.h"     // Rcpp + Boost.Geometry setup (bg, mpt, mpoly, mline, makePolygon)
 #include "constants.h"    // OVERFLOW_WEIGHT
-#include <boost/geometry/geometries/linestring.hpp>
-#include <boost/geometry/geometries/multi_linestring.hpp>
 #include <vector>
 #include <algorithm>
 using namespace Rcpp;
-
-typedef bg::model::linestring<mpt>        mline;
-typedef bg::model::multi_linestring<mline> mmline;
-
-// Build a Boost polygon (corrected: closed ring, consistent orientation) from parallel x/y.
-static mpoly makePolygon(const NumericVector& vx, const NumericVector& vy) {
-  mpoly poly;
-  for (int e = 0; e < vx.size(); ++e) {
-    bg::append(poly.outer(), mpt(vx[e], vy[e]));
-  }
-  bg::correct(poly);
-  return poly;
-}
 
 //' Effective length used to rank label candidates
 //'

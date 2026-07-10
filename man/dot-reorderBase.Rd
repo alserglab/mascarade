@@ -4,7 +4,7 @@
 \alias{.reorderBase}
 \title{Conflict-free boundary seed}
 \usage{
-.reorderBase(poi, hw, hh, polyxlim, gap, pad, con_type)
+.reorderBase(poi, hw, hh, polyxlim, ylim, char_h, gap, pad, con_type)
 }
 \arguments{
 \item{poi}{K x 2 matrix of cluster poles.}
@@ -12,6 +12,10 @@
 \item{hw, hh}{Numeric per-label box half-sizes.}
 
 \item{polyxlim}{Numeric length-2 x-range of the (dilated) cluster polygons.}
+
+\item{ylim}{Numeric length-2 viewport y-bounds (slots span at least this).}
+
+\item{char_h}{Numeric line height (the fine packing grid uses \code{char_h + gap}).}
 
 \item{gap}{Numeric seed column spacing.}
 
@@ -23,12 +27,19 @@
 A data.table with \code{label}, \code{cx}, \code{cy}, \code{ex}, \code{ey}, \code{corner}.
 }
 \description{
-Guaranteed-clean fallback placement (for equal box heights): two columns hang off the
-cluster cloud on the vertical lines x = min/max polygon x. Since the polygons are already
-dilated by \code{label.buffer}, those lines sit a keep-out margin outside the true clusters;
-each box's padded near edge sits on its line and the leader starts on the line (bottom
-corner for \code{"cl"}, edge centre otherwise), so it never clips a box. Labels are matched to
-stacked slots by leader length via the Hungarian assignment (minimum total length is
-crossing-free).
+Guaranteed-clean fallback placement: two columns hang off the cluster cloud on the vertical
+lines x = min/max polygon x. Since the polygons are already dilated by \code{label.buffer}, those
+lines sit a keep-out margin outside the true clusters; each box's padded near edge sits on its
+line and the leader starts on the line (bottom corner for \code{"cl"}, edge centre otherwise), so it
+never clips a box.
+}
+\details{
+Each side chooses its slot height once. If its labels all fit the viewport in slots as tall as
+the tallest box (\verb{tallest box + gap}), a single Hungarian assigns labels to those slots -- one
+box per slot, so any assignment is overlap-free and no packing is needed (this handles single-
+and multi-line labels alike). Otherwise the column is too crowded for full-height slots: the
+Hungarian only fixes the top-to-bottom order and \code{packLen()} packs the mixed-height boxes
+tightly on a one-line grid (\verb{one line height + gap}), extended past the viewport when they
+still cannot fit.
 }
 \keyword{internal}

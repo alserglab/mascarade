@@ -17,42 +17,6 @@
 # passes polygons already dilated by `label.buffer`, so box-fit forbids boxes within that
 # distance of the true cluster (see my_make_label).
 
-#' Pool-adjacent-violators isotonic fit (non-increasing)
-#'
-#' Weighted least-squares fit of a non-increasing step function to `y`.
-#'
-#' @param y Numeric vector to fit.
-#' @return Numeric vector, same length as `y`, of the non-increasing fitted values.
-#' @keywords internal
-.pavaDec <- function(y) {
-  vals <- numeric(0); wts <- numeric(0)
-  for (i in seq_along(y)) {
-    cv <- y[i]; cw <- 1
-    while (length(vals) > 0 && vals[length(vals)] < cv) {
-      k <- length(vals); cv <- (vals[k] * wts[k] + cv * cw) / (wts[k] + cw)
-      cw <- wts[k] + cw; vals <- vals[-k]; wts <- wts[-k]
-    }
-    vals <- c(vals, cv); wts <- c(wts, cw)
-  }
-  rep(vals, wts)
-}
-
-#' Isotonic 1-D label stacking
-#'
-#' Places centres as close as possible to targets `t` while keeping a minimum separation of
-#' `(h_i + h_j)/2 + gap` between neighbours (solved via `.pavaDec()`).
-#'
-#' @param t Numeric target positions (e.g. cluster pole y-coordinates).
-#' @param h Numeric box sizes along the stacking axis (one per target).
-#' @param gap Numeric extra separation added between neighbours.
-#' @return Numeric vector of placed centres.
-#' @keywords internal
-.place1d <- function(t, h, gap) {
-  n <- length(t); if (n == 1) return(t)
-  d <- (h[-n] + h[-1]) / 2 + gap; S <- c(0, cumsum(d))
-  e <- .pavaDec(t + S); e - S
-}
-
 #' Leader start anchor on a label box
 #'
 #' The point on the box border where the leader begins, aimed at the pole (`tx`, `ty`). For
@@ -131,43 +95,74 @@
 
 #' Conflict-free boundary seed
 #'
-#' Guaranteed-clean fallback placement (for equal box heights): two columns hang off the
-#' cluster cloud on the vertical lines x = min/max polygon x. Since the polygons are already
-#' dilated by `label.buffer`, those lines sit a keep-out margin outside the true clusters;
-#' each box's padded near edge sits on its line and the leader starts on the line (bottom
-#' corner for `"cl"`, edge centre otherwise), so it never clips a box. Labels are matched to
-#' stacked slots by leader length via the Hungarian assignment (minimum total length is
-#' crossing-free).
+#' Guaranteed-clean fallback placement: two columns hang off the cluster cloud on the vertical
+#' lines x = min/max polygon x. Since the polygons are already dilated by `label.buffer`, those
+#' lines sit a keep-out margin outside the true clusters; each box's padded near edge sits on its
+#' line and the leader starts on the line (bottom corner for `"cl"`, edge centre otherwise), so it
+#' never clips a box.
+#'
+#' Each side chooses its slot height once. If its labels all fit the viewport in slots as tall as
+#' the tallest box (`tallest box + gap`), a single Hungarian assigns labels to those slots -- one
+#' box per slot, so any assignment is overlap-free and no packing is needed (this handles single-
+#' and multi-line labels alike). Otherwise the column is too crowded for full-height slots: the
+#' Hungarian only fixes the top-to-bottom order and `packLen()` packs the mixed-height boxes
+#' tightly on a one-line grid (`one line height + gap`), extended past the viewport when they
+#' still cannot fit.
 #'
 #' @param poi K x 2 matrix of cluster poles.
 #' @param hw,hh Numeric per-label box half-sizes.
 #' @param polyxlim Numeric length-2 x-range of the (dilated) cluster polygons.
+#' @param ylim Numeric length-2 viewport y-bounds (slots span at least this).
+#' @param char_h Numeric line height (the fine packing grid uses `char_h + gap`).
 #' @param gap Numeric seed column spacing.
 #' @param pad Numeric hard box clearance.
 #' @param con_type Leader style (`"cl"` anchors at the bottom corner, else the edge centre).
 #' @return A data.table with `label`, `cx`, `cy`, `ex`, `ey`, `corner`.
 #' @keywords internal
-.reorderBase <- function(poi, hw, hh, polyxlim, gap, pad, con_type) {
+.reorderBase <- function(poi, hw, hh, polyxlim, ylim, char_h, gap, pad, con_type) {
   K <- nrow(poi); fh <- 2 * hh
   ox <- order(poi[, 1]); cs <- cumsum(fh[ox]); k <- which(cs >= sum(fh) / 2)[1]
   if (is.na(k)) k <- K; k <- max(1L, min(k, K - 1L))
   Lset <- ox[seq_len(k)]; Rset <- ox[(k + 1L):K]
   XL <- polyxlim[1]; XR <- polyxlim[2]
+  viewH <- ylim[2] - ylim[1]
   col <- function(set, Xline, side) {              # side: -1 left column, +1 right column
     m <- length(set)
-    if (m == 1) return(data.table::data.table(label = set, cy = poi[set, 2], Xline = Xline, side = side))
-    lab <- set[order(-poi[set, 2])]
-    for (it in seq_len(10L)) {
-      sy <- .place1d(poi[lab, 2], fh[lab], gap)
-      Cm <- sqrt(outer(poi[set, 1], sy, function(a, b) (Xline - a)^2) +   # leader length^2 from
-                 outer(poi[set, 2], sy, function(a, b) (a - b)^2))        # (Xline, slot y) to pole
-      asg <- hungarian(Cm) + 1L
-      newlab <- integer(m); newlab[asg] <- set
-      if (identical(newlab, lab)) break
-      lab <- newlab
+    if (m == 1) {
+      return(data.table::data.table(label = set, cy = poi[set, 2], Xline = Xline, side = side))
     }
-    data.table::data.table(label = lab, cy = .place1d(poi[lab, 2], fh[lab], gap),
-                           Xline = Xline, side = side)
+    dx2 <- (Xline - poi[set, 1])^2
+    py <- poi[set, 2]
+    coarseSlot <- max(fh[set]) + gap               # uniform slot as tall as the tallest box
+    capacity <- floor(viewH / coarseSlot)          # such slots the viewport holds
+    if (m <= capacity) {
+      # room to give every label its own tallest-box slot: the Hungarian assignment is itself
+      # overlap-free (single- or multi-line), so no packing DP is needed. Slots cover the pole
+      # span (a bounded window, clamped into the viewport) so labels sit near their poles.
+      spanSlots <- ceiling((max(py) - min(py)) / coarseSlot)
+      nSlot <- max(m, min(capacity, spanSlots + 2L * m))
+      lo <- mean(range(py)) - nSlot * coarseSlot / 2
+      lo <- max(ylim[1], min(lo, ylim[2] - nSlot * coarseSlot))
+      slotY <- lo + (seq_len(nSlot) - 0.5) * coarseSlot
+      Cm <- matrix(0, nSlot, nSlot)                # square: m real rows + dummy zero-cost rows
+      for (i in seq_len(m)) {
+        Cm[i, ] <- sqrt(dx2[i] + (py[i] - slotY)^2)
+      }
+      asg <- hungarian(Cm) + 1L
+      return(data.table::data.table(label = set, cy = slotY[asg[seq_len(m)]],
+                                    Xline = Xline, side = side))
+    }
+    # too crowded for full-height slots: Hungarian fixes the order, the DP packs the mixed-height
+    # boxes tightly on a one-line grid (extended past the viewport when the column cannot fit).
+    ordY <- mean(range(py)) + (seq_len(m) - (m + 1) / 2) * coarseSlot
+    Cm <- sqrt(outer(dx2, rep(1, m)) +             # leader length from label i to order-slot j
+               outer(py, ordY, function(a, b) (a - b)^2))
+    asg <- hungarian(Cm) + 1L
+    lab <- set[order(-ordY[asg])]                  # top-to-bottom label order
+    data.table::data.table(
+      label = lab,
+      cy = packLen(Xline - poi[lab, 1], poi[lab, 2], fh[lab], gap, char_h + gap, ylim[1], ylim[2]),
+      Xline = Xline, side = side)
   }
   s <- rbind(col(Lset, XL, -1), col(Rset, XR, +1))
   # box centre so the padded near edge sits on the line; leader starts at the true (unpadded)
@@ -219,7 +214,7 @@ placeLabels <- function(geom, xlim, ylim, hw, hh, char_h, con_type = "cl",
   pool$isb <- FALSE
 
   # boundary seed = guaranteed-clean fallback slot / label
-  sd <- .reorderBase(poi, hw, hh, polyxlim, gap, pad, con_type)
+  sd <- .reorderBase(poi, hw, hh, polyxlim, ylim, char_h, gap, pad, con_type)
   seed <- data.table::data.table(
     label = sd$label, cx = sd$cx, cy = sd$cy, hw = hw[sd$label], hh = hh[sd$label],
     tx = poi[sd$label, 1], ty = poi[sd$label, 2],
@@ -249,7 +244,8 @@ placeLabels <- function(geom, xlim, ylim, hw, hh, char_h, con_type = "cl",
   # continuous force-directed polish off the candidate grid (anchor-aware; preserves the
   # discrete solution's conflict-freeness). con_type 0 = "cl" corner, else "cm"/"none".
   two <- pool[tw + 1L][order(label)]
-  r <- forcePolish(geom$rtree, two$cx, two$cy, hw, hh, poi[, 1], poi[, 2], pad,
+  r <- forcePolish(geom$rtree, two$cx, two$cy, hw, hh, poi[, 1], poi[, 2],
+                   geom$polysx, geom$polysy, pad,
                    xlim[1], xlim[2], ylim[1], ylim[2], as.integer(iters), 0.4 * char_h, MU,
                    0.6 * char_h, 0.03 * char_h, if (con_type == "cl") 0L else 1L)
   res <- .geoCols(data.table::data.table(label = seq_len(K), cx = r$cx, cy = r$cy),

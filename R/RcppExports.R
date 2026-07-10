@@ -72,20 +72,55 @@ effectiveLength <- function(len, ex, ey, tx, ty, lab, polysx, polysy, cxmin, cxm
     .Call(`_mascarade_effectiveLength`, len, ex, ey, tx, ty, lab, polysx, polysy, cxmin, cxmax, cymin, cymax, xlo, xhi, ylo, yhi)
 }
 
+#' Fixed-order 1-D packing minimising total leader length
+#'
+#' For labels in a fixed top-to-bottom order, chooses stacked centre y-positions on a fine grid
+#' that minimise the total leader length `sqrt(dx^2 + (cy - py)^2)`, subject to a minimum centre
+#' separation of `(h_i + h_j)/2 + gap` between neighbours. Solved exactly for the given order by
+#' a grid dynamic program (`O(n * gridSize)`): sweeping labels from the bottom up, `g[t]` is the
+#' least total length with the current label at some slot at or below `t` and every lower label
+#' packed beneath it, via a two-option transition per slot -- either place the label in slot `t`
+#' (on top of the best lower label position) or skip the slot and place it lower down. Paired
+#' with the Hungarian order (see the seed reorder) this
+#' reproduces the assignment optimum -- exactly in the equal-height, single-line case -- because
+#' it minimises the true Euclidean leader length rather than a squared-vertical proxy.
+#'
+#' The grid spans at least the whole viewport `[ylo, yhi]` (and the pole range), so labels may
+#' use the full vertical space; when the stacked column is taller than that space the grid is
+#' extended symmetrically beyond it so every box still fits.
+#'
+#' @param dx Numeric horizontal pole-to-column distances, in the fixed top-to-bottom order.
+#' @param py Numeric pole y-coordinates, in the same order.
+#' @param h Numeric full box heights along the stacking axis, in the same order.
+#' @param gap Numeric extra separation added between neighbouring boxes.
+#' @param slot Numeric grid resolution (slot height) for the candidate centre positions.
+#' @param ylo,yhi Numeric viewport y-bounds the grid must cover.
+#' @return Numeric vector of placed centre y-positions, aligned with the inputs.
+#' @keywords internal
+packLen <- function(dx, py, h, gap, slot, ylo, yhi) {
+    .Call(`_mascarade_packLen`, dx, py, h, gap, slot, ylo, yhi)
+}
+
 #' Continuous force-directed label polish
 #'
-#' Pattern-search descent on an energy (squared centre-to-pole length + box-box spacing +
-#' viewport overflow) under a hard conflict guard: starting from a conflict-free layout it
-#' only accepts conflict-free neighbours (free-space check via the BoxFit R-tree), so
-#' feasibility is preserved. The viewport is a SOFT overflow penalty, not a hard clip, so an
-#' off-panel label can be walked back in-bounds and a label leaves the panel only when that
-#' lowers total energy. The leader anchor rule mirrors R's `.anchorPoint()`, so the conflict
-#' guard matches the drawn geometry.
+#' Pattern-search descent on the (squared) EFFECTIVE length under a hard conflict guard. The
+#' effective length of a label is its centre-to-pole leader length, plus the arc of the leader
+#' that runs inside any foreign cluster (routing leaders around clusters), plus a soft viewport
+#' overflow penalty -- the same quantity minimised by the upstream `effectiveLength()` ranking,
+#' so the continuous polish and the discrete candidate refinement optimise a consistent
+#' objective. A box-box spacing penalty is added on top. Starting from a conflict-free layout
+#' the search only accepts conflict-free neighbours (free-space check via the BoxFit R-tree),
+#' so feasibility is preserved. Overflow is a SOFT term folded into the effective length, not a
+#' hard clip, so an off-panel label can be walked back in-bounds and a label leaves the panel
+#' only when that lowers total energy. The leader anchor rule mirrors R's `.anchorPoint()`, so
+#' both the conflict guard and the foreign-cluster arc match the drawn geometry.
 #'
 #' @param boxfit External pointer from `buildBoxFit()` (the cluster keep-out).
 #' @param cx0,cy0 Numeric starting label-centre coordinates.
 #' @param hw,hh Numeric per-label box half-sizes.
 #' @param tx,ty Numeric per-label pole (leader target).
+#' @param polysx,polysy Lists of parallel numeric x/y vectors, one true mask ring per cluster
+#'   (aligned with the labels), used for the foreign-cluster arc term.
 #' @param pad Numeric hard box clearance.
 #' @param xlo,xhi,ylo,yhi Numeric viewport bounds.
 #' @param iters Integer iteration count.
@@ -98,8 +133,8 @@ effectiveLength <- function(len, ex, ey, tx, ty, lab, polysx, polysy, cxmin, cxm
 #' @param sq Logical; if `TRUE`, the length term uses the squared distance.
 #' @return A list with numeric `cx`, `cy`: the polished label centres.
 #' @keywords internal
-forcePolish <- function(boxfit, cx0, cy0, hw, hh, tx, ty, pad, xlo, xhi, ylo, yhi, iters, step, MU, pad_tgt, stepmin, con_type, ll_hard = TRUE, sq = TRUE) {
-    .Call(`_mascarade_forcePolish`, boxfit, cx0, cy0, hw, hh, tx, ty, pad, xlo, xhi, ylo, yhi, iters, step, MU, pad_tgt, stepmin, con_type, ll_hard, sq)
+forcePolish <- function(boxfit, cx0, cy0, hw, hh, tx, ty, polysx, polysy, pad, xlo, xhi, ylo, yhi, iters, step, MU, pad_tgt, stepmin, con_type, ll_hard = TRUE, sq = TRUE) {
+    .Call(`_mascarade_forcePolish`, boxfit, cx0, cy0, hw, hh, tx, ty, polysx, polysy, pad, xlo, xhi, ylo, yhi, iters, step, MU, pad_tgt, stepmin, con_type, ll_hard, sq)
 }
 
 #' Single-move conflict sweep

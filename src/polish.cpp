@@ -6,18 +6,24 @@ using namespace Rcpp;
 
 //' Continuous force-directed label polish
 //'
-//' Pattern-search descent on an energy (squared centre-to-pole length + box-box spacing +
-//' viewport overflow) under a hard conflict guard: starting from a conflict-free layout it
-//' only accepts conflict-free neighbours (free-space check via the BoxFit R-tree), so
-//' feasibility is preserved. The viewport is a SOFT overflow penalty, not a hard clip, so an
-//' off-panel label can be walked back in-bounds and a label leaves the panel only when that
-//' lowers total energy. The leader anchor rule mirrors R's `.anchorPoint()`, so the conflict
-//' guard matches the drawn geometry.
+//' Pattern-search descent on the (squared) EFFECTIVE length under a hard conflict guard. The
+//' effective length of a label is its centre-to-pole leader length, plus the arc of the leader
+//' that runs inside any foreign cluster (routing leaders around clusters), plus a soft viewport
+//' overflow penalty -- the same quantity minimised by the upstream `effectiveLength()` ranking,
+//' so the continuous polish and the discrete candidate refinement optimise a consistent
+//' objective. A box-box spacing penalty is added on top. Starting from a conflict-free layout
+//' the search only accepts conflict-free neighbours (free-space check via the BoxFit R-tree),
+//' so feasibility is preserved. Overflow is a SOFT term folded into the effective length, not a
+//' hard clip, so an off-panel label can be walked back in-bounds and a label leaves the panel
+//' only when that lowers total energy. The leader anchor rule mirrors R's `.anchorPoint()`, so
+//' both the conflict guard and the foreign-cluster arc match the drawn geometry.
 //'
 //' @param boxfit External pointer from `buildBoxFit()` (the cluster keep-out).
 //' @param cx0,cy0 Numeric starting label-centre coordinates.
 //' @param hw,hh Numeric per-label box half-sizes.
 //' @param tx,ty Numeric per-label pole (leader target).
+//' @param polysx,polysy Lists of parallel numeric x/y vectors, one true mask ring per cluster
+//'   (aligned with the labels), used for the foreign-cluster arc term.
 //' @param pad Numeric hard box clearance.
 //' @param xlo,xhi,ylo,yhi Numeric viewport bounds.
 //' @param iters Integer iteration count.
@@ -33,6 +39,7 @@ using namespace Rcpp;
 // [[Rcpp::export]]
 List forcePolish(SEXP boxfit, NumericVector cx0, NumericVector cy0,
                  NumericVector hw, NumericVector hh, NumericVector tx, NumericVector ty,
+                 List polysx, List polysy,
                  double pad, double xlo, double xhi, double ylo, double yhi,
                  int iters, double step, double MU, double pad_tgt, double stepmin,
                  int con_type, bool ll_hard = true, bool sq = true) {
@@ -43,6 +50,21 @@ List forcePolish(SEXP boxfit, NumericVector cx0, NumericVector cy0,
   // padded box extents + leader anchor cached for each label's CURRENT placement
   std::vector<double> boxXmin(n), boxXmax(n), boxYmin(n), boxYmax(n);
   std::vector<double> anchorX(n), anchorY(n);
+
+  // true cluster mask polygons for the foreign-cluster arc term, each with a cached bounding
+  // box for a cheap broad-phase reject (mirrors effectiveLength()). Label i's own cluster is i.
+  int K = polysx.size();
+  std::vector<mpoly> polys(K);
+  std::vector<double> polyXmin(K), polyXmax(K), polyYmin(K), polyYmax(K);
+  for (int k = 0; k < K; ++k) {
+    NumericVector vx = polysx[k];
+    NumericVector vy = polysy[k];
+    polys[k] = makePolygon(vx, vy);
+    polyXmin[k] = *std::min_element(vx.begin(), vx.end());
+    polyXmax[k] = *std::max_element(vx.begin(), vx.end());
+    polyYmin[k] = *std::min_element(vy.begin(), vy.end());
+    polyYmax[k] = *std::max_element(vy.begin(), vy.end());
+  }
 
   // Leader start on label i's box when its centre is (X, Y), aimed at the pole. Mirrors R's
   // .anchorPoint(): con_type 0 = "cl" sign-quadrant corner, else the "cm"/"none" 8-point rule.
@@ -110,17 +132,45 @@ List forcePolish(SEXP boxfit, NumericVector cx0, NumericVector cy0,
     }
     return true;
   };
-  // energy of centre (X, Y) for label i: length to pole + soft viewport overflow + box spacing
+  // total length of label i's leader (anchor -> pole) that runs inside any FOREIGN cluster mask
+  // polygon -- the routing term shared with effectiveLength(). Own cluster i is skipped; a
+  // per-polygon bounding-box test rejects the common case where the leader misses the cluster.
+  auto foreignArc = [&](int i, double ax, double ay) -> double {
+    mline leader;
+    leader.push_back(mpt(ax, ay));
+    leader.push_back(mpt(tx[i], ty[i]));
+    double sxmin = std::min(ax, tx[i]), sxmax = std::max(ax, tx[i]);
+    double symin = std::min(ay, ty[i]), symax = std::max(ay, ty[i]);
+    double arc = 0.0;
+    for (int k = 0; k < K; ++k) {
+      if (k == i) {
+        continue;
+      }
+      if (sxmin > polyXmax[k] || sxmax < polyXmin[k]
+          || symin > polyYmax[k] || symax < polyYmin[k]) {
+        continue;
+      }
+      mmline inside;
+      bg::intersection(leader, polys[k], inside);
+      arc += bg::length(inside);
+    }
+    return arc;
+  };
+  // energy of centre (X, Y) for label i: the (squared) EFFECTIVE length -- leader length to the
+  // pole, plus the leader's arc inside foreign clusters, plus a SOFT viewport-overflow penalty
+  // folded in (no longer a separate additive term) -- then the box-box spacing penalty on top.
   auto energy = [&](int i, double X, double Y) -> double {
     double bxlo = X - hw[i] - pad;
     double bxhi = X + hw[i] + pad;
     double bylo = Y - hh[i] - pad;
     double byhi = Y + hh[i] + pad;
-    double dist2 = (X - tx[i]) * (X - tx[i]) + (Y - ty[i]) * (Y - ty[i]);
-    double e = sq ? dist2 : std::sqrt(dist2);
-    // viewport overflow (soft): labels leave the panel only when it lowers total energy
-    e += OVERFLOW_WEIGHT * (std::max(0.0, xlo - bxlo) + std::max(0.0, bxhi - xhi)
-                         + std::max(0.0, ylo - bylo) + std::max(0.0, byhi - yhi));
+    double dist = std::sqrt((X - tx[i]) * (X - tx[i]) + (Y - ty[i]) * (Y - ty[i]));
+    double overflow = std::max(0.0, xlo - bxlo) + std::max(0.0, bxhi - xhi)
+                    + std::max(0.0, ylo - bylo) + std::max(0.0, byhi - yhi);
+    double ax, ay;
+    leaderAnchor(i, X, Y, ax, ay);
+    double effLen = dist + foreignArc(i, ax, ay) + OVERFLOW_WEIGHT * overflow;
+    double e = sq ? effLen * effLen : effLen;
     for (int j = 0; j < n; ++j) {
       if (j == i) {
         continue;

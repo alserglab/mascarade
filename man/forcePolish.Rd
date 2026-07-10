@@ -12,6 +12,8 @@ forcePolish(
   hh,
   tx,
   ty,
+  polysx,
+  polysy,
   pad,
   xlo,
   xhi,
@@ -35,6 +37,9 @@ forcePolish(
 \item{hw, hh}{Numeric per-label box half-sizes.}
 
 \item{tx, ty}{Numeric per-label pole (leader target).}
+
+\item{polysx, polysy}{Lists of parallel numeric x/y vectors, one true mask ring per cluster
+(aligned with the labels), used for the foreign-cluster arc term.}
 
 \item{pad}{Numeric hard box clearance.}
 
@@ -60,12 +65,16 @@ forcePolish(
 A list with numeric \code{cx}, \code{cy}: the polished label centres.
 }
 \description{
-Pattern-search descent on an energy (squared centre-to-pole length + box-box spacing +
-viewport overflow) under a hard conflict guard: starting from a conflict-free layout it
-only accepts conflict-free neighbours (free-space check via the BoxFit R-tree), so
-feasibility is preserved. The viewport is a SOFT overflow penalty, not a hard clip, so an
-off-panel label can be walked back in-bounds and a label leaves the panel only when that
-lowers total energy. The leader anchor rule mirrors R's \code{.anchorPoint()}, so the conflict
-guard matches the drawn geometry.
+Pattern-search descent on the (squared) EFFECTIVE length under a hard conflict guard. The
+effective length of a label is its centre-to-pole leader length, plus the arc of the leader
+that runs inside any foreign cluster (routing leaders around clusters), plus a soft viewport
+overflow penalty -- the same quantity minimised by the upstream \code{effectiveLength()} ranking,
+so the continuous polish and the discrete candidate refinement optimise a consistent
+objective. A box-box spacing penalty is added on top. Starting from a conflict-free layout
+the search only accepts conflict-free neighbours (free-space check via the BoxFit R-tree),
+so feasibility is preserved. Overflow is a SOFT term folded into the effective length, not a
+hard clip, so an off-panel label can be walked back in-bounds and a label leaves the panel
+only when that lowers total energy. The leader anchor rule mirrors R's \code{.anchorPoint()}, so
+both the conflict guard and the foreign-cluster arc match the drawn geometry.
 }
 \keyword{internal}
