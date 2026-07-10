@@ -13,21 +13,23 @@ using namespace Rcpp;
 //' @keywords internal
 // [[Rcpp::export]]
 SEXP buildBoxFit(List polysx, List polysy) {
-  int np = polysx.size();
-  BoxFit* bf = new BoxFit();
-  bf->polys.resize(np);
-  std::vector<mval> vals;
-  vals.reserve(np);
-  for (int k = 0; k < np; ++k) {
-    NumericVector vx = polysx[k], vy = polysy[k];
+  int nClusters = polysx.size();
+  BoxFit* boxFit = new BoxFit();
+  boxFit->polys.resize(nClusters);
+  std::vector<mval> entries;                        // (envelope, cluster index) for the R-tree
+  entries.reserve(nClusters);
+  for (int k = 0; k < nClusters; ++k) {
+    NumericVector vx = polysx[k];
+    NumericVector vy = polysy[k];
     int m = vx.size();
-    mpoly p;
-    for (int i = 0; i < m; ++i) bg::append(p.outer(), mpt(vx[i], vy[i]));
-    bg::correct(p);
-    bf->polys[k] = p;
-    vals.push_back(std::make_pair(bg::return_envelope<mbox>(p), (unsigned) k));
+    mpoly poly;
+    for (int i = 0; i < m; ++i) {
+      bg::append(poly.outer(), mpt(vx[i], vy[i]));
+    }
+    bg::correct(poly);                              // close the ring / fix orientation
+    boxFit->polys[k] = poly;
+    entries.push_back(std::make_pair(bg::return_envelope<mbox>(poly), (unsigned) k));
   }
-  bf->tree = bgi::rtree<mval, bgi::quadratic<16> >(vals.begin(), vals.end());
-  XPtr<BoxFit> ptr(bf, true);
-  return ptr;
+  boxFit->tree = bgi::rtree<mval, bgi::quadratic<16> >(entries.begin(), entries.end());
+  return XPtr<BoxFit>(boxFit, true);
 }

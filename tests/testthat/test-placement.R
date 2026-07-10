@@ -89,3 +89,14 @@ test_that("twoMoveBnB resolves an input conflict that needs a longer candidate",
   expect_equal(unname(s["ll"]), 0)
   expect_equal(unname(s["lb"]), 0)
 })
+
+test_that("hungarian solves a small assignment to the known optimum", {
+  # each row's unique minimum sits in a distinct column -> optimal is that permutation, cost 3
+  cost <- matrix(c(9, 1, 9,
+                   9, 9, 1,
+                   1, 9, 9), nrow = 3, byrow = TRUE)
+  res <- mascarade:::hungarian(cost)          # res[i] = 0-indexed column assigned to row i
+  expect_equal(res, c(1L, 2L, 0L))
+  total <- sum(vapply(seq_len(3), function(i) cost[i, res[i] + 1L], 0))
+  expect_equal(total, 3)
+})
