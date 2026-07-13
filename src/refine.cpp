@@ -9,51 +9,40 @@ using namespace Rcpp;
 struct CandidateSet {
   NumericVector cxmin, cxmax, cymin, cymax;   // padded box extents, one per candidate
   NumericVector ex, ey, tx, ty;               // leader per candidate: anchor -> pole
-  // per-candidate leader bounding box, cached by prepare() for the broad-phase rejects below
-  std::vector<double> lxmin, lxmax, lymin, lymax;
+  // per-candidate padded box and leader bounding box, cached by prepare() for the rejects below
+  std::vector<Rect> box, leaderBox;
 
-  // cache each leader's axis-aligned bounding box (call once after construction). The pairwise
+  // cache each candidate's box + leader bounding box (call once after construction). The pairwise
   // predicates are dominated by the Boost segment tests, so a cheap AABB reject in front of them
   // skips the (common) far-apart pairs without a full segment/segment or segment/box test.
   void prepare() {
     int n = ex.size();
-    lxmin.resize(n);
-    lxmax.resize(n);
-    lymin.resize(n);
-    lymax.resize(n);
+    box.resize(n);
+    leaderBox.resize(n);
     for (int i = 0; i < n; ++i) {
-      lxmin[i] = std::min(ex[i], tx[i]);
-      lxmax[i] = std::max(ex[i], tx[i]);
-      lymin[i] = std::min(ey[i], ty[i]);
-      lymax[i] = std::max(ey[i], ty[i]);
+      box[i] = Rect{cxmin[i], cxmax[i], cymin[i], cymax[i]};
+      leaderBox[i] = Rect::ofSegment(ex[i], ey[i], tx[i], ty[i]);
     }
   }
-  // do the padded boxes of candidates a and b overlap?
+  // do the padded boxes of candidates a and b overlap? (touching does not count)
   bool boxesOverlap(int a, int b) const {
-    return cxmin[a] < cxmax[b] && cxmin[b] < cxmax[a]
-        && cymin[a] < cymax[b] && cymin[b] < cymax[a];
+    return box[a].overlaps(box[b]);
   }
-  // does leader `s` (its cached AABB) come near box `b`? (broad-phase for leaderBoxConflict)
-  bool leaderNearBox(int s, int b) const {
-    return lxmin[s] <= cxmax[b] && cxmin[b] <= lxmax[s]
-        && lymin[s] <= cymax[b] && cymin[b] <= lymax[s];
-  }
-  // does either candidate's leader pass through the other's box?
+  // does either candidate's leader pass through the other's box? (bbox reject then exact test)
   bool leaderBoxConflict(int a, int b) const {
-    if (leaderNearBox(a, b)
-        && segbox(ex[a], ey[a], tx[a], ty[a], cxmin[b], cxmax[b], cymin[b], cymax[b])) {
+    if (leaderBox[a].overlaps(box[b])
+        && segbox(ex[a], ey[a], tx[a], ty[a], box[b])) {
       return true;
     }
-    if (leaderNearBox(b, a)
-        && segbox(ex[b], ey[b], tx[b], ty[b], cxmin[a], cxmax[a], cymin[a], cymax[a])) {
+    if (leaderBox[b].overlaps(box[a])
+        && segbox(ex[b], ey[b], tx[b], ty[b], box[a])) {
       return true;
     }
     return false;
   }
-  // do the two leaders cross?
+  // do the two leaders cross? (bbox reject then exact test)
   bool leadersCross(int a, int b) const {
-    if (lxmin[a] > lxmax[b] || lxmax[a] < lxmin[b]
-        || lymin[a] > lymax[b] || lymax[a] < lymin[b]) {
+    if (!leaderBox[a].overlaps(leaderBox[b])) {
       return false;
     }
     return segcross(ex[a], ey[a], tx[a], ty[a], ex[b], ey[b], tx[b], ty[b]);

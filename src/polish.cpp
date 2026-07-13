@@ -1,5 +1,4 @@
-#include "geometry.h"
-#include "constants.h"   // OVERFLOW_WEIGHT
+#include "effective.h"   // effectiveLengthImpl + ClusterArcs; pulls in geometry.h
 #include <vector>
 #include <algorithm>
 using namespace Rcpp;
@@ -47,27 +46,15 @@ List forcePolish(SEXP boxfit, NumericVector cx0, NumericVector cy0,
   int n = cx0.size();
   std::vector<double> cx(cx0.begin(), cx0.end());
   std::vector<double> cy(cy0.begin(), cy0.end());
-  // padded box extents + leader anchor cached for each label's CURRENT placement
-  std::vector<double> boxXmin(n), boxXmax(n), boxYmin(n), boxYmax(n);
+  // padded box + leader anchor cached for each label's CURRENT placement; the viewport rectangle
+  std::vector<Rect> box(n);
   std::vector<double> anchorX(n), anchorY(n);
+  Rect view{xlo, xhi, ylo, yhi};
 
-  // true cluster mask rings (raw vertex arrays) for the foreign-cluster arc term, each with a
-  // cached bounding box for a cheap broad-phase reject (mirrors effectiveLength()). Label i's
-  // own cluster is i.
-  int K = polysx.size();
-  std::vector<std::vector<double> > cvx(K), cvy(K);
-  std::vector<double> polyXmin(K), polyXmax(K), polyYmin(K), polyYmax(K);
-  for (int k = 0; k < K; ++k) {
-    NumericVector vx = polysx[k];
-    NumericVector vy = polysy[k];
-    cvx[k].assign(vx.begin(), vx.end());
-    cvy[k].assign(vy.begin(), vy.end());
-    polyXmin[k] = *std::min_element(vx.begin(), vx.end());
-    polyXmax[k] = *std::max_element(vx.begin(), vx.end());
-    polyYmin[k] = *std::min_element(vy.begin(), vy.end());
-    polyYmax[k] = *std::max_element(vy.begin(), vy.end());
-  }
-  std::vector<double> arcScratch;                        // crossing-param scratch for the arc
+  // shared foreign-cluster arc field over the true cluster rings (same computation the upstream
+  // effectiveLength() uses). Label i's own cluster is i.
+  ClusterArcs arcs;
+  arcs.build(polysx, polysy);
 
   // Leader start on label i's box when its centre is (X, Y), aimed at the pole. Mirrors R's
   // .anchorPoint(): con_type 0 = "cl" sign-quadrant corner, else the "cm"/"none" 8-point rule.
@@ -86,31 +73,26 @@ List forcePolish(SEXP boxfit, NumericVector cx0, NumericVector cy0,
       ay = (!xin && yin) ? Y : Y + sY * hh[i];
     }
   };
+  // padded box of label i centred at (X, Y)
+  auto paddedBox = [&](int i, double X, double Y) -> Rect {
+    return Rect{X - hw[i] - pad, X + hw[i] + pad, Y - hh[i] - pad, Y + hh[i] + pad};
+  };
   // cache label i's padded box + leader anchor for centre (X, Y)
   auto updateGeom = [&](int i, double X, double Y) {
-    boxXmin[i] = X - hw[i] - pad;
-    boxXmax[i] = X + hw[i] + pad;
-    boxYmin[i] = Y - hh[i] - pad;
-    boxYmax[i] = Y + hh[i] + pad;
+    box[i] = paddedBox(i, X, Y);
     leaderAnchor(i, X, Y, anchorX[i], anchorY[i]);
   };
   for (int i = 0; i < n; ++i) {
     updateGeom(i, cx[i], cy[i]);
   }
 
-  // label i's box (no pad) must not overlap any cluster polygon
-  auto boxHitsCluster = [&](int i, double X, double Y) -> bool {
-    return boxFit->hit(X - hw[i], X + hw[i], Y - hh[i], Y + hh[i]);
-  };
   // is centre (X, Y) for label i conflict-free? (the viewport is a soft energy term, not here)
   auto conflictFree = [&](int i, double X, double Y) -> bool {
-    if (boxHitsCluster(i, X, Y)) {
+    // label i's box (no pad) must not overlap any cluster polygon
+    if (boxFit->hit(Rect{X - hw[i], X + hw[i], Y - hh[i], Y + hh[i]})) {
       return false;
     }
-    double bxlo = X - hw[i] - pad;
-    double bxhi = X + hw[i] + pad;
-    double bylo = Y - hh[i] - pad;
-    double byhi = Y + hh[i] + pad;
+    Rect me = paddedBox(i, X, Y);
     double ax, ay;
     leaderAnchor(i, X, Y, ax, ay);
     for (int j = 0; j < n; ++j) {
@@ -118,14 +100,14 @@ List forcePolish(SEXP boxfit, NumericVector cx0, NumericVector cy0,
         continue;
       }
       // box-box overlap
-      if (bxlo < boxXmax[j] && boxXmin[j] < bxhi && bylo < boxYmax[j] && boxYmin[j] < byhi) {
+      if (me.overlaps(box[j])) {
         return false;
       }
       // my leader through box j, or leader j through my box
-      if (segbox(ax, ay, tx[i], ty[i], boxXmin[j], boxXmax[j], boxYmin[j], boxYmax[j])) {
+      if (segbox(ax, ay, tx[i], ty[i], box[j])) {
         return false;
       }
-      if (segbox(anchorX[j], anchorY[j], tx[j], ty[j], bxlo, bxhi, bylo, byhi)) {
+      if (segbox(anchorX[j], anchorY[j], tx[j], ty[j], me)) {
         return false;
       }
       // leaders crossing (hard constraint only when ll_hard)
@@ -135,49 +117,21 @@ List forcePolish(SEXP boxfit, NumericVector cx0, NumericVector cy0,
     }
     return true;
   };
-  // total length of label i's leader (anchor -> pole) that runs inside any FOREIGN cluster mask
-  // polygon -- the routing term shared with effectiveLength(). Own cluster i is skipped; a
-  // per-polygon bounding-box test rejects the common case where the leader misses the cluster.
-  auto foreignArc = [&](int i, double ax, double ay) -> double {
-    double bx = tx[i], by = ty[i];
-    double sxmin = std::min(ax, bx), sxmax = std::max(ax, bx);
-    double symin = std::min(ay, by), symax = std::max(ay, by);
-    double arc = 0.0;
-    for (int k = 0; k < K; ++k) {
-      if (k == i) {
-        continue;
-      }
-      if (sxmin > polyXmax[k] || sxmax < polyXmin[k]
-          || symin > polyYmax[k] || symax < polyYmin[k]) {
-        continue;
-      }
-      arc += segInsidePolyLen(ax, ay, bx, by,
-                              cvx[k].data(), cvy[k].data(), (int) cvx[k].size(), arcScratch);
-    }
-    return arc;
-  };
   // energy of centre (X, Y) for label i: the (squared) EFFECTIVE length -- leader length to the
   // pole, plus the leader's arc inside foreign clusters, plus a SOFT viewport-overflow penalty
   // folded in (no longer a separate additive term) -- then the box-box spacing penalty on top.
   auto energy = [&](int i, double X, double Y) -> double {
-    double bxlo = X - hw[i] - pad;
-    double bxhi = X + hw[i] + pad;
-    double bylo = Y - hh[i] - pad;
-    double byhi = Y + hh[i] + pad;
+    Rect me = paddedBox(i, X, Y);
     double dist = std::sqrt((X - tx[i]) * (X - tx[i]) + (Y - ty[i]) * (Y - ty[i]));
-    double overflow = std::max(0.0, xlo - bxlo) + std::max(0.0, bxhi - xhi)
-                    + std::max(0.0, ylo - bylo) + std::max(0.0, byhi - yhi);
     double ax, ay;
     leaderAnchor(i, X, Y, ax, ay);
-    double effLen = dist + foreignArc(i, ax, ay) + OVERFLOW_WEIGHT * overflow;
+    double effLen = effectiveLengthImpl(arcs, i, ax, ay, tx[i], ty[i], dist, me, view);
     double e = sq ? effLen * effLen : effLen;
     for (int j = 0; j < n; ++j) {
       if (j == i) {
         continue;
       }
-      double gapX = std::max(std::max(bxlo - boxXmax[j], boxXmin[j] - bxhi), 0.0);
-      double gapY = std::max(std::max(bylo - boxYmax[j], boxYmin[j] - byhi), 0.0);
-      double gap = std::sqrt(gapX * gapX + gapY * gapY);
+      double gap = me.gap(box[j]);
       if (gap < pad_tgt) {
         double deficit = pad_tgt - gap;
         e += MU * deficit * deficit;

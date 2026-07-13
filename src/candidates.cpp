@@ -50,7 +50,7 @@ DataFrame radialCandidates(SEXP boxfit, NumericMatrix poi,
       for (double r = rstart; r <= rmax; r += step) {
         double x = poleX + r * dirX;
         double y = poleY + r * dirY;
-        bool free = !boxFit->hit(x - halfW, x + halfW, y - halfH, y + halfH);
+        bool free = !boxFit->hit(Rect{x - halfW, x + halfW, y - halfH, y + halfH});
         // emit at the near edge of a free interval, then every `intfill` along a wide one
         // (candidates may fall outside the viewport; the effective-length overflow ranks them)
         if (free && (!prevFree || r - lastAdd >= intfill)) {

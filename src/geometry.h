@@ -27,6 +27,34 @@ typedef bg::model::box<mpt>                 mbox;
 typedef bg::model::segment<mpt>             mseg;
 typedef std::pair<mbox, unsigned>           mval;
 
+// Axis-aligned rectangle (a label box, bounding box, or the viewport). Bundles the four extents
+// that were otherwise passed around as loose doubles, and centralises the overlap / overflow /
+// gap tests.
+struct Rect {
+  double xmin, xmax, ymin, ymax;
+
+  // bounding box of a segment (its two endpoints)
+  static Rect ofSegment(double ax, double ay, double bx, double by) {
+    return Rect{std::min(ax, bx), std::max(ax, bx), std::min(ay, by), std::max(ay, by)};
+  }
+  // do the two rectangles overlap? Closed (touching edges count); with plain doubles and no
+  // exact-equality/epsilon handling the open/closed boundary case never affects the outcome.
+  bool overlaps(const Rect& o) const {
+    return xmin <= o.xmax && o.xmin <= xmax && ymin <= o.ymax && o.ymin <= ymax;
+  }
+  // total distance this box sticks out past `view` (0 when fully inside)
+  double overflow(const Rect& view) const {
+    return std::max(0.0, view.xmin - xmin) + std::max(0.0, xmax - view.xmax)
+         + std::max(0.0, view.ymin - ymin) + std::max(0.0, ymax - view.ymax);
+  }
+  // Euclidean gap to `o` (0 when overlapping or touching)
+  double gap(const Rect& o) const {
+    double gx = std::max(std::max(xmin - o.xmax, o.xmin - xmax), 0.0);
+    double gy = std::max(std::max(ymin - o.ymax, o.ymin - ymax), 0.0);
+    return std::sqrt(gx * gx + gy * gy);
+  }
+};
+
 // Even-odd ray-cast: is (px, py) inside the ring (vx, vy) of n vertices?
 static inline bool pointInPoly(double px, double py,
                                const double* vx, const double* vy, int n) {
@@ -87,6 +115,49 @@ static inline double segInsidePolyLen(double ax, double ay, double bx, double by
   return frac * segLen;
 }
 
+// Cached cluster mask rings (raw vertex arrays + bounding boxes) exposing the foreign-cluster
+// arc query shared by effectiveLength() and the forcePolish() energy: the total length of a
+// leader segment that runs inside any cluster other than its own. Built once per placement from
+// the true (undilated) rings; a per-cluster bounding box rejects the common leader-misses-cluster
+// case before the segment/polygon length test.
+struct ClusterArcs {
+  std::vector<std::vector<double> > cvx, cvy;         // per-cluster ring vertices
+  std::vector<Rect> bbox;                             // per-cluster bounding box
+  int K = 0;
+  mutable std::vector<double> scratch;                // crossing-param scratch, reused per call
+
+  void build(const Rcpp::List& polysx, const Rcpp::List& polysy) {
+    K = polysx.size();
+    cvx.resize(K);
+    cvy.resize(K);
+    bbox.resize(K);
+    for (int k = 0; k < K; ++k) {
+      Rcpp::NumericVector vx = polysx[k];
+      Rcpp::NumericVector vy = polysy[k];
+      cvx[k].assign(vx.begin(), vx.end());
+      cvy[k].assign(vy.begin(), vy.end());
+      bbox[k] = Rect{*std::min_element(vx.begin(), vx.end()),
+                     *std::max_element(vx.begin(), vx.end()),
+                     *std::min_element(vy.begin(), vy.end()),
+                     *std::max_element(vy.begin(), vy.end())};
+    }
+  }
+
+  // total length of segment (ax, ay)-(bx, by) inside any cluster other than `own` (0-based index)
+  double foreignArc(int own, double ax, double ay, double bx, double by) const {
+    Rect leader = Rect::ofSegment(ax, ay, bx, by);
+    double arc = 0.0;
+    for (int k = 0; k < K; ++k) {
+      if (k == own || !leader.overlaps(bbox[k])) {
+        continue;
+      }
+      arc += segInsidePolyLen(ax, ay, bx, by,
+                              cvx[k].data(), cvy[k].data(), (int) cvx[k].size(), scratch);
+    }
+    return arc;
+  }
+};
+
 // Box-fit acceleration structure: an R-tree of cluster-polygon envelopes plus the polygons.
 // Built from the cluster polygons via buildBoxFit() and passed to the candidate / polish
 // kernels as an XPtr handle for box-fit queries within a single placement.
@@ -94,9 +165,9 @@ struct BoxFit {
   std::vector<mpoly> polys;
   bgi::rtree<mval, bgi::quadratic<16> > tree;
 
-  // does the axis-aligned box [xmin, xmax] x [ymin, ymax] intersect ANY cluster polygon?
-  bool hit(double xmin, double xmax, double ymin, double ymax) const {
-    mbox query(mpt(xmin, ymin), mpt(xmax, ymax));
+  // does the axis-aligned rectangle `r` intersect ANY cluster polygon?
+  bool hit(const Rect& r) const {
+    mbox query(mpt(r.xmin, r.ymin), mpt(r.xmax, r.ymax));
     std::vector<mval> candidates;                          // envelopes overlapping the query
     tree.query(bgi::intersects(query), std::back_inserter(candidates));
     for (std::size_t i = 0; i < candidates.size(); ++i) {
@@ -116,12 +187,11 @@ static inline bool segcross(double ax, double ay, double bx, double by,
   return bg::intersects(s1, s2);
 }
 
-// Segment (ax, ay)-(bx, by) versus the axis-aligned box [x0, x1] x [y0, y1] (Boost.Geometry):
-// a hit if the segment intersects the box (interior or boundary).
-static inline bool segbox(double ax, double ay, double bx, double by,
-                          double x0, double x1, double y0, double y1) {
+// Segment (ax, ay)-(bx, by) versus the axis-aligned rectangle `r` (Boost.Geometry): a hit if the
+// segment intersects the box (interior or boundary).
+static inline bool segbox(double ax, double ay, double bx, double by, const Rect& r) {
   mseg s(mpt(ax, ay), mpt(bx, by));
-  mbox box(mpt(x0, y0), mpt(x1, y1));
+  mbox box(mpt(r.xmin, r.ymin), mpt(r.xmax, r.ymax));
   return bg::intersects(s, box);
 }
 
