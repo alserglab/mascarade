@@ -186,16 +186,16 @@
 #' @param hw,hh Numeric per-label box half-sizes (mm).
 #' @param char_h Numeric line height (mm) used to scale the internal spacing constants.
 #' @param con_type Leader style: `"cl"`, `"cm"`, or `"none"`.
-#' @param MU Numeric box-spacing weight for the force polish.
-#' @param iters Integer force-polish iteration count.
 #' @return A data.table (one row per cluster) with `cx`, `cy`, the box columns, the leader
 #'   anchor `ex`, `ey`, its `corner` flag and the visible leader end `bx`, `by`.
 #' @keywords internal
-placeLabels <- function(geom, xlim, ylim, hw, hh, char_h, con_type = "cl",
-                        MU = 55, iters = 120L) {
+placeLabels <- function(geom, xlim, ylim, hw, hh, char_h, con_type = "cl") {
   poi <- geom$poi; K <- nrow(poi)
   pad <- 0.05 * char_h                                             # hard box clearance
   gap <- 0.25 * char_h                                             # seed column spacing
+  # fixed force-polish tuning, not (yet) exposed as parameters; may change or be removed
+  MU <- 55                                                         # box-spacing weight
+  iters <- 120L                                                    # polish iteration count
   if (K == 1) {
     r <- .geoCols(data.table::data.table(label = 1L, cx = poi[1, 1], cy = poi[1, 2]),
                   hw, hh, poi, pad, con_type)

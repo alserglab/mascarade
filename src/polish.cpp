@@ -58,7 +58,7 @@ List forcePolish(SEXP boxfit, NumericVector cx0, NumericVector cy0,
 
   // Leader start on label i's box when its centre is (X, Y), aimed at the pole. Mirrors R's
   // .anchorPoint(): con_type 0 = "cl" sign-quadrant corner, else the "cm"/"none" 8-point rule.
-  auto leaderAnchor = [&](int i, double X, double Y, double& ax, double& ay) {
+  auto updateLeaderAnchor = [&](int i, double X, double Y, double& ax, double& ay) {
     double dx = tx[i] - X;
     double dy = ty[i] - Y;
     double sX = dx >= 0 ? 1.0 : -1.0;
@@ -80,7 +80,7 @@ List forcePolish(SEXP boxfit, NumericVector cx0, NumericVector cy0,
   // cache label i's padded box + leader anchor for centre (X, Y)
   auto updateGeom = [&](int i, double X, double Y) {
     box[i] = paddedBox(i, X, Y);
-    leaderAnchor(i, X, Y, anchorX[i], anchorY[i]);
+    updateLeaderAnchor(i, X, Y, anchorX[i], anchorY[i]);
   };
   for (int i = 0; i < n; ++i) {
     updateGeom(i, cx[i], cy[i]);
@@ -94,7 +94,7 @@ List forcePolish(SEXP boxfit, NumericVector cx0, NumericVector cy0,
     }
     Rect me = paddedBox(i, X, Y);
     double ax, ay;
-    leaderAnchor(i, X, Y, ax, ay);
+    updateLeaderAnchor(i, X, Y, ax, ay);
     for (int j = 0; j < n; ++j) {
       if (j == i) {
         continue;
@@ -124,7 +124,7 @@ List forcePolish(SEXP boxfit, NumericVector cx0, NumericVector cy0,
     Rect me = paddedBox(i, X, Y);
     double dist = std::sqrt((X - tx[i]) * (X - tx[i]) + (Y - ty[i]) * (Y - ty[i]));
     double ax, ay;
-    leaderAnchor(i, X, Y, ax, ay);
+    updateLeaderAnchor(i, X, Y, ax, ay);
     double effLen = effectiveLengthImpl(arcs, i, ax, ay, tx[i], ty[i], dist, me, view);
     double e = sq ? effLen * effLen : effLen;
     for (int j = 0; j < n; ++j) {

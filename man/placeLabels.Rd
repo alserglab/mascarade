@@ -4,17 +4,7 @@
 \alias{placeLabels}
 \title{Place cluster labels for one view}
 \usage{
-placeLabels(
-  geom,
-  xlim,
-  ylim,
-  hw,
-  hh,
-  char_h,
-  con_type = "cl",
-  MU = 55,
-  iters = 120L
-)
+placeLabels(geom, xlim, ylim, hw, hh, char_h, con_type = "cl")
 }
 \arguments{
 \item{geom}{Box-fit structure: a list with \code{poi} (K x 2 poles), \code{rtree} (\verb{XPtr<BoxFit>}),
@@ -27,10 +17,6 @@ placeLabels(
 \item{char_h}{Numeric line height (mm) used to scale the internal spacing constants.}
 
 \item{con_type}{Leader style: \code{"cl"}, \code{"cm"}, or \code{"none"}.}
-
-\item{MU}{Numeric box-spacing weight for the force polish.}
-
-\item{iters}{Integer force-polish iteration count.}
 }
 \value{
 A data.table (one row per cluster) with \code{cx}, \code{cy}, the box columns, the leader
