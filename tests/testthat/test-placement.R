@@ -36,13 +36,32 @@ test_that("placement stays conflict-free across box scales (view-change property
   }
 })
 
-test_that("a single-label degenerate case does not error", {
+test_that("a single label is placed in free space through the normal pipeline", {
   data("exampleMascarade", package = "mascarade")
   keep <- exampleMascarade$clusters == exampleMascarade$clusters[1]
   g <- .buildTestGeom(exampleMascarade$dims[keep, , drop = FALSE],
                       exampleMascarade$clusters[keep])
   P <- placeLabels(g$geom, g$xlim, g$ylim, g$hw, g$hh, g$char_h)
+
   expect_equal(nrow(P), 1L)
+  expect_true(all(is.finite(c(P$cx, P$cy, P$ex, P$ey, P$bx, P$by))))
+
+  # feasibility: the (unpadded) label box lands clear of its own cluster, like any other label
+  box <- list(list(x = c(P$cx - P$hw, P$cx + P$hw, P$cx + P$hw, P$cx - P$hw),
+                   y = c(P$cy - P$hh, P$cy - P$hh, P$cy + P$hh, P$cy + P$hh)))
+  cluster <- list(list(x = g$geom$polysx[[1]], y = g$geom$polysy[[1]]))
+  expect_length(polyclip::polyclip(box, cluster, "intersection"), 0)
+})
+
+test_that("an empty view (no clusters) returns an empty layout", {
+  geom <- list(poi = matrix(numeric(0), 0, 2),
+               rtree = buildBoxFit(list(), list()),
+               polysx = list(), polysy = list())
+  P <- placeLabels(geom, c(-1, 1), c(-1, 1),
+                   hw = numeric(0), hh = numeric(0), char_h = 1)
+  expect_equal(nrow(P), 0L)
+  expect_true(all(c("cx", "cy", "ex", "ey", "corner", "bx", "by",
+                    "cxmin", "cxmax", "cymin", "cymax") %in% names(P)))
 })
 
 test_that("fancyMask renders a plot end-to-end (draw-stage placement)", {

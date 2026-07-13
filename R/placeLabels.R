@@ -113,7 +113,8 @@
 #' One boundary-seed column of stacked label slots
 #'
 #' Places the labels assigned to one side (`side` -1 left, +1 right) as a vertical stack on the
-#' line `x = Xline`. Each side chooses its slot height once:
+#' line `x = Xline`. A column may be empty (0 labels) or hold a single label, in which case the
+#' label just sits at its pole y. Otherwise each side chooses its slot height once:
 #'
 #' * If the labels all fit the viewport in slots as tall as the tallest box (`tallest + gap`), a
 #'   single Hungarian assigns labels to those slots -- one box per slot, so any assignment is
@@ -137,8 +138,10 @@
 .seedColumn <- function(set, Xline, side, poi, boxH, gap, char_h, ylim) {
   m <- length(set)
   poleY <- poi[set, 2]
-  if (m == 1) {
-    return(data.table::data.table(label = set, cy = poleY, Xline = Xline, side = side))
+  if (m <= 1) {
+    # empty column (0), or a lone label that just sits at its pole y (nothing to stack)
+    return(data.table::data.table(label = set, cy = poleY,
+                                  Xline = rep_len(Xline, m), side = rep_len(side, m)))
   }
   dx2 <- (Xline - poi[set, 1])^2               # squared horizontal pole-to-column distance
   viewH <- ylim[2] - ylim[1]
@@ -210,7 +213,7 @@
   }
   split <- max(1L, min(split, K - 1L))
   leftSet <- byX[seq_len(split)]
-  rightSet <- byX[(split + 1L):K]
+  rightSet <- byX[-seq_len(split)]             # the rest (empty when split == K, i.e. K == 1)
 
   slots <- rbind(
     .seedColumn(leftSet, polyxlim[1], -1, poi, boxH, gap, char_h, ylim),
@@ -407,12 +410,13 @@ placeLabels <- function(geom, xlim, ylim, hw, hh, char_h, con_type = "cl") {
   pad <- 0.05 * char_h                         # hard box clearance
   gap <- 0.25 * char_h                         # seed column spacing
 
-  if (K == 1) {
-    # single label sits on its pole; the leader is degenerate (ends at the pole)
-    only <- .layoutFromCentres(
-      data.table::data.table(label = 1L, cx = poi[1, 1], cy = poi[1, 2]),
+  if (K == 0) {
+    # no clusters: an empty Layout carrying the full column set (nothing to place). A single
+    # label (K == 1) needs no special case -- it flows through the pipeline like any other.
+    empty <- .layoutFromCentres(
+      data.table::data.table(label = integer(0), cx = numeric(0), cy = numeric(0)),
       hw, hh, poi, pad, con_type)
-    return(only[, `:=`(bx = poi[1, 1], by = poi[1, 2])][])
+    return(withLeaderEnds(empty, geom))
   }
 
   pool <- candidatePool(geom, xlim, ylim, hw, hh, char_h, pad, gap, con_type)
