@@ -5,7 +5,8 @@ using namespace Rcpp;
 
 // Per-candidate box + leader geometry shared by the two refine kernels: the pairwise conflict
 // predicates over candidate indices and the per-label conflict counts against a current
-// selection. (`len` is not held here: oneMoveSweep ranks by raw length, twoMoveBnB by squared.)
+// selection. (`len` is not held here: the one-move kernel ranks by raw length, the two-move
+// kernel by squared.)
 struct CandidateSet {
   NumericVector cxmin, cxmax, cymin, cymax;   // padded box extents, one per candidate
   NumericVector ex, ey, tx, ty;               // leader per candidate: anchor -> pole
@@ -93,11 +94,12 @@ struct CandidateSet {
 //' @return Integer vector: the chosen candidate index per label.
 //' @keywords internal
 // [[Rcpp::export]]
-IntegerVector oneMoveSweep(NumericVector cxmin, NumericVector cxmax,
-                           NumericVector cymin, NumericVector cymax,
-                           NumericVector ex, NumericVector ey,
-                           NumericVector tx, NumericVector ty,
-                           NumericVector len, List rows, IntegerVector init, int maxpass) {
+IntegerVector oneMoveSweepKernel(NumericVector cxmin, NumericVector cxmax,
+                                 NumericVector cymin, NumericVector cymax,
+                                 NumericVector ex, NumericVector ey,
+                                 NumericVector tx, NumericVector ty,
+                                 NumericVector len, List rows, IntegerVector init,
+                                 int maxpass) {
   int K = rows.size();
   std::vector<std::vector<int> > candidatesFor(K);
   for (int k = 0; k < K; ++k) {
@@ -206,11 +208,12 @@ IntegerVector oneMoveSweep(NumericVector cxmin, NumericVector cxmax,
 //' @return Integer vector: the chosen candidate index per label.
 //' @keywords internal
 // [[Rcpp::export]]
-IntegerVector twoMoveBnB(NumericVector cxmin, NumericVector cxmax,
-                         NumericVector cymin, NumericVector cymax,
-                         NumericVector ex, NumericVector ey,
-                         NumericVector tx, NumericVector ty,
-                         NumericVector len, List rows, IntegerVector init, int maxpass, bool sq) {
+IntegerVector twoMoveSweepKernel(NumericVector cxmin, NumericVector cxmax,
+                                 NumericVector cymin, NumericVector cymax,
+                                 NumericVector ex, NumericVector ey,
+                                 NumericVector tx, NumericVector ty,
+                                 NumericVector len, List rows, IntegerVector init,
+                                 int maxpass, bool sq) {
   int K = rows.size();
   std::vector<std::vector<int> > candidatesFor(K);
   for (int k = 0; k < K; ++k) {

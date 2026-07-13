@@ -59,7 +59,7 @@ test_that("fancyMask renders a plot end-to-end (draw-stage placement)", {
   unlink(tmp)
 })
 
-test_that("twoMoveBnB resolves an input conflict that needs a longer candidate", {
+test_that("twoMoveSweep kernel resolves an input conflict that needs a longer candidate", {
   # Global candidate list (0-based indices used by the kernel):
   #   0 = A: label 1, SHORT leader, box overlaps B  -> the conflicting start pick
   #   1 = C: label 1, LONG  leader, box far away    -> the resolution (length-pruned!)
@@ -80,8 +80,8 @@ test_that("twoMoveBnB resolves an input conflict that needs a longer candidate",
                    len = len[init + 1L])
   expect_gt(unname(layoutScore(P0)["bb"]), 0)
 
-  sel <- mascarade:::twoMoveBnB(cxmin, cxmax, cymin, cymax, ex, ey, tx, ty, len,
-                                rows, init, maxpass = 50L, sq = TRUE) + 1L
+  sel <- mascarade:::twoMoveSweepKernel(cxmin, cxmax, cymin, cymax, ex, ey, tx, ty, len,
+                                        rows, init, maxpass = 50L, sq = TRUE) + 1L
   P <- data.frame(cxmin = cxmin[sel], cxmax = cxmax[sel], cymin = cymin[sel], cymax = cymax[sel],
                   ex = ex[sel], ey = ey[sel], tx = tx[sel], ty = ty[sel], len = len[sel])
   s <- layoutScore(P)

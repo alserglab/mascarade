@@ -25,7 +25,6 @@ forcePolish(
   pad_tgt,
   stepmin,
   con_type,
-  ll_hard = TRUE,
   sq = TRUE
 )
 }
@@ -56,8 +55,6 @@ forcePolish(
 \item{stepmin}{Numeric smallest step tried before abandoning a direction.}
 
 \item{con_type}{Integer leader style: 0 = "cl" (corner), otherwise "cm"/"none".}
-
-\item{ll_hard}{Logical; if \code{TRUE}, leader-leader crossings are a hard constraint.}
 
 \item{sq}{Logical; if \code{TRUE}, the length term uses the squared distance.}
 }

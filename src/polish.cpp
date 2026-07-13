@@ -31,7 +31,6 @@ using namespace Rcpp;
 //' @param pad_tgt Numeric target inter-box spacing.
 //' @param stepmin Numeric smallest step tried before abandoning a direction.
 //' @param con_type Integer leader style: 0 = "cl" (corner), otherwise "cm"/"none".
-//' @param ll_hard Logical; if `TRUE`, leader-leader crossings are a hard constraint.
 //' @param sq Logical; if `TRUE`, the length term uses the squared distance.
 //' @return A list with numeric `cx`, `cy`: the polished label centres.
 //' @keywords internal
@@ -41,7 +40,7 @@ List forcePolish(SEXP boxfit, NumericVector cx0, NumericVector cy0,
                  List polysx, List polysy,
                  double pad, double xlo, double xhi, double ylo, double yhi,
                  int iters, double step, double MU, double pad_tgt, double stepmin,
-                 int con_type, bool ll_hard = true, bool sq = true) {
+                 int con_type, bool sq = true) {
   XPtr<BoxFit> boxFit(boxfit);
   int n = cx0.size();
   std::vector<double> cx(cx0.begin(), cx0.end());
@@ -110,8 +109,8 @@ List forcePolish(SEXP boxfit, NumericVector cx0, NumericVector cy0,
       if (segbox(anchorX[j], anchorY[j], tx[j], ty[j], me)) {
         return false;
       }
-      // leaders crossing (hard constraint only when ll_hard)
-      if (ll_hard && segcross(ax, ay, tx[i], ty[i], anchorX[j], anchorY[j], tx[j], ty[j])) {
+      // leaders crossing (always a hard constraint)
+      if (segcross(ax, ay, tx[i], ty[i], anchorX[j], anchorY[j], tx[j], ty[j])) {
         return false;
       }
     }

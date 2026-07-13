@@ -115,6 +115,34 @@ static inline double segInsidePolyLen(double ax, double ay, double bx, double by
   return frac * segLen;
 }
 
+// First crossing of the directed segment (ax, ay)->(bx, by) with the simple polygon ring
+// (vx, vy) of n vertices, returned as the fraction `t` in (0, 1] along the segment (so the hit
+// point is A + t*(B - A)). Returns 1.0 when the segment does not cross the ring (the caller
+// treats that as "runs to B"). Same crossing test as segInsidePolyLen(), kept hand-rolled for
+// the same reason; here we only need the nearest crossing to A, so we track the minimum `t`.
+static inline double firstRingHit(double ax, double ay, double bx, double by,
+                                  const double* vx, const double* vy, int n) {
+  double dx = bx - ax;
+  double dy = by - ay;
+  double best = 1.0;
+  for (int i = 0, j = n - 1; i < n; j = i++) {
+    double ex0 = vx[j];
+    double ey0 = vy[j];
+    double rx = vx[i] - ex0;
+    double ry = vy[i] - ey0;
+    double den = dx * ry - dy * rx;
+    if (std::fabs(den) < 1e-12) {
+      continue;                                          // segment parallel to this edge
+    }
+    double t = ((ex0 - ax) * ry - (ey0 - ay) * rx) / den;   // position along the segment
+    double u = ((ex0 - ax) * dy - (ey0 - ay) * dx) / den;   // position along the edge
+    if (t > 1e-6 && t <= 1.0 + 1e-9 && u >= -1e-9 && u <= 1.0 + 1e-9 && t < best) {
+      best = t;
+    }
+  }
+  return best;
+}
+
 // Cached cluster mask rings (raw vertex arrays + bounding boxes) exposing the foreign-cluster
 // arc query shared by effectiveLength() and the forcePolish() energy: the total length of a
 // leader segment that runs inside any cluster other than its own. Built once per placement from

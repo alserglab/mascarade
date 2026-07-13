@@ -1,10 +1,19 @@
 # Anchor-leader label placement driver.
 #
-# Pipeline: boundary seed -> radial candidates (+ seed fallback, visible-length filtered)
-# -> one-move sweep -> all-pairs two-move (length B&B, lexicographic) -> continuous force
-# polish (off the candidate grid). The leader START on the label box is decoupled from the
-# box centre (see .anchorPoint); the C++ kernels in src/ score conflicts on the actual
-# anchor->pole segment (forcePolish mirrors .anchorPoint). This file is the R orchestration.
+# Pipeline (see `placeLabels()`): candidatePool() -> oneMoveSweep() -> twoMoveSweep() ->
+# polishLayout() -> withLeaderEnds(). Each stage takes the placement structure and returns it,
+# so the driver reads as a straight chain. The leader START on the label box is decoupled from
+# the box centre (see `.anchorPoint`); the C++ kernels in src/ score conflicts on the actual
+# anchor->pole segment (forcePolish mirrors `.anchorPoint`). This file is the R orchestration.
+#
+# Two structures flow through the pipeline:
+#   * Layout (see `.layout`) -- a one-row-per-label data.table carrying the box centre, padded
+#     box extents, leader anchor and ranking length: the columns the C++ kernels and the test
+#     scorer read. The final placement is a Layout.
+#   * Pool (see `candidatePool`) -- the discrete search state: a set of candidate Layout rows
+#     (many per label), the per-label candidate index lists, and the currently selected index
+#     per label. oneMoveSweep()/twoMoveSweep() take a Pool and return a Pool with the selection
+#     improved; polishLayout() collapses the selection to a single polished Layout.
 #
 # `placeLabels()` is pure given the per-label box half-sizes (hw, hh) and line height
 # (char_h); the draw-stage hook supplies those from text metrics in the panel's mm space.
@@ -31,83 +40,151 @@
 #' @param con_type Leader style: `"cl"`, `"cm"`, or `"none"`.
 #' @return A list with numeric `ex`, `ey` (the anchor) and logical `corner` (is it a corner?).
 #' @keywords internal
+#' @noRd
 .anchorPoint <- function(cx, cy, hw, hh, tx, ty, con_type) {
-  dx <- tx - cx; dy <- ty - cy
-  sX <- ifelse(dx >= 0, 1, -1); sY <- ifelse(dy >= 0, 1, -1)
-  if (con_type == "cl")
-    return(list(ex = cx + sX * hw, ey = cy + sY * hh, corner = rep(TRUE, length(cx))))
-  xin <- abs(dx) < hw; yin <- abs(dy) < hh
-  list(ex = ifelse(xin & !yin, cx, cx + sX * hw),
-       ey = ifelse(!xin & yin, cy, cy + sY * hh),
-       corner = !xin & !yin)
-}
-
-#' First mask-boundary hit along a leader
-#'
-#' For each leader (anchor -> pole) finds the first intersection with a single polygon ring,
-#' as a fraction `t` in (0, 1] of the leader; the visible leader length is `t` times the
-#' anchor-to-pole distance. The pole is assumed to lie inside the ring.
-#'
-#' @param ax,ay Numeric leader-start (anchor) coordinates (vectorised).
-#' @param tx,ty Numeric pole coordinates (shared target).
-#' @param px,py Numeric polygon ring coordinates (implicitly closed).
-#' @return A list with `vis` (visible length) and `hx`, `hy` (the hit point).
-#' @keywords internal
-.firstHit <- function(ax, ay, tx, ty, px, py) {
-  n <- length(px); dx <- tx - ax; dy <- ty - ay
-  best <- rep(Inf, length(ax))
-  for (e in seq_len(n)) {
-    x1 <- px[e]; y1 <- py[e]; x2 <- px[e %% n + 1L]; y2 <- py[e %% n + 1L]
-    ex <- x2 - x1; ey <- y2 - y1
-    den <- dx * ey - dy * ex
-    ok <- abs(den) > 1e-12
-    t <- ((x1 - ax) * ey - (y1 - ay) * ex) / den   # along leader
-    u <- ((x1 - ax) * dy - (y1 - ay) * dx) / den   # along edge
-    hit <- ok & t > 1e-6 & t <= 1 + 1e-9 & u >= -1e-9 & u <= 1 + 1e-9
-    best <- ifelse(hit & t < best, t, best)
+  dx <- tx - cx
+  dy <- ty - cy
+  signX <- ifelse(dx >= 0, 1, -1)
+  signY <- ifelse(dy >= 0, 1, -1)
+  if (con_type == "cl") {
+    return(list(ex = cx + signX * hw, ey = cy + signY * hh,
+                corner = rep(TRUE, length(cx))))
   }
-  best[!is.finite(best)] <- 1                      # no crossing (degenerate): whole segment
-  d <- sqrt(dx^2 + dy^2)
-  list(vis = best * d, hx = ax + dx * best, hy = ay + dy * best)
+  xInside <- abs(dx) < hw
+  yInside <- abs(dy) < hh
+  list(ex = ifelse(xInside & !yInside, cx, cx + signX * hw),
+       ey = ifelse(!xInside & yInside, cy, cy + signY * hh),
+       corner = !xInside & !yInside)
 }
 
-#' Derive box + leader geometry columns
+#' Build a Layout from explicit box centres and leader anchors
 #'
-#' From a `(label, cx, cy)` table build the padded box extents, the leader anchor (via
-#' `.anchorPoint()`) and the ranking length (centre-to-pole distance).
+#' The Layout structure shared across the placement pipeline: one row per label with the box
+#' centre, padded box extents, pole, leader anchor and ranking length (centre-to-pole
+#' distance). This is the low-level constructor -- the caller supplies the leader anchor
+#' directly (the boundary seed needs anchors that do not follow the `.anchorPoint()` rule).
+#' Use `.layoutFromCentres()` when the anchor should follow the leader style.
+#'
+#' @param label Integer 1-indexed cluster of each row.
+#' @param cx,cy Numeric box-centre coordinates.
+#' @param ex,ey Numeric leader-start (anchor) coordinates.
+#' @param corner Logical: is the anchor a box corner?
+#' @param hw,hh Numeric per-label box half-sizes (indexed by `label`).
+#' @param poi K x 2 matrix of cluster poles.
+#' @param pad Numeric hard box clearance added around each box.
+#' @return A data.table with one row per input, carrying `label`, `cx`, `cy`, `hw`, `hh`,
+#'   `tx`, `ty`, the padded extents `cxmin`/`cxmax`/`cymin`/`cymax`, `ex`, `ey`, `corner`
+#'   and `len`.
+#' @keywords internal
+#' @noRd
+.layout <- function(label, cx, cy, ex, ey, corner, hw, hh, poi, pad) {
+  halfW <- hw[label]
+  halfH <- hh[label]
+  tx <- poi[label, 1]
+  ty <- poi[label, 2]
+  data.table::data.table(
+    label = label, cx = cx, cy = cy, hw = halfW, hh = halfH, tx = tx, ty = ty,
+    cxmin = cx - halfW - pad, cxmax = cx + halfW + pad,
+    cymin = cy - halfH - pad, cymax = cy + halfH + pad,
+    ex = ex, ey = ey, corner = corner,
+    len = sqrt((cx - tx)^2 + (cy - ty)^2))
+}
+
+#' Build a Layout from box centres, deriving leader anchors from the leader style
+#'
+#' Convenience wrapper over `.layout()`: derives each leader anchor from the box centre and
+#' pole via `.anchorPoint()`, then assembles the Layout.
 #'
 #' @param dt A data.table/data.frame with columns `label`, `cx`, `cy`.
 #' @param hw,hh Numeric per-label box half-sizes (indexed by `label`).
 #' @param poi K x 2 matrix of cluster poles.
 #' @param pad Numeric hard box clearance added around each box.
 #' @param con_type Leader style passed to `.anchorPoint()`.
-#' @return A data.table with the box columns, `ex`, `ey`, `corner` and `len`.
+#' @return A Layout data.table (see `.layout()`).
 #' @keywords internal
-.geoCols <- function(dt, hw, hh, poi, pad, con_type) {
-  L <- dt$label; h_w <- hw[L]; h_h <- hh[L]; tx <- poi[L, 1]; ty <- poi[L, 2]
-  a <- .anchorPoint(dt$cx, dt$cy, h_w, h_h, tx, ty, con_type)
+#' @noRd
+.layoutFromCentres <- function(dt, hw, hh, poi, pad, con_type) {
+  anchor <- .anchorPoint(dt$cx, dt$cy, hw[dt$label], hh[dt$label],
+                         poi[dt$label, 1], poi[dt$label, 2], con_type)
+  .layout(dt$label, dt$cx, dt$cy, anchor$ex, anchor$ey, anchor$corner,
+          hw, hh, poi, pad)
+}
+
+#' One boundary-seed column of stacked label slots
+#'
+#' Places the labels assigned to one side (`side` -1 left, +1 right) as a vertical stack on the
+#' line `x = Xline`. Each side chooses its slot height once:
+#'
+#' * If the labels all fit the viewport in slots as tall as the tallest box (`tallest + gap`), a
+#'   single Hungarian assigns labels to those slots -- one box per slot, so any assignment is
+#'   overlap-free and no packing is needed (single- and multi-line labels alike). The slots cover
+#'   the pole span (a bounded window clamped into the viewport) so labels sit near their poles.
+#' * Otherwise the column is too crowded for full-height slots: the Hungarian only fixes the
+#'   top-to-bottom order and `packLen()` packs the mixed-height boxes tightly on a one-line grid
+#'   (`one line height + gap`), extended past the viewport when they still cannot fit.
+#'
+#' @param set Integer labels assigned to this column.
+#' @param Xline Numeric x-coordinate of the column line.
+#' @param side Integer -1 (left column) or +1 (right column).
+#' @param poi K x 2 matrix of cluster poles.
+#' @param boxH Numeric per-label full box heights.
+#' @param gap Numeric seed column spacing.
+#' @param char_h Numeric line height (the fine packing grid uses `char_h + gap`).
+#' @param ylim Numeric length-2 viewport y-bounds (slots span at least this).
+#' @return A data.table with `label`, `cy`, `Xline`, `side`.
+#' @keywords internal
+#' @noRd
+.seedColumn <- function(set, Xline, side, poi, boxH, gap, char_h, ylim) {
+  m <- length(set)
+  poleY <- poi[set, 2]
+  if (m == 1) {
+    return(data.table::data.table(label = set, cy = poleY, Xline = Xline, side = side))
+  }
+  dx2 <- (Xline - poi[set, 1])^2               # squared horizontal pole-to-column distance
+  viewH <- ylim[2] - ylim[1]
+  coarseSlot <- max(boxH[set]) + gap           # uniform slot as tall as the tallest box
+  capacity <- floor(viewH / coarseSlot)        # such slots the viewport holds
+
+  if (m <= capacity) {
+    # room for every label to get its own tallest-box slot: the Hungarian assignment is itself
+    # overlap-free, so no packing DP is needed. Slots cover the pole span (a bounded window,
+    # clamped into the viewport) so labels sit near their poles.
+    spanSlots <- ceiling((max(poleY) - min(poleY)) / coarseSlot)
+    nSlot <- max(m, min(capacity, spanSlots + 2L * m))
+    lo <- mean(range(poleY)) - nSlot * coarseSlot / 2
+    lo <- max(ylim[1], min(lo, ylim[2] - nSlot * coarseSlot))
+    slotY <- lo + (seq_len(nSlot) - 0.5) * coarseSlot
+    cost <- matrix(0, nSlot, nSlot)            # square: m real rows + dummy zero-cost rows
+    for (i in seq_len(m)) {
+      cost[i, ] <- sqrt(dx2[i] + (poleY[i] - slotY)^2)
+    }
+    assignment <- hungarian(cost) + 1L
+    return(data.table::data.table(label = set, cy = slotY[assignment[seq_len(m)]],
+                                  Xline = Xline, side = side))
+  }
+
+  # too crowded for full-height slots: the Hungarian fixes the top-to-bottom order and packLen()
+  # packs the mixed-height boxes tightly on a one-line grid (extended past the viewport if needed).
+  orderY <- mean(range(poleY)) + (seq_len(m) - (m + 1) / 2) * coarseSlot
+  cost <- sqrt(outer(dx2, rep(1, m)) +         # leader length from label i to order-slot j
+               outer(poleY, orderY, function(a, b) (a - b)^2))
+  assignment <- hungarian(cost) + 1L
+  ordered <- set[order(-orderY[assignment])]   # top-to-bottom label order
   data.table::data.table(
-    label = L, cx = dt$cx, cy = dt$cy, hw = h_w, hh = h_h, tx = tx, ty = ty,
-    cxmin = dt$cx - h_w - pad, cxmax = dt$cx + h_w + pad,
-    cymin = dt$cy - h_h - pad, cymax = dt$cy + h_h + pad,
-    ex = a$ex, ey = a$ey, corner = a$corner, len = sqrt((dt$cx - tx)^2 + (dt$cy - ty)^2))
+    label = ordered,
+    cy = packLen(Xline - poi[ordered, 1], poi[ordered, 2], boxH[ordered],
+                 gap, char_h + gap, ylim[1], ylim[2]),
+    Xline = Xline, side = side)
 }
 
 #' Conflict-free boundary seed
 #'
 #' Guaranteed-clean fallback placement: two columns hang off the cluster cloud on the vertical
-#' lines x = min/max polygon x. Since the polygons are already dilated by `label.buffer`, those
+#' lines `x = min/max` polygon x. Since the polygons are already dilated by `label.buffer`, those
 #' lines sit a keep-out margin outside the true clusters; each box's padded near edge sits on its
 #' line and the leader starts on the line (bottom corner for `"cl"`, edge centre otherwise), so it
-#' never clips a box.
-#'
-#' Each side chooses its slot height once. If its labels all fit the viewport in slots as tall as
-#' the tallest box (`tallest box + gap`), a single Hungarian assigns labels to those slots -- one
-#' box per slot, so any assignment is overlap-free and no packing is needed (this handles single-
-#' and multi-line labels alike). Otherwise the column is too crowded for full-height slots: the
-#' Hungarian only fixes the top-to-bottom order and `packLen()` packs the mixed-height boxes
-#' tightly on a one-line grid (`one line height + gap`), extended past the viewport when they
-#' still cannot fit.
+#' never clips a box. Labels are split left/right by pole x (balancing total height) and each
+#' column is stacked by `.seedColumn()`.
 #'
 #' @param poi K x 2 matrix of cluster poles.
 #' @param hw,hh Numeric per-label box half-sizes.
@@ -119,66 +196,200 @@
 #' @param con_type Leader style (`"cl"` anchors at the bottom corner, else the edge centre).
 #' @return A data.table with `label`, `cx`, `cy`, `ex`, `ey`, `corner`.
 #' @keywords internal
+#' @noRd
 .reorderBase <- function(poi, hw, hh, polyxlim, ylim, char_h, gap, pad, con_type) {
-  K <- nrow(poi); fh <- 2 * hh
-  ox <- order(poi[, 1]); cs <- cumsum(fh[ox]); k <- which(cs >= sum(fh) / 2)[1]
-  if (is.na(k)) k <- K; k <- max(1L, min(k, K - 1L))
-  Lset <- ox[seq_len(k)]; Rset <- ox[(k + 1L):K]
-  XL <- polyxlim[1]; XR <- polyxlim[2]
-  viewH <- ylim[2] - ylim[1]
-  col <- function(set, Xline, side) {              # side: -1 left column, +1 right column
-    m <- length(set)
-    if (m == 1) {
-      return(data.table::data.table(label = set, cy = poi[set, 2], Xline = Xline, side = side))
-    }
-    dx2 <- (Xline - poi[set, 1])^2
-    py <- poi[set, 2]
-    coarseSlot <- max(fh[set]) + gap               # uniform slot as tall as the tallest box
-    capacity <- floor(viewH / coarseSlot)          # such slots the viewport holds
-    if (m <= capacity) {
-      # room to give every label its own tallest-box slot: the Hungarian assignment is itself
-      # overlap-free (single- or multi-line), so no packing DP is needed. Slots cover the pole
-      # span (a bounded window, clamped into the viewport) so labels sit near their poles.
-      spanSlots <- ceiling((max(py) - min(py)) / coarseSlot)
-      nSlot <- max(m, min(capacity, spanSlots + 2L * m))
-      lo <- mean(range(py)) - nSlot * coarseSlot / 2
-      lo <- max(ylim[1], min(lo, ylim[2] - nSlot * coarseSlot))
-      slotY <- lo + (seq_len(nSlot) - 0.5) * coarseSlot
-      Cm <- matrix(0, nSlot, nSlot)                # square: m real rows + dummy zero-cost rows
-      for (i in seq_len(m)) {
-        Cm[i, ] <- sqrt(dx2[i] + (py[i] - slotY)^2)
-      }
-      asg <- hungarian(Cm) + 1L
-      return(data.table::data.table(label = set, cy = slotY[asg[seq_len(m)]],
-                                    Xline = Xline, side = side))
-    }
-    # too crowded for full-height slots: Hungarian fixes the order, the DP packs the mixed-height
-    # boxes tightly on a one-line grid (extended past the viewport when the column cannot fit).
-    ordY <- mean(range(py)) + (seq_len(m) - (m + 1) / 2) * coarseSlot
-    Cm <- sqrt(outer(dx2, rep(1, m)) +             # leader length from label i to order-slot j
-               outer(py, ordY, function(a, b) (a - b)^2))
-    asg <- hungarian(Cm) + 1L
-    lab <- set[order(-ordY[asg])]                  # top-to-bottom label order
-    data.table::data.table(
-      label = lab,
-      cy = packLen(Xline - poi[lab, 1], poi[lab, 2], fh[lab], gap, char_h + gap, ylim[1], ylim[2]),
-      Xline = Xline, side = side)
+  K <- nrow(poi)
+  boxH <- 2 * hh                               # full box height per label
+
+  # split labels into a left / right column by pole x, balancing total box height
+  byX <- order(poi[, 1])
+  cumH <- cumsum(boxH[byX])
+  split <- which(cumH >= sum(boxH) / 2)[1]
+  if (is.na(split)) {
+    split <- K
   }
-  s <- rbind(col(Lset, XL, -1), col(Rset, XR, +1))
-  # box centre so the padded near edge sits on the line; leader starts at the true (unpadded)
-  # near edge so a "cl" ledge meets it. It stays a padded-margin width inside the line, still
-  # clear of every other column box (they are separated in y by gap > pad).
-  s[, `:=`(cx = Xline + side * (hw[label] + pad), ex = Xline + side * pad,
-           ey = if (con_type == "cl") cy - hh[label] else cy, corner = con_type == "cl")]
-  s[]
+  split <- max(1L, min(split, K - 1L))
+  leftSet <- byX[seq_len(split)]
+  rightSet <- byX[(split + 1L):K]
+
+  slots <- rbind(
+    .seedColumn(leftSet, polyxlim[1], -1, poi, boxH, gap, char_h, ylim),
+    .seedColumn(rightSet, polyxlim[2], +1, poi, boxH, gap, char_h, ylim))
+
+  # box centre so the padded near edge sits on the column line; the leader starts on the true
+  # (unpadded) near edge so a "cl" ledge meets it. It stays a padded-margin width inside the
+  # line, still clear of every other column box (they are separated in y by gap > pad).
+  slots[, `:=`(
+    cx = Xline + side * (hw[label] + pad),
+    ex = Xline + side * pad,
+    ey = if (con_type == "cl") cy - hh[label] else cy,
+    corner = con_type == "cl")]
+  slots[]
+}
+
+#' Candidate pool for one view: radial free-space candidates + boundary-seed fallback
+#'
+#' Builds the Pool the discrete refinement searches over. It gathers many radial free-space
+#' candidate Layout rows per label (from `radialCandidates()`) plus one guaranteed-clean
+#' boundary-seed row per label (from `.reorderBase()`), ranks every candidate by its effective
+#' length (leader length + arc inside foreign clusters + viewport overflow, from
+#' `effectiveLength()`), orders the rows by `(label, len)` and gives each a 0-based `idx` for the
+#' C++ kernels.
+#'
+#' @param geom Box-fit structure (see `placeLabels()`).
+#' @param xlim,ylim Numeric length-2 viewport bounds.
+#' @param hw,hh Numeric per-label box half-sizes.
+#' @param char_h Numeric line height.
+#' @param pad Numeric hard box clearance.
+#' @param gap Numeric seed column spacing.
+#' @param con_type Leader style.
+#' @return A Pool: a list with `cand` (the candidate Layout, plus `eff` effective length, `isb`
+#'   seed flag and 0-based `idx`), `rows` (`rows[[i]]` = label i's candidate indices) and `sel`
+#'   (the currently selected `idx` per label, initialised to each label's boundary seed -- the
+#'   conflict-free starting pick).
+#' @keywords internal
+#' @noRd
+candidatePool <- function(geom, xlim, ylim, hw, hh, char_h, pad, gap, con_type) {
+  poi <- geom$poi
+  K <- nrow(poi)
+
+  # radial free-space candidates around every pole (many per label)
+  ndir <- 48L
+  radStep <- 0.3 * char_h
+  radStart <- 0.2 * char_h
+  radReach <- 16 * char_h
+  radFill <- 1.2 * char_h
+  dedup <- 0.3 * char_h
+  cand <- data.table::as.data.table(radialCandidates(
+    geom$rtree, poi, hw, hh, pad, xlim[1], xlim[2], ylim[1], ylim[2],
+    ndir, radStep, radStart, radReach, radFill, dedup))
+  candidates <- .layoutFromCentres(cand, hw, hh, poi, pad, con_type)
+  candidates$isb <- FALSE
+
+  # guaranteed-clean boundary seed: one fallback slot per label off the cluster cloud
+  polyxlim <- geom$pad_xrange                  # dilated extent (keep-out)
+  if (is.null(polyxlim)) {
+    polyxlim <- range(unlist(geom$polysx))     # undilated geom (tests)
+  }
+  seedSlots <- .reorderBase(poi, hw, hh, polyxlim, ylim, char_h, gap, pad, con_type)
+  seed <- .layout(seedSlots$label, seedSlots$cx, seedSlots$cy,
+                  seedSlots$ex, seedSlots$ey, seedSlots$corner, hw, hh, poi, pad)
+  seed$isb <- TRUE
+
+  cand <- rbind(candidates, seed)
+  cand <- cand[order(cand$label, cand$len)]
+  cand$idx <- seq_len(nrow(cand)) - 1L         # 0-based row id for the C++ kernels
+
+  # effective length = leader length + arc inside foreign clusters (routes leaders around them)
+  # + how far the box overflows the viewport (steers labels in-bounds); the kernels rank by it
+  cand$eff <- effectiveLength(
+    cand$len, cand$ex, cand$ey, cand$tx, cand$ty, as.integer(cand$label),
+    geom$polysx, geom$polysy, cand$cxmin, cand$cxmax, cand$cymin, cand$cymax,
+    xlim[1], xlim[2], ylim[1], ylim[2])
+
+  rows <- lapply(seq_len(K), function(i) cand$idx[cand$label == i])
+  sel <- vapply(seq_len(K), function(i) {
+    cand$idx[cand$isb & cand$label == i][1]    # each label has exactly one seed row
+  }, 0L)
+  list(cand = cand, rows = rows, sel = sel)
+}
+
+#' One-move conflict sweep over a Pool
+#'
+#' Wraps `oneMoveSweepKernel()`: moves each label to its lexicographically best candidate versus
+#' the current others (including staying put), ranking by effective length. Takes a Pool and
+#' returns it with the selection improved.
+#'
+#' @param pool A Pool (see `candidatePool()`).
+#' @param maxpass Integer cap on the number of sweeps.
+#' @return The Pool with `sel` updated.
+#' @keywords internal
+#' @noRd
+oneMoveSweep <- function(pool, maxpass = 100L) {
+  cand <- pool$cand
+  pool$sel <- oneMoveSweepKernel(
+    cand$cxmin, cand$cxmax, cand$cymin, cand$cymax, cand$ex, cand$ey, cand$tx, cand$ty,
+    cand$eff, pool$rows, as.integer(pool$sel), maxpass)
+  pool
+}
+
+#' Two-move conflict / length refinement over a Pool
+#'
+#' Wraps `twoMoveSweepKernel()`: per label, applies the best two-move (length branch-and-bound
+#' when the label is conflict-free, all-pairs search when it is conflicted). Takes a Pool and
+#' returns it with the selection improved.
+#'
+#' @param pool A Pool (see `candidatePool()`).
+#' @param maxpass Integer cap on the number of passes.
+#' @param sq Logical; if `TRUE` the length objective uses the squared length.
+#' @return The Pool with `sel` updated.
+#' @keywords internal
+#' @noRd
+twoMoveSweep <- function(pool, maxpass = 50L, sq = TRUE) {
+  cand <- pool$cand
+  pool$sel <- twoMoveSweepKernel(
+    cand$cxmin, cand$cxmax, cand$cymin, cand$cymax, cand$ex, cand$ey, cand$tx, cand$ty,
+    cand$eff, pool$rows, as.integer(pool$sel), maxpass, sq)
+  pool
+}
+
+#' Continuous force-directed polish of a Pool's selection
+#'
+#' Collapses the Pool to its currently selected Layout (one row per label) and runs
+#' `forcePolish()`: pattern-search descent off the candidate grid that preserves the discrete
+#' solution's conflict-freeness. Returns the polished Layout. `con_type` maps to the kernel's
+#' integer leader style (0 = "cl" corner, else "cm"/"none").
+#'
+#' @param pool A Pool (see `candidatePool()`).
+#' @param geom Box-fit structure (see `placeLabels()`).
+#' @param xlim,ylim Numeric length-2 viewport bounds.
+#' @param hw,hh Numeric per-label box half-sizes.
+#' @param char_h Numeric line height (scales the polish step sizes).
+#' @param pad Numeric hard box clearance.
+#' @param con_type Leader style.
+#' @return A Layout (one row per label) at the polished centres.
+#' @keywords internal
+#' @noRd
+polishLayout <- function(pool, geom, xlim, ylim, hw, hh, char_h, pad, con_type) {
+  poi <- geom$poi
+  chosen <- pool$cand[pool$sel + 1L][order(label)]   # selected candidate per label
+  MU <- 55                                     # box-spacing weight (fixed polish tuning)
+  iters <- 120L                                # polish iteration count
+  polished <- forcePolish(
+    geom$rtree, chosen$cx, chosen$cy, hw, hh, poi[, 1], poi[, 2],
+    geom$polysx, geom$polysy, pad, xlim[1], xlim[2], ylim[1], ylim[2],
+    as.integer(iters), 0.4 * char_h, MU, 0.6 * char_h, 0.03 * char_h,
+    if (con_type == "cl") 0L else 1L)
+  .layoutFromCentres(
+    data.table::data.table(label = seq_len(nrow(poi)), cx = polished$cx, cy = polished$cy),
+    hw, hh, poi, pad, con_type)[order(label)]
+}
+
+#' Add the visible leader end to a Layout
+#'
+#' Fills the `bx`, `by` columns: where each leader (anchor -> pole) first meets the label's own
+#' cluster ring, the point the drawn leader stops at (`firstLeaderHit()`).
+#'
+#' @param layout A Layout (one row per label; see `.layout()`).
+#' @param geom Box-fit structure (for the cluster rings).
+#' @return The Layout with `bx`, `by` added.
+#' @keywords internal
+#' @noRd
+withLeaderEnds <- function(layout, geom) {
+  poi <- geom$poi
+  hit <- firstLeaderHit(layout$ex, layout$ey,
+                        poi[layout$label, 1], poi[layout$label, 2],
+                        geom$polysx[layout$label], geom$polysy[layout$label])
+  layout[, `:=`(bx = hit$bx, by = hit$by)][]
 }
 
 #' Place cluster labels for one view
 #'
-#' Boundary-seed placement driver: radial candidates (+ seed fallback) -> one-move sweep ->
-#' all-pairs two-move -> continuous force polish. Conflict-free by construction given a
-#' feasible pool. Pure given the per-label box half-sizes and line height (the draw hook
-#' supplies those from text metrics in the panel's mm space).
+#' Boundary-seed placement driver, run as a straight pipeline over the placement structures:
+#' `candidatePool()` -> `oneMoveSweep()` -> `twoMoveSweep()` -> `polishLayout()` ->
+#' `withLeaderEnds()`. Conflict-free by construction given a feasible pool. Pure given the
+#' per-label box half-sizes and line height (the draw hook supplies those from text metrics in
+#' the panel's mm space).
 #'
 #' @param geom Box-fit structure: a list with `poi` (K x 2 poles), `rtree` (`XPtr<BoxFit>`),
 #'   `polysx`/`polysy` (per-cluster rings) and optionally `pad_xrange` (dilated x-extent).
@@ -186,74 +397,27 @@
 #' @param hw,hh Numeric per-label box half-sizes (mm).
 #' @param char_h Numeric line height (mm) used to scale the internal spacing constants.
 #' @param con_type Leader style: `"cl"`, `"cm"`, or `"none"`.
-#' @return A data.table (one row per cluster) with `cx`, `cy`, the box columns, the leader
-#'   anchor `ex`, `ey`, its `corner` flag and the visible leader end `bx`, `by`.
+#' @return A Layout data.table (one row per cluster) with `cx`, `cy`, the box columns, the
+#'   leader anchor `ex`, `ey`, its `corner` flag and the visible leader end `bx`, `by`.
 #' @keywords internal
+#' @noRd
 placeLabels <- function(geom, xlim, ylim, hw, hh, char_h, con_type = "cl") {
-  poi <- geom$poi; K <- nrow(poi)
-  pad <- 0.05 * char_h                                             # hard box clearance
-  gap <- 0.25 * char_h                                             # seed column spacing
-  # fixed force-polish tuning, not (yet) exposed as parameters; may change or be removed
-  MU <- 55                                                         # box-spacing weight
-  iters <- 120L                                                    # polish iteration count
+  poi <- geom$poi
+  K <- nrow(poi)
+  pad <- 0.05 * char_h                         # hard box clearance
+  gap <- 0.25 * char_h                         # seed column spacing
+
   if (K == 1) {
-    r <- .geoCols(data.table::data.table(label = 1L, cx = poi[1, 1], cy = poi[1, 2]),
-                  hw, hh, poi, pad, con_type)
-    return(r[, `:=`(bx = poi[1, 1], by = poi[1, 2])][])            # single label sits on its pole
+    # single label sits on its pole; the leader is degenerate (ends at the pole)
+    only <- .layoutFromCentres(
+      data.table::data.table(label = 1L, cx = poi[1, 1], cy = poi[1, 2]),
+      hw, hh, poi, pad, con_type)
+    return(only[, `:=`(bx = poi[1, 1], by = poi[1, 2])][])
   }
 
-  ndir <- 48L; radStep <- 0.3 * char_h; radStart <- 0.2 * char_h
-  radReach <- 16 * char_h; radFill <- 1.2 * char_h; dedup <- 0.3 * char_h
-  polyxlim <- geom$pad_xrange                                       # dilated extent (keep-out)
-  if (is.null(polyxlim)) polyxlim <- range(unlist(geom$polysx))     # undilated geom (tests)
-
-  cand <- data.table::as.data.table(radialCandidates(
-    geom$rtree, poi, hw, hh, pad, xlim[1], xlim[2], ylim[1], ylim[2],
-    ndir, radStep, radStart, radReach, radFill, dedup))
-  pool <- .geoCols(cand, hw, hh, poi, pad, con_type)
-  pool$isb <- FALSE
-
-  # boundary seed = guaranteed-clean fallback slot / label
-  sd <- .reorderBase(poi, hw, hh, polyxlim, ylim, char_h, gap, pad, con_type)
-  seed <- data.table::data.table(
-    label = sd$label, cx = sd$cx, cy = sd$cy, hw = hw[sd$label], hh = hh[sd$label],
-    tx = poi[sd$label, 1], ty = poi[sd$label, 2],
-    cxmin = sd$cx - hw[sd$label] - pad, cxmax = sd$cx + hw[sd$label] + pad,
-    cymin = sd$cy - hh[sd$label] - pad, cymax = sd$cy + hh[sd$label] + pad,
-    ex = sd$ex, ey = sd$ey, corner = sd$corner,
-    len = sqrt((sd$cx - poi[sd$label, 1])^2 + (sd$cy - poi[sd$label, 2])^2), isb = TRUE)
-  pool <- rbind(pool, seed)
-
-  pool <- pool[order(pool$label, pool$len)]
-  pool$idx <- seq_len(nrow(pool)) - 1L                             # 0-based for the C++ kernels
-  rows <- lapply(seq_len(K), function(i) pool$idx[pool$label == i])
-  init <- vapply(seq_len(K), function(i) {
-    sel <- pool$label == i; pool$idx[sel][pool$isb[sel]][1] }, 0L)
-
-  # effective length = leader length + arc inside foreign clusters (routes leaders around them)
-  #                    + how far the box overflows the viewport (steers labels in-bounds)
-  elen <- effectiveLength(pool$len, pool$ex, pool$ey, pool$tx, pool$ty,
-                          as.integer(pool$label), geom$polysx, geom$polysy,
-                          pool$cxmin, pool$cxmax, pool$cymin, pool$cymax,
-                          xlim[1], xlim[2], ylim[1], ylim[2])
-  geomArgs <- list(cxmin = pool$cxmin, cxmax = pool$cxmax, cymin = pool$cymin, cymax = pool$cymax,
-                   ex = pool$ex, ey = pool$ey, tx = pool$tx, ty = pool$ty, len = elen, rows = rows)
-  rs <- do.call(oneMoveSweep, c(geomArgs, list(init = as.integer(init), maxpass = 100L)))
-  tw <- do.call(twoMoveBnB, c(geomArgs, list(init = as.integer(rs), maxpass = 50L, sq = TRUE)))
-
-  # continuous force-directed polish off the candidate grid (anchor-aware; preserves the
-  # discrete solution's conflict-freeness). con_type 0 = "cl" corner, else "cm"/"none".
-  two <- pool[tw + 1L][order(label)]
-  r <- forcePolish(geom$rtree, two$cx, two$cy, hw, hh, poi[, 1], poi[, 2],
-                   geom$polysx, geom$polysy, pad,
-                   xlim[1], xlim[2], ylim[1], ylim[2], as.integer(iters), 0.4 * char_h, MU,
-                   0.6 * char_h, 0.03 * char_h, if (con_type == "cl") 0L else 1L)
-  res <- .geoCols(data.table::data.table(label = seq_len(K), cx = r$cx, cy = r$cy),
-                  hw, hh, poi, pad, con_type)[order(label)]
-  # visible leader end (first mask-boundary hit) for drawing
-  hit <- do.call(rbind, lapply(seq_len(nrow(res)), function(i) {
-    L <- res$label[i]
-    h <- .firstHit(res$ex[i], res$ey[i], poi[L, 1], poi[L, 2], geom$polysx[[L]], geom$polysy[[L]])
-    c(h$hx, h$hy) }))
-  res[, `:=`(bx = hit[, 1], by = hit[, 2])][]
+  pool <- candidatePool(geom, xlim, ylim, hw, hh, char_h, pad, gap, con_type)
+  pool <- oneMoveSweep(pool)
+  pool <- twoMoveSweep(pool)
+  layout <- polishLayout(pool, geom, xlim, ylim, hw, hh, char_h, pad, con_type)
+  withLeaderEnds(layout, geom)
 }

@@ -72,6 +72,23 @@ effectiveLength <- function(len, ex, ey, tx, ty, lab, polysx, polysy, cxmin, cxm
     .Call(`_mascarade_effectiveLength`, len, ex, ey, tx, ty, lab, polysx, polysy, cxmin, cxmax, cymin, cymax, xlo, xhi, ylo, yhi)
 }
 
+#' Visible leader end (first mask-boundary hit)
+#'
+#' For each label, the leader runs from its box anchor (`ex`, `ey`) to the cluster pole
+#' (`tx`, `ty`), which lies inside the cluster. The drawn leader stops at the mask boundary:
+#' the first point where the anchor->pole segment crosses the label's own cluster ring. When
+#' the segment does not cross the ring the leader runs all the way to the pole.
+#'
+#' @param ex,ey Numeric leader-start (anchor) coordinates, one per label.
+#' @param tx,ty Numeric pole (leader target) coordinates, one per label.
+#' @param polysx,polysy Lists of parallel numeric x/y vectors, one ring per label (its own
+#'   cluster).
+#' @return A list with numeric `bx`, `by`: the visible leader end, one per label.
+#' @keywords internal
+firstLeaderHit <- function(ex, ey, tx, ty, polysx, polysy) {
+    .Call(`_mascarade_firstLeaderHit`, ex, ey, tx, ty, polysx, polysy)
+}
+
 #' Fixed-order 1-D packing minimising total leader length
 #'
 #' For labels in a fixed top-to-bottom order, chooses stacked centre y-positions on a fine grid
@@ -129,12 +146,11 @@ packLen <- function(dx, py, h, gap, slot, ylo, yhi) {
 #' @param pad_tgt Numeric target inter-box spacing.
 #' @param stepmin Numeric smallest step tried before abandoning a direction.
 #' @param con_type Integer leader style: 0 = "cl" (corner), otherwise "cm"/"none".
-#' @param ll_hard Logical; if `TRUE`, leader-leader crossings are a hard constraint.
 #' @param sq Logical; if `TRUE`, the length term uses the squared distance.
 #' @return A list with numeric `cx`, `cy`: the polished label centres.
 #' @keywords internal
-forcePolish <- function(boxfit, cx0, cy0, hw, hh, tx, ty, polysx, polysy, pad, xlo, xhi, ylo, yhi, iters, step, MU, pad_tgt, stepmin, con_type, ll_hard = TRUE, sq = TRUE) {
-    .Call(`_mascarade_forcePolish`, boxfit, cx0, cy0, hw, hh, tx, ty, polysx, polysy, pad, xlo, xhi, ylo, yhi, iters, step, MU, pad_tgt, stepmin, con_type, ll_hard, sq)
+forcePolish <- function(boxfit, cx0, cy0, hw, hh, tx, ty, polysx, polysy, pad, xlo, xhi, ylo, yhi, iters, step, MU, pad_tgt, stepmin, con_type, sq = TRUE) {
+    .Call(`_mascarade_forcePolish`, boxfit, cx0, cy0, hw, hh, tx, ty, polysx, polysy, pad, xlo, xhi, ylo, yhi, iters, step, MU, pad_tgt, stepmin, con_type, sq)
 }
 
 #' Single-move conflict sweep
@@ -153,8 +169,8 @@ forcePolish <- function(boxfit, cx0, cy0, hw, hh, tx, ty, polysx, polysy, pad, x
 #' @param maxpass Integer cap on the number of sweeps.
 #' @return Integer vector: the chosen candidate index per label.
 #' @keywords internal
-oneMoveSweep <- function(cxmin, cxmax, cymin, cymax, ex, ey, tx, ty, len, rows, init, maxpass) {
-    .Call(`_mascarade_oneMoveSweep`, cxmin, cxmax, cymin, cymax, ex, ey, tx, ty, len, rows, init, maxpass)
+oneMoveSweepKernel <- function(cxmin, cxmax, cymin, cymax, ex, ey, tx, ty, len, rows, init, maxpass) {
+    .Call(`_mascarade_oneMoveSweepKernel`, cxmin, cxmax, cymin, cymax, ex, ey, tx, ty, len, rows, init, maxpass)
 }
 
 #' Two-move conflict / length refinement
@@ -179,7 +195,7 @@ oneMoveSweep <- function(cxmin, cxmax, cymin, cymax, ex, ey, tx, ty, len, rows, 
 #' @param sq Logical; if `TRUE` the length objective uses the squared length.
 #' @return Integer vector: the chosen candidate index per label.
 #' @keywords internal
-twoMoveBnB <- function(cxmin, cxmax, cymin, cymax, ex, ey, tx, ty, len, rows, init, maxpass, sq) {
-    .Call(`_mascarade_twoMoveBnB`, cxmin, cxmax, cymin, cymax, ex, ey, tx, ty, len, rows, init, maxpass, sq)
+twoMoveSweepKernel <- function(cxmin, cxmax, cymin, cymax, ex, ey, tx, ty, len, rows, init, maxpass, sq) {
+    .Call(`_mascarade_twoMoveSweepKernel`, cxmin, cxmax, cymin, cymax, ex, ey, tx, ty, len, rows, init, maxpass, sq)
 }
 

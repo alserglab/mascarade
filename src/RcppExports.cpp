@@ -84,6 +84,22 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// firstLeaderHit
+List firstLeaderHit(NumericVector ex, NumericVector ey, NumericVector tx, NumericVector ty, List polysx, List polysy);
+RcppExport SEXP _mascarade_firstLeaderHit(SEXP exSEXP, SEXP eySEXP, SEXP txSEXP, SEXP tySEXP, SEXP polysxSEXP, SEXP polysySEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< NumericVector >::type ex(exSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type ey(eySEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type tx(txSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type ty(tySEXP);
+    Rcpp::traits::input_parameter< List >::type polysx(polysxSEXP);
+    Rcpp::traits::input_parameter< List >::type polysy(polysySEXP);
+    rcpp_result_gen = Rcpp::wrap(firstLeaderHit(ex, ey, tx, ty, polysx, polysy));
+    return rcpp_result_gen;
+END_RCPP
+}
 // packLen
 NumericVector packLen(NumericVector dx, NumericVector py, NumericVector h, double gap, double slot, double ylo, double yhi);
 RcppExport SEXP _mascarade_packLen(SEXP dxSEXP, SEXP pySEXP, SEXP hSEXP, SEXP gapSEXP, SEXP slotSEXP, SEXP yloSEXP, SEXP yhiSEXP) {
@@ -102,8 +118,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // forcePolish
-List forcePolish(SEXP boxfit, NumericVector cx0, NumericVector cy0, NumericVector hw, NumericVector hh, NumericVector tx, NumericVector ty, List polysx, List polysy, double pad, double xlo, double xhi, double ylo, double yhi, int iters, double step, double MU, double pad_tgt, double stepmin, int con_type, bool ll_hard, bool sq);
-RcppExport SEXP _mascarade_forcePolish(SEXP boxfitSEXP, SEXP cx0SEXP, SEXP cy0SEXP, SEXP hwSEXP, SEXP hhSEXP, SEXP txSEXP, SEXP tySEXP, SEXP polysxSEXP, SEXP polysySEXP, SEXP padSEXP, SEXP xloSEXP, SEXP xhiSEXP, SEXP yloSEXP, SEXP yhiSEXP, SEXP itersSEXP, SEXP stepSEXP, SEXP MUSEXP, SEXP pad_tgtSEXP, SEXP stepminSEXP, SEXP con_typeSEXP, SEXP ll_hardSEXP, SEXP sqSEXP) {
+List forcePolish(SEXP boxfit, NumericVector cx0, NumericVector cy0, NumericVector hw, NumericVector hh, NumericVector tx, NumericVector ty, List polysx, List polysy, double pad, double xlo, double xhi, double ylo, double yhi, int iters, double step, double MU, double pad_tgt, double stepmin, int con_type, bool sq);
+RcppExport SEXP _mascarade_forcePolish(SEXP boxfitSEXP, SEXP cx0SEXP, SEXP cy0SEXP, SEXP hwSEXP, SEXP hhSEXP, SEXP txSEXP, SEXP tySEXP, SEXP polysxSEXP, SEXP polysySEXP, SEXP padSEXP, SEXP xloSEXP, SEXP xhiSEXP, SEXP yloSEXP, SEXP yhiSEXP, SEXP itersSEXP, SEXP stepSEXP, SEXP MUSEXP, SEXP pad_tgtSEXP, SEXP stepminSEXP, SEXP con_typeSEXP, SEXP sqSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -127,15 +143,14 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< double >::type pad_tgt(pad_tgtSEXP);
     Rcpp::traits::input_parameter< double >::type stepmin(stepminSEXP);
     Rcpp::traits::input_parameter< int >::type con_type(con_typeSEXP);
-    Rcpp::traits::input_parameter< bool >::type ll_hard(ll_hardSEXP);
     Rcpp::traits::input_parameter< bool >::type sq(sqSEXP);
-    rcpp_result_gen = Rcpp::wrap(forcePolish(boxfit, cx0, cy0, hw, hh, tx, ty, polysx, polysy, pad, xlo, xhi, ylo, yhi, iters, step, MU, pad_tgt, stepmin, con_type, ll_hard, sq));
+    rcpp_result_gen = Rcpp::wrap(forcePolish(boxfit, cx0, cy0, hw, hh, tx, ty, polysx, polysy, pad, xlo, xhi, ylo, yhi, iters, step, MU, pad_tgt, stepmin, con_type, sq));
     return rcpp_result_gen;
 END_RCPP
 }
-// oneMoveSweep
-IntegerVector oneMoveSweep(NumericVector cxmin, NumericVector cxmax, NumericVector cymin, NumericVector cymax, NumericVector ex, NumericVector ey, NumericVector tx, NumericVector ty, NumericVector len, List rows, IntegerVector init, int maxpass);
-RcppExport SEXP _mascarade_oneMoveSweep(SEXP cxminSEXP, SEXP cxmaxSEXP, SEXP cyminSEXP, SEXP cymaxSEXP, SEXP exSEXP, SEXP eySEXP, SEXP txSEXP, SEXP tySEXP, SEXP lenSEXP, SEXP rowsSEXP, SEXP initSEXP, SEXP maxpassSEXP) {
+// oneMoveSweepKernel
+IntegerVector oneMoveSweepKernel(NumericVector cxmin, NumericVector cxmax, NumericVector cymin, NumericVector cymax, NumericVector ex, NumericVector ey, NumericVector tx, NumericVector ty, NumericVector len, List rows, IntegerVector init, int maxpass);
+RcppExport SEXP _mascarade_oneMoveSweepKernel(SEXP cxminSEXP, SEXP cxmaxSEXP, SEXP cyminSEXP, SEXP cymaxSEXP, SEXP exSEXP, SEXP eySEXP, SEXP txSEXP, SEXP tySEXP, SEXP lenSEXP, SEXP rowsSEXP, SEXP initSEXP, SEXP maxpassSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -151,13 +166,13 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< List >::type rows(rowsSEXP);
     Rcpp::traits::input_parameter< IntegerVector >::type init(initSEXP);
     Rcpp::traits::input_parameter< int >::type maxpass(maxpassSEXP);
-    rcpp_result_gen = Rcpp::wrap(oneMoveSweep(cxmin, cxmax, cymin, cymax, ex, ey, tx, ty, len, rows, init, maxpass));
+    rcpp_result_gen = Rcpp::wrap(oneMoveSweepKernel(cxmin, cxmax, cymin, cymax, ex, ey, tx, ty, len, rows, init, maxpass));
     return rcpp_result_gen;
 END_RCPP
 }
-// twoMoveBnB
-IntegerVector twoMoveBnB(NumericVector cxmin, NumericVector cxmax, NumericVector cymin, NumericVector cymax, NumericVector ex, NumericVector ey, NumericVector tx, NumericVector ty, NumericVector len, List rows, IntegerVector init, int maxpass, bool sq);
-RcppExport SEXP _mascarade_twoMoveBnB(SEXP cxminSEXP, SEXP cxmaxSEXP, SEXP cyminSEXP, SEXP cymaxSEXP, SEXP exSEXP, SEXP eySEXP, SEXP txSEXP, SEXP tySEXP, SEXP lenSEXP, SEXP rowsSEXP, SEXP initSEXP, SEXP maxpassSEXP, SEXP sqSEXP) {
+// twoMoveSweepKernel
+IntegerVector twoMoveSweepKernel(NumericVector cxmin, NumericVector cxmax, NumericVector cymin, NumericVector cymax, NumericVector ex, NumericVector ey, NumericVector tx, NumericVector ty, NumericVector len, List rows, IntegerVector init, int maxpass, bool sq);
+RcppExport SEXP _mascarade_twoMoveSweepKernel(SEXP cxminSEXP, SEXP cxmaxSEXP, SEXP cyminSEXP, SEXP cymaxSEXP, SEXP exSEXP, SEXP eySEXP, SEXP txSEXP, SEXP tySEXP, SEXP lenSEXP, SEXP rowsSEXP, SEXP initSEXP, SEXP maxpassSEXP, SEXP sqSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -174,7 +189,7 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< IntegerVector >::type init(initSEXP);
     Rcpp::traits::input_parameter< int >::type maxpass(maxpassSEXP);
     Rcpp::traits::input_parameter< bool >::type sq(sqSEXP);
-    rcpp_result_gen = Rcpp::wrap(twoMoveBnB(cxmin, cxmax, cymin, cymax, ex, ey, tx, ty, len, rows, init, maxpass, sq));
+    rcpp_result_gen = Rcpp::wrap(twoMoveSweepKernel(cxmin, cxmax, cymin, cymax, ex, ey, tx, ty, len, rows, init, maxpass, sq));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -184,10 +199,11 @@ static const R_CallMethodDef CallEntries[] = {
     {"_mascarade_buildBoxFit", (DL_FUNC) &_mascarade_buildBoxFit, 2},
     {"_mascarade_radialCandidates", (DL_FUNC) &_mascarade_radialCandidates, 15},
     {"_mascarade_effectiveLength", (DL_FUNC) &_mascarade_effectiveLength, 16},
+    {"_mascarade_firstLeaderHit", (DL_FUNC) &_mascarade_firstLeaderHit, 6},
     {"_mascarade_packLen", (DL_FUNC) &_mascarade_packLen, 7},
-    {"_mascarade_forcePolish", (DL_FUNC) &_mascarade_forcePolish, 22},
-    {"_mascarade_oneMoveSweep", (DL_FUNC) &_mascarade_oneMoveSweep, 12},
-    {"_mascarade_twoMoveBnB", (DL_FUNC) &_mascarade_twoMoveBnB, 13},
+    {"_mascarade_forcePolish", (DL_FUNC) &_mascarade_forcePolish, 21},
+    {"_mascarade_oneMoveSweepKernel", (DL_FUNC) &_mascarade_oneMoveSweepKernel, 12},
+    {"_mascarade_twoMoveSweepKernel", (DL_FUNC) &_mascarade_twoMoveSweepKernel, 13},
     {NULL, NULL, 0}
 };
 
