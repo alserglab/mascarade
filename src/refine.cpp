@@ -116,7 +116,8 @@ IntegerVector oneMoveSweepKernel(NumericVector cxmin, NumericVector cxmax,
   for (int pass = 0; pass < maxpass; ++pass) {
     ++passes;
     for (int label = 0; label < K; ++label) {
-      cs.countConflicts(cur[label], label, -1, cur, curBox[label], curCross[label], curLeaderBox[label]);
+      cs.countConflicts(cur[label], label, -1, cur,
+                        curBox[label], curCross[label], curLeaderBox[label]);
     }
     for (int i = 0; i < K; ++i) {
       order[i] = i;

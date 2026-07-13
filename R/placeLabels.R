@@ -26,8 +26,8 @@
 # The keep-out padding between labels and clusters is baked into the scene's box-fit R-tree: the
 # caller passes polygons already dilated by `label.buffer` (see my_make_label).
 
-# Canonical Layout placement columns (one placement per row). The optimizer may attach a
-# transient `eff` (effective length) column on top; `currentPlacements()` selects just these.
+# Canonical Layout placement columns (one placement per row). `.assemble()` attaches an `eff`
+# (effective length) ranking column on top; `currentPlacements()` selects just these.
 layoutCols <- c("label", "cx", "cy", "hw", "hh", "tx", "ty",
                 "cxmin", "cxmax", "cymin", "cymax", "ex", "ey", "corner", "len")
 
@@ -136,45 +136,34 @@ placementScene <- function(geom, xlim, ylim, hw, hh, char_h, con_type) {
   .layout(scene, dt$label, dt$cx, dt$cy, anchor$ex, anchor$ey, anchor$corner)
 }
 
-#' Wrap placement rows into a Layout
+#' Wrap placement rows into a ranked Layout
 #'
-#' Orders the placement rows by `(label, len)` (so per-label candidate groups are contiguous and
-#' length-ascending) and records the current selection: `sel[i]` is the 0-based row of label i's
-#' active placement, taken from the `active` flag (exactly one true row per label).
+#' Computes each row's effective length -- the quantity the C++ sweep kernels minimise: leader
+#' length + the arc of the leader inside foreign clusters (routes leaders around them) + how far
+#' the box overflows the viewport (steers labels in-bounds), from `effectiveLength()`. Orders the
+#' rows by `(label, eff)` so each label's candidate group is contiguous and ascending in that
+#' ranking -- the two-move branch-and-bound prunes on it and so requires the ordering to match --
+#' and records the current selection: `sel[i]` is the 0-based row of label i's active placement
+#' (the one true `active` row per label).
 #'
 #' @param scene The placement scene.
 #' @param place A data.table of placement rows (see `.layout()`).
 #' @param active Logical, one per row: the currently selected placement of each label.
-#' @return A Layout list `(scene, place, sel)`.
+#' @return A Layout list `(scene, place, sel)`, with `place` ranked and carrying `eff`.
 #' @keywords internal
 #' @noRd
 .assemble <- function(scene, place, active) {
-  ord <- order(place$label, place$len)
+  place$eff <- effectiveLength(
+    place$len, place$ex, place$ey, place$tx, place$ty, as.integer(place$label),
+    scene$polysx, scene$polysy, place$cxmin, place$cxmax, place$cymin, place$cymax,
+    scene$xlim[1], scene$xlim[2], scene$ylim[1], scene$ylim[2])
+  ord <- order(place$label, place$eff)          # rank by the metric the kernels prune on
   place <- place[ord]
   active <- active[ord]
   sel <- vapply(seq_len(scene$K), function(i) {
     which(active & place$label == i)[1] - 1L    # 0-based row of label i's active placement
   }, 0L)
   list(scene = scene, place = place, sel = sel)
-}
-
-#' Rank a Layout's candidates by effective length
-#'
-#' Adds the `eff` column the discrete sweeps minimise: leader length + the arc of the leader
-#' inside foreign clusters (routes leaders around them) + how far the box overflows the viewport
-#' (steers labels in-bounds), from `effectiveLength()`.
-#'
-#' @param layout A Layout.
-#' @return The Layout with `place$eff` filled in.
-#' @keywords internal
-#' @noRd
-.rankCandidates <- function(layout) {
-  p <- layout$place
-  s <- layout$scene
-  layout$place$eff <- effectiveLength(
-    p$len, p$ex, p$ey, p$tx, p$ty, as.integer(p$label), s$polysx, s$polysy,
-    p$cxmin, p$cxmax, p$cymin, p$cymax, s$xlim[1], s$xlim[2], s$ylim[1], s$ylim[2])
-  layout
 }
 
 #' The current one-row-per-label solution of a Layout
@@ -348,9 +337,8 @@ seedLayout <- function(scene) {
 #' Append radial candidate placements to a Layout
 #'
 #' Adds the radial free-space candidates (`.radialPlacements()`) to the layout's current
-#' placements as candidate alternatives, keeping the current selection active, then ranks all
-#' candidates by effective length (`.rankCandidates()`). After this a label may own several rows;
-#' the sweeps pick among them.
+#' placements as candidate alternatives, keeping the current selection active, and re-ranks
+#' (`.assemble()`). After this a label may own several rows; the sweeps pick among them.
 #'
 #' @param layout A Layout.
 #' @return The Layout with candidate rows appended and ranked.
@@ -362,7 +350,7 @@ addRadialCandidates <- function(layout) {
   radial <- .radialPlacements(scene)
   place <- rbind(current, radial)
   active <- c(rep(TRUE, nrow(current)), rep(FALSE, nrow(radial)))
-  .rankCandidates(.assemble(scene, place, active))
+  .assemble(scene, place, active)
 }
 
 #' 0-based candidate rows of each label

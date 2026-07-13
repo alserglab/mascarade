@@ -45,5 +45,4 @@ VignetteBuilder: knitr
 URL: https://alserglab.github.io/mascarade/
 BugReports: https://github.com/alserglab/mascarade/issues
 Roxygen: list(markdown=TRUE)
-Config/roxygen2/version: 8.0.0
 RoxygenNote: 7.3.3

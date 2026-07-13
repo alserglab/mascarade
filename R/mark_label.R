@@ -29,10 +29,9 @@ simplify_outer <- function(poly, max_area, min_vertices = 4L) {
 
   # For a CCW polygon a concave vertex (right turn, cross <= 0) dips inward.
   # Removing it fills the dent so the simplified polygon encloses the original.
-  # Mark non-removable vertices with Inf so which.min() skips them.
+  # Mark non-removable (convex) vertices NA so which.min() skips them; dead vertices are set NA
+  # too as they are removed (see below).
   areas <- abs(crosses) / 2
-  # Mark non-removable vertices with NA so which.min() skips them;
-  # dead vertices (removed) are marked Inf.
   if (ccw) areas[crosses > 0] <- NA_real_ else areas[crosses < 0] <- NA_real_
 
   alive <- rep(TRUE, n)
