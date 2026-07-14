@@ -10,10 +10,6 @@ radialCandidates(
   hw,
   hh,
   pad,
-  xlo,
-  xhi,
-  ylo,
-  yhi,
   ndir,
   step,
   rstart,
@@ -30,9 +26,6 @@ radialCandidates(
 \item{hw, hh}{Numeric per-label box half-sizes.}
 
 \item{pad}{Numeric hard box clearance added around each box.}
-
-\item{xlo, xhi, ylo, yhi}{Numeric viewport bounds (kept for context; candidates are no longer
-clipped to them).}
 
 \item{ndir}{Integer number of rays per pole.}
 

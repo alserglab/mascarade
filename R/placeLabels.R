@@ -327,7 +327,6 @@ seedLayout <- function(scene) {
   dedup <- 0.3 * scene$char_h
   cand <- data.table::as.data.table(radialCandidates(
     scene$rtree, scene$poi, scene$hw, scene$hh, scene$pad,
-    scene$xlim[1], scene$xlim[2], scene$ylim[1], scene$ylim[2],
     ndir, radStep, radStart, radReach, radFill, dedup))
   .layoutFromCentres(scene, cand)
 }

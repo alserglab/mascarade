@@ -16,8 +16,6 @@ using namespace Rcpp;
 //' @param poi K x 2 matrix of cluster poles (the ray origins).
 //' @param hw,hh Numeric per-label box half-sizes.
 //' @param pad Numeric hard box clearance added around each box.
-//' @param xlo,xhi,ylo,yhi Numeric viewport bounds (kept for context; candidates are no longer
-//'   clipped to them).
 //' @param ndir Integer number of rays per pole.
 //' @param step Numeric radial step along each ray.
 //' @param rstart,rmax Numeric first and last radius searched.
@@ -28,7 +26,6 @@ using namespace Rcpp;
 // [[Rcpp::export]]
 DataFrame radialCandidates(SEXP boxfit, NumericMatrix poi,
                            NumericVector hw, NumericVector hh, double pad,
-                           double xlo, double xhi, double ylo, double yhi,
                            int ndir, double step, double rstart, double rmax,
                            double intfill, double dedup) {
   XPtr<BoxFit> boxFit(boxfit);

@@ -39,8 +39,6 @@ buildBoxFit <- function(polysx, polysy) {
 #' @param poi K x 2 matrix of cluster poles (the ray origins).
 #' @param hw,hh Numeric per-label box half-sizes.
 #' @param pad Numeric hard box clearance added around each box.
-#' @param xlo,xhi,ylo,yhi Numeric viewport bounds (kept for context; candidates are no longer
-#'   clipped to them).
 #' @param ndir Integer number of rays per pole.
 #' @param step Numeric radial step along each ray.
 #' @param rstart,rmax Numeric first and last radius searched.
@@ -48,8 +46,8 @@ buildBoxFit <- function(polysx, polysy) {
 #' @param dedup Numeric grid size for de-duplicating nearby candidates.
 #' @return A data.frame with integer `label` (1-indexed) and numeric `cx`, `cy`.
 #' @keywords internal
-radialCandidates <- function(boxfit, poi, hw, hh, pad, xlo, xhi, ylo, yhi, ndir, step, rstart, rmax, intfill, dedup) {
-    .Call(`_mascarade_radialCandidates`, boxfit, poi, hw, hh, pad, xlo, xhi, ylo, yhi, ndir, step, rstart, rmax, intfill, dedup)
+radialCandidates <- function(boxfit, poi, hw, hh, pad, ndir, step, rstart, rmax, intfill, dedup) {
+    .Call(`_mascarade_radialCandidates`, boxfit, poi, hw, hh, pad, ndir, step, rstart, rmax, intfill, dedup)
 }
 
 #' Effective length used to rank label candidates

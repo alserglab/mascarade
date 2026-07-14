@@ -34,8 +34,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // radialCandidates
-DataFrame radialCandidates(SEXP boxfit, NumericMatrix poi, NumericVector hw, NumericVector hh, double pad, double xlo, double xhi, double ylo, double yhi, int ndir, double step, double rstart, double rmax, double intfill, double dedup);
-RcppExport SEXP _mascarade_radialCandidates(SEXP boxfitSEXP, SEXP poiSEXP, SEXP hwSEXP, SEXP hhSEXP, SEXP padSEXP, SEXP xloSEXP, SEXP xhiSEXP, SEXP yloSEXP, SEXP yhiSEXP, SEXP ndirSEXP, SEXP stepSEXP, SEXP rstartSEXP, SEXP rmaxSEXP, SEXP intfillSEXP, SEXP dedupSEXP) {
+DataFrame radialCandidates(SEXP boxfit, NumericMatrix poi, NumericVector hw, NumericVector hh, double pad, int ndir, double step, double rstart, double rmax, double intfill, double dedup);
+RcppExport SEXP _mascarade_radialCandidates(SEXP boxfitSEXP, SEXP poiSEXP, SEXP hwSEXP, SEXP hhSEXP, SEXP padSEXP, SEXP ndirSEXP, SEXP stepSEXP, SEXP rstartSEXP, SEXP rmaxSEXP, SEXP intfillSEXP, SEXP dedupSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -44,17 +44,13 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< NumericVector >::type hw(hwSEXP);
     Rcpp::traits::input_parameter< NumericVector >::type hh(hhSEXP);
     Rcpp::traits::input_parameter< double >::type pad(padSEXP);
-    Rcpp::traits::input_parameter< double >::type xlo(xloSEXP);
-    Rcpp::traits::input_parameter< double >::type xhi(xhiSEXP);
-    Rcpp::traits::input_parameter< double >::type ylo(yloSEXP);
-    Rcpp::traits::input_parameter< double >::type yhi(yhiSEXP);
     Rcpp::traits::input_parameter< int >::type ndir(ndirSEXP);
     Rcpp::traits::input_parameter< double >::type step(stepSEXP);
     Rcpp::traits::input_parameter< double >::type rstart(rstartSEXP);
     Rcpp::traits::input_parameter< double >::type rmax(rmaxSEXP);
     Rcpp::traits::input_parameter< double >::type intfill(intfillSEXP);
     Rcpp::traits::input_parameter< double >::type dedup(dedupSEXP);
-    rcpp_result_gen = Rcpp::wrap(radialCandidates(boxfit, poi, hw, hh, pad, xlo, xhi, ylo, yhi, ndir, step, rstart, rmax, intfill, dedup));
+    rcpp_result_gen = Rcpp::wrap(radialCandidates(boxfit, poi, hw, hh, pad, ndir, step, rstart, rmax, intfill, dedup));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -197,7 +193,7 @@ END_RCPP
 static const R_CallMethodDef CallEntries[] = {
     {"_mascarade_hungarian", (DL_FUNC) &_mascarade_hungarian, 1},
     {"_mascarade_buildBoxFit", (DL_FUNC) &_mascarade_buildBoxFit, 2},
-    {"_mascarade_radialCandidates", (DL_FUNC) &_mascarade_radialCandidates, 15},
+    {"_mascarade_radialCandidates", (DL_FUNC) &_mascarade_radialCandidates, 11},
     {"_mascarade_effectiveLength", (DL_FUNC) &_mascarade_effectiveLength, 16},
     {"_mascarade_firstLeaderHit", (DL_FUNC) &_mascarade_firstLeaderHit, 6},
     {"_mascarade_packLen", (DL_FUNC) &_mascarade_packLen, 7},
