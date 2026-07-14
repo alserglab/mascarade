@@ -25,7 +25,7 @@ struct CandidateSet {
       leaderBox[i] = Rect::ofSegment(ex[i], ey[i], tx[i], ty[i]);
     }
   }
-  // do the padded boxes of candidates a and b overlap? (touching does not count)
+  // do the padded boxes of candidates a and b overlap? (closed; see Rect::overlaps)
   bool boxesOverlap(int a, int b) const {
     return box[a].overlaps(box[b]);
   }

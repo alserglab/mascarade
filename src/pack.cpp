@@ -13,9 +13,9 @@ using namespace Rcpp;
 //' least total length with the current label at some slot at or below `t` and every lower label
 //' packed beneath it, via a two-option transition per slot -- either place the label in slot `t`
 //' (on top of the best lower label position) or skip the slot and place it lower down. Paired
-//' with the Hungarian order (see the seed reorder) this
-//' reproduces the assignment optimum -- exactly in the equal-height, single-line case -- because
-//' it minimises the true Euclidean leader length rather than a squared-vertical proxy.
+//' with the Hungarian order (see the seed reorder) this reproduces the assignment optimum --
+//' exactly in the equal-height, single-line case -- because it minimises the true Euclidean
+//' leader length rather than a squared-vertical proxy.
 //'
 //' The grid spans at least the whole viewport `[ylo, yhi]` (and the pole range), so labels may
 //' use the full vertical space; when the stacked column is taller than that space the grid is

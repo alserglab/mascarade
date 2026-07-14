@@ -98,9 +98,9 @@ firstLeaderHit <- function(ex, ey, tx, ty, polysx, polysy) {
 #' least total length with the current label at some slot at or below `t` and every lower label
 #' packed beneath it, via a two-option transition per slot -- either place the label in slot `t`
 #' (on top of the best lower label position) or skip the slot and place it lower down. Paired
-#' with the Hungarian order (see the seed reorder) this
-#' reproduces the assignment optimum -- exactly in the equal-height, single-line case -- because
-#' it minimises the true Euclidean leader length rather than a squared-vertical proxy.
+#' with the Hungarian order (see the seed reorder) this reproduces the assignment optimum --
+#' exactly in the equal-height, single-line case -- because it minimises the true Euclidean
+#' leader length rather than a squared-vertical proxy.
 #'
 #' The grid spans at least the whole viewport `[ylo, yhi]` (and the pole range), so labels may
 #' use the full vertical space; when the stacked column is taller than that space the grid is
@@ -123,9 +123,8 @@ packLen <- function(dx, py, h, gap, slot, ylo, yhi) {
 #' Pattern-search descent on the (squared) EFFECTIVE length under a hard conflict guard. The
 #' effective length of a label is its centre-to-pole leader length, plus the arc of the leader
 #' that runs inside any foreign cluster (routing leaders around clusters), plus a soft viewport
-#' overflow penalty -- the same quantity minimised by the upstream `effectiveLength()` ranking,
-#' so the continuous polish and the discrete candidate refinement optimise a consistent
-#' objective. A box-box spacing penalty is added on top. Starting from a conflict-free layout
+#' overflow penalty -- the same quantity the upstream `effectiveLength()` ranking minimises.
+#' A box-box spacing penalty is added on top. Starting from a conflict-free layout
 #' the search only accepts conflict-free neighbours (free-space check via the BoxFit R-tree),
 #' so feasibility is preserved. Overflow is a SOFT term folded into the effective length, not a
 #' hard clip, so an off-panel label can be walked back in-bounds and a label leaves the panel

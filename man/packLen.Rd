@@ -30,9 +30,9 @@ a grid dynamic program (\code{O(n * gridSize)}): sweeping labels from the bottom
 least total length with the current label at some slot at or below \code{t} and every lower label
 packed beneath it, via a two-option transition per slot -- either place the label in slot \code{t}
 (on top of the best lower label position) or skip the slot and place it lower down. Paired
-with the Hungarian order (see the seed reorder) this
-reproduces the assignment optimum -- exactly in the equal-height, single-line case -- because
-it minimises the true Euclidean leader length rather than a squared-vertical proxy.
+with the Hungarian order (see the seed reorder) this reproduces the assignment optimum --
+exactly in the equal-height, single-line case -- because it minimises the true Euclidean
+leader length rather than a squared-vertical proxy.
 }
 \details{
 The grid spans at least the whole viewport \verb{[ylo, yhi]} (and the pole range), so labels may

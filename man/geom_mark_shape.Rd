@@ -131,7 +131,7 @@ description. Use \code{"inherit"} to use the border colour of the enclosure or
 
 \item{label.buffer}{Polygon padding: cluster polygons are dilated by this distance and
 labels are kept out of the dilated zone, leaving a gap between each label and its
-cluster outline. A grid unit; \code{unit(0, "mm")} disables it.}
+cluster outline. A grid unit; \code{unit(0, "mm")} disables it. Default \code{unit(10, 'mm')}.}
 
 \item{con.colour}{The colour for the line connecting the annotation to the
 mark. Use \code{"inherit"} to use the border colour of the enclosure or

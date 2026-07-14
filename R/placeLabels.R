@@ -8,7 +8,7 @@
 # orchestration.
 #
 # Structures:
-#   * Scene (see `placementScene`) -- the fixed placement problem, built ONCE and then carried
+#   * scene (see `placementScene`) -- the fixed placement problem, built ONCE and then carried
 #     inside every Layout so no stage takes the geometry as a separate argument: cluster
 #     geometry (poles, box-fit R-tree, rings, dilated x-range), the viewport, the per-label box
 #     sizes and leader style, and the derived spacing constants.
@@ -138,13 +138,11 @@ placementScene <- function(geom, xlim, ylim, hw, hh, char_h, con_type) {
 
 #' Wrap placement rows into a ranked Layout
 #'
-#' Computes each row's effective length -- the quantity the C++ sweep kernels minimise: leader
-#' length + the arc of the leader inside foreign clusters (routes leaders around them) + how far
-#' the box overflows the viewport (steers labels in-bounds), from `effectiveLength()`. Orders the
-#' rows by `(label, eff)` so each label's candidate group is contiguous and ascending in that
-#' ranking -- the two-move branch-and-bound prunes on it and so requires the ordering to match --
-#' and records the current selection: `sel[i]` is the 0-based row of label i's active placement
-#' (the one true `active` row per label).
+#' Computes each row's effective length (`eff`, the quantity the sweeps minimise; see
+#' `effectiveLength()`), orders the rows by `(label, eff)` so each label's candidate group is
+#' contiguous and ascending in that ranking -- the two-move branch-and-bound prunes on it and so
+#' requires the ordering to match -- and records the current selection: `sel[i]` is the 0-based
+#' row of label i's active placement (the one true `active` row per label).
 #'
 #' @param scene The placement scene.
 #' @param place A data.table of placement rows (see `.layout()`).

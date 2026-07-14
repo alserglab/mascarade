@@ -8,9 +8,8 @@ using namespace Rcpp;
 //' Pattern-search descent on the (squared) EFFECTIVE length under a hard conflict guard. The
 //' effective length of a label is its centre-to-pole leader length, plus the arc of the leader
 //' that runs inside any foreign cluster (routing leaders around clusters), plus a soft viewport
-//' overflow penalty -- the same quantity minimised by the upstream `effectiveLength()` ranking,
-//' so the continuous polish and the discrete candidate refinement optimise a consistent
-//' objective. A box-box spacing penalty is added on top. Starting from a conflict-free layout
+//' overflow penalty -- the same quantity the upstream `effectiveLength()` ranking minimises.
+//' A box-box spacing penalty is added on top. Starting from a conflict-free layout
 //' the search only accepts conflict-free neighbours (free-space check via the BoxFit R-tree),
 //' so feasibility is preserved. Overflow is a SOFT term folded into the effective length, not a
 //' hard clip, so an off-panel label can be walked back in-bounds and a label leaves the panel
@@ -116,9 +115,8 @@ List forcePolish(SEXP boxfit, NumericVector cx0, NumericVector cy0,
     }
     return true;
   };
-  // energy of centre (X, Y) for label i: the (squared) EFFECTIVE length -- leader length to the
-  // pole, plus the leader's arc inside foreign clusters, plus a SOFT viewport-overflow penalty
-  // folded in (no longer a separate additive term) -- then the box-box spacing penalty on top.
+  // energy of centre (X, Y) for label i: the (squared) effective length (see the header) plus
+  // the box-box spacing penalty on top.
   auto energy = [&](int i, double X, double Y) -> double {
     Rect me = paddedBox(i, X, Y);
     double dist = std::sqrt((X - tx[i]) * (X - tx[i]) + (Y - ty[i]) * (Y - ty[i]));

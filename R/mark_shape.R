@@ -35,7 +35,7 @@
 #'   `"none"` draws no leader. Default `"cl"`.
 #' @param label.buffer Polygon padding: cluster polygons are dilated by this distance and
 #'   labels are kept out of the dilated zone, leaving a gap between each label and its
-#'   cluster outline. A grid unit; `unit(0, "mm")` disables it.
+#'   cluster outline. A grid unit; `unit(0, "mm")` disables it. Default `unit(10, 'mm')`.
 #' @param simp_ratio Fraction of the polygon bounding-box area used to simplify
 #'   cluster polygons before label placement (removes small inward vertices; the
 #'   simplified ring encloses the original, so labels never overlap the real shape).
