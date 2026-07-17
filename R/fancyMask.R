@@ -59,8 +59,8 @@
 #'   box-fit and leader-routing geometry (both scale with vertex count). The
 #'   simplified polygon encloses the original, so labels never overlap the real
 #'   cluster. Larger values simplify more; set to `0` to disable. Default `0.001`.
-#' @param con.type Leader style passed to `geom_mark_shape()`: `"cl"` (corners + ledge,
-#'   default), `"cm"` (corners + midpoints, no ledge), or `"none"`.
+#' @param con.type Leader style passed to `geom_mark_shape()`: `"ledge"` (corners + ledge,
+#'   default), `"direct"` (corners + midpoints, no ledge), or `"none"`.
 #'
 #' @return A list of ggplot2 components suitable for adding to a plot with `+`,
 #'   containing a `ggplot2::coord_cartesian()` specification and a
@@ -102,7 +102,7 @@ fancyMask <- function(maskTable,
                       label.fontface = "plain",
                       label.margin = margin(2, 2, 2, 2, "pt"),
                       simp_ratio = 0.001,
-                      con.type = "cl"
+                      con.type = "ledge"
                       ) {
 
     if (identical(cols, "auto")) {
@@ -224,7 +224,7 @@ buildFancyMaskLayers <- function(maskTable, ratio, limits.expand, linewidth,
                                  shape.expand, cols, label, label.largest,
                                  label.fontsize, label.buffer, label.fontface,
                                  label.margin, simp_ratio = 0.001,
-                                 con.type = "cl") {
+                                 con.type = "ledge") {
     xvar <- colnames(maskTable)[1]
     yvar <- colnames(maskTable)[2]
 

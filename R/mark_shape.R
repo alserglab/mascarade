@@ -29,10 +29,10 @@
 #' - alpha
 #'
 #' @inheritParams ggforce::geom_mark_circle
-#' @param con.type Leader style: `"cl"` (corners + ledge) draws the leader from a box
-#'   corner and a short horizontal ledge along the box edge; `"cm"` (corners + midpoints)
+#' @param con.type Leader style: `"ledge"` (corners + ledge) draws the leader from a box
+#'   corner and a short horizontal ledge along the box edge; `"direct"` (corners + midpoints)
 #'   draws it from the box corner or edge-midpoint facing the cluster, with no ledge;
-#'   `"none"` draws no leader. Default `"cl"`.
+#'   `"none"` draws no leader. Default `"ledge"`.
 #' @param label.buffer Polygon padding: cluster polygons are dilated by this distance and
 #'   labels are kept out of the dilated zone, leaving a gap between each label and its
 #'   cluster outline. A grid unit; `unit(0, "mm")` disables it. Default `unit(10, 'mm')`.
@@ -85,11 +85,11 @@ geom_mark_shape <- function(mapping = NULL, data = NULL, stat = 'identity',
                            label.fontface = c('bold', 'plain'),
                            label.fill = 'white', label.colour = 'black',
                            label.buffer = unit(10, 'mm'), con.colour = 'black',
-                           con.size = 0.5, con.type = 'cl', con.linetype = 1,
+                           con.size = 0.5, con.type = 'ledge', con.linetype = 1,
                            con.border = 'one', con.cap = unit(3, 'mm'),
                            con.arrow = NULL, simp_ratio = 0.001, ..., na.rm = FALSE,
                            show.legend = NA, inherit.aes = TRUE) {
-  con.type <- match.arg(con.type, c('cl', 'cm', 'none'))
+  con.type <- match.arg(con.type, c('ledge', 'direct', 'none'))
   layer(
     data = data,
     mapping = mapping,
@@ -143,7 +143,7 @@ GeomMarkShape <- ggplot2::ggproto(
                           label.fontface = c('bold', 'plain'),
                           label.lineheight = 1,
                           label.fill = 'white', label.colour = 'black',
-                          con.colour = 'black', con.size = 0.5, con.type = 'cl',
+                          con.colour = 'black', con.size = 0.5, con.type = 'ledge',
                           con.linetype = 1, con.border = 'one',
                           con.cap = unit(3, "mm"), con.arrow = NULL,
                           simp_ratio = 0.001) {
@@ -248,7 +248,7 @@ shapeEncGrob <- function(x = c(0, 0.5, 1, 0.5), y = c(0.5, 1, 0.5, 0), id = NULL
                         desc.gp = gpar(), con.gp = gpar(), label.margin = margin(),
                         label.width = NULL, label.minwidth = unit(50, 'mm'),
                         label.hjust = 0, label.buffer = unit(10, 'mm'),
-                        con.type = 'cl', con.border = 'one',
+                        con.type = 'ledge', con.border = 'one',
                         con.cap = unit(3, "mm"), con.arrow = NULL,
                         anchor.x = NULL, anchor.y = NULL, vp = NULL,
                         simp_ratio = 0.001) {

@@ -21,8 +21,9 @@
 # The final result is a one-row-per-label data.table (the selected placements plus the visible
 # leader ends `bx`, `by`) -- the columns `mark_label.R` and the test scorer read.
 #
-# `con_type` selects the leader style: "cl" corners+ledge (one sign-quadrant corner),
-# "cm" corners+midpoints (8-point rule, no ledge), "none" (placed like cm, no connector).
+# `con_type` selects the leader style: "ledge" (corners + a short horizontal ledge along the box
+# edge, one sign-quadrant corner), "direct" (corners + edge-midpoints, 8-point rule, no ledge),
+# "none" (placed like "direct", no connector drawn).
 # The keep-out padding between labels and clusters is baked into the scene's box-fit R-tree: the
 # caller passes polygons already dilated by `label.buffer` (see my_make_label).
 
@@ -42,7 +43,7 @@ layoutCols <- c("label", "cx", "cy", "hw", "hh", "tx", "ty",
 #' @param xlim,ylim Numeric length-2 viewport bounds (already inset by `label.buffer`).
 #' @param hw,hh Numeric per-label box half-sizes (mm).
 #' @param char_h Numeric line height (mm) used to scale the internal spacing constants.
-#' @param con_type Leader style: `"cl"`, `"cm"`, or `"none"`.
+#' @param con_type Leader style: `"ledge"`, `"direct"`, or `"none"`.
 #' @return A scene list.
 #' @keywords internal
 #' @noRd
@@ -63,7 +64,7 @@ placementScene <- function(geom, xlim, ylim, hw, hh, char_h, con_type) {
 #' Leader start anchor on a label box
 #'
 #' The point on the box border where the leader begins, aimed at the pole (`tx`, `ty`). For
-#' `con_type == "cl"` this is always the sign(dx),sign(dy) quadrant corner. Otherwise (the
+#' `con_type == "ledge"` this is always the sign(dx),sign(dy) quadrant corner. Otherwise (the
 #' ggforce `get_end_points` rule) it is a corner only when the pole is fully to the side in
 #' both axes; if the pole's x lies between the vertical edges it is the top/bottom edge
 #' centre, and if its y lies between the horizontal edges it is the left/right edge centre.
@@ -71,7 +72,7 @@ placementScene <- function(geom, xlim, ylim, hw, hh, char_h, con_type) {
 #' @param cx,cy Numeric box-centre coordinates (vectorised).
 #' @param hw,hh Numeric box half-width / half-height.
 #' @param tx,ty Numeric pole (leader target) coordinates.
-#' @param con_type Leader style: `"cl"`, `"cm"`, or `"none"`.
+#' @param con_type Leader style: `"ledge"`, `"direct"`, or `"none"`.
 #' @return A list with numeric `ex`, `ey` (the anchor) and logical `corner` (is it a corner?).
 #' @keywords internal
 #' @noRd
@@ -80,7 +81,7 @@ placementScene <- function(geom, xlim, ylim, hw, hh, char_h, con_type) {
   dy <- ty - cy
   signX <- ifelse(dx >= 0, 1, -1)
   signY <- ifelse(dy >= 0, 1, -1)
-  if (con_type == "cl") {
+  if (con_type == "ledge") {
     return(list(ex = cx + signX * hw, ey = cy + signY * hh,
                 corner = rep(TRUE, length(cx))))
   }
@@ -253,7 +254,7 @@ currentPlacements <- function(layout) {
 #' Two columns hang off the cluster cloud on the vertical lines `x = min/max` polygon x. Since the
 #' polygons are dilated by `label.buffer`, those lines sit a keep-out margin outside the true
 #' clusters; each box's padded near edge sits on its line and the leader starts on the line
-#' (bottom corner for `"cl"`, edge centre otherwise), so it never clips a box. Labels are split
+#' (bottom corner for `"ledge"`, edge centre otherwise), so it never clips a box. Labels are split
 #' left/right by pole x (balancing total height) and each column is stacked by `.seedColumn()`.
 #'
 #' @param scene The placement scene.
@@ -283,13 +284,13 @@ currentPlacements <- function(layout) {
     .seedColumn(scene, rightSet, scene$polyxlim[2], +1))
 
   # box centre so the padded near edge sits on the column line; the leader starts on the true
-  # (unpadded) near edge so a "cl" ledge meets it. It stays a padded-margin width inside the
-  # line, still clear of every other column box (they are separated in y by gap > pad).
+  # (unpadded) near edge so a "ledge" connector's ledge meets it. It stays a padded-margin width
+  # inside the line, still clear of every other column box (separated in y by gap > pad).
   slots[, `:=`(
     cx = Xline + side * (hw[label] + scene$pad),
     ex = Xline + side * scene$pad,
-    ey = if (scene$con_type == "cl") cy - hh[label] else cy,
-    corner = scene$con_type == "cl")]
+    ey = if (scene$con_type == "ledge") cy - hh[label] else cy,
+    corner = scene$con_type == "ledge")]
   slots[]
 }
 
@@ -407,7 +408,7 @@ twoMoveSweep <- function(layout, maxpass = 50L, sq = TRUE) {
 #' Runs `forcePolish()` on the layout's selected placements: pattern-search descent off the
 #' candidate grid that preserves the discrete solution's conflict-freeness. Returns a Layout
 #' whose placements are the polished centres. `con_type` maps to the kernel's integer leader
-#' style (0 = "cl" corner, else "cm"/"none").
+#' style (0 = "ledge" corner, else "direct"/"none").
 #'
 #' @param layout A Layout.
 #' @return A Layout at the polished centres (one placement per label).
@@ -423,7 +424,7 @@ polishLayout <- function(layout) {
     scene$polysx, scene$polysy, scene$pad,
     scene$xlim[1], scene$xlim[2], scene$ylim[1], scene$ylim[2],
     as.integer(iters), 0.4 * scene$char_h, MU, 0.6 * scene$char_h, 0.03 * scene$char_h,
-    if (scene$con_type == "cl") 0L else 1L)
+    if (scene$con_type == "ledge") 0L else 1L)
   place <- .layoutFromCentres(
     scene, data.table::data.table(label = seq_len(scene$K),
                                   cx = polished$cx, cy = polished$cy))
@@ -478,12 +479,12 @@ emptyPlacement <- function(scene) {
 #' @param xlim,ylim Numeric length-2 viewport bounds (already inset by `label.buffer`).
 #' @param hw,hh Numeric per-label box half-sizes (mm).
 #' @param char_h Numeric line height (mm) used to scale the internal spacing constants.
-#' @param con_type Leader style: `"cl"`, `"cm"`, or `"none"`.
+#' @param con_type Leader style: `"ledge"`, `"direct"`, or `"none"`.
 #' @return A data.table (one row per cluster) with `cx`, `cy`, the box columns, the leader anchor
 #'   `ex`, `ey`, its `corner` flag and the visible leader end `bx`, `by`.
 #' @keywords internal
 #' @noRd
-placeLabels <- function(geom, xlim, ylim, hw, hh, char_h, con_type = "cl") {
+placeLabels <- function(geom, xlim, ylim, hw, hh, char_h, con_type = "ledge") {
   scene <- placementScene(geom, xlim, ylim, hw, hh, char_h, con_type)
   if (scene$K == 0) {
     return(emptyPlacement(scene))

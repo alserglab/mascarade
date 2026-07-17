@@ -30,7 +30,7 @@ my_make_label(
 
 \item{buffer}{Grid unit: the \code{label.buffer} polygon padding / box keep-out.}
 
-\item{con_type}{Leader style: \code{"cl"}, \code{"cm"}, or \code{"none"}.}
+\item{con_type}{Leader style: \code{"ledge"}, \code{"direct"}, or \code{"none"}.}
 
 \item{con_cap}{Numeric gap (mm) left between the leader end and the cluster.}
 
@@ -49,6 +49,6 @@ A \code{gList}-ready list: the positioned label grobs followed by the connector 
 Draw-time worker for \code{makeContent.shape_enc()}: dilates the cluster polygons by \code{buffer}
 (the box keep-out), calls \code{my_place_labels()} for the placement, positions the label box
 grobs and builds the leader polylines (anchor -> visible mask-boundary end, plus the
-horizontal ledge for \code{con_type == "cl"}).
+horizontal ledge for \code{con_type == "ledge"}).
 }
 \keyword{internal}

@@ -17,7 +17,7 @@ test_that("placeLabels produces a conflict-free layout on the example data", {
 test_that("both leader styles (cl, cm) produce conflict-free layouts", {
   data("exampleMascarade", package = "mascarade")
   g <- .buildTestGeom(exampleMascarade$dims, exampleMascarade$clusters)
-  for (ct in c("cl", "cm")) {
+  for (ct in c("ledge", "direct")) {
     P <- placeLabels(g$geom, g$xlim, g$ylim, g$hw, g$hh, g$char_h, con_type = ct)
     s <- layoutScore(P)
     expect_true(s["bb"] == 0 && s["ll"] == 0 && s["lb"] == 0,

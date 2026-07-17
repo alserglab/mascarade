@@ -54,7 +54,7 @@ forcePolish(
 
 \item{stepmin}{Numeric smallest step tried before abandoning a direction.}
 
-\item{con_type}{Integer leader style: 0 = "cl" (corner), otherwise "cm"/"none".}
+\item{con_type}{Integer leader style: 0 = "ledge" (corner), otherwise "direct"/"none".}
 
 \item{sq}{Logical; if \code{TRUE}, the length term uses the squared distance.}
 }

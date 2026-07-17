@@ -24,7 +24,7 @@ geom_mark_shape(
   label.buffer = unit(10, "mm"),
   con.colour = "black",
   con.size = 0.5,
-  con.type = "cl",
+  con.type = "ledge",
   con.linetype = 1,
   con.border = "one",
   con.cap = unit(3, "mm"),
@@ -140,10 +140,10 @@ mark. Use \code{"inherit"} to use the border colour of the enclosure or
 \item{con.size}{The width of the connector. Use \code{"inherit"} to use the border
 width of the enclosure.}
 
-\item{con.type}{Leader style: \code{"cl"} (corners + ledge) draws the leader from a box
-corner and a short horizontal ledge along the box edge; \code{"cm"} (corners + midpoints)
+\item{con.type}{Leader style: \code{"ledge"} (corners + ledge) draws the leader from a box
+corner and a short horizontal ledge along the box edge; \code{"direct"} (corners + midpoints)
 draws it from the box corner or edge-midpoint facing the cluster, with no ledge;
-\code{"none"} draws no leader. Default \code{"cl"}.}
+\code{"none"} draws no leader. Default \code{"ledge"}.}
 
 \item{con.linetype}{The linetype of the connector. Use \code{"inherit"} to use the
 border linetype of the enclosure.}

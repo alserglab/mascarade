@@ -76,7 +76,7 @@ simplify_outer <- function(poly, max_area, min_vertices = 4L) {
 #' @param bounds Numeric `c(width, height)` of the panel in mm.
 #' @param anchors List of fallback anchor points, used only for degenerate input.
 #' @param simp_ratio Numeric polygon-simplification fraction (see `simplify_outer()`).
-#' @param con_type Leader style: `"cl"`, `"cm"`, or `"none"`.
+#' @param con_type Leader style: `"ledge"`, `"direct"`, or `"none"`.
 #' @param buffer Numeric `label.buffer` in mm; the overflow viewport is inset by it.
 #' @return A list, one entry per input label: the placed centre `c(x, y)` in mm (`NULL` if not
 #'   drawn), carrying `attr(., "leaders")` with `c(ex, ey, bx, by, corner)` per drawn label.
@@ -84,7 +84,7 @@ simplify_outer <- function(poly, max_area, min_vertices = 4L) {
 #' @importFrom polylabelr poi
 #' @importFrom stats median
 my_place_labels <- function(rects, polygons, polygons_pad, bounds, anchors,
-                            simp_ratio = 0.001, con_type = "cl", buffer = 0) {
+                            simp_ratio = 0.001, con_type = "ledge", buffer = 0) {
   res <- vector('list', length(rects))    # label centres (mm)
   lead <- vector('list', length(rects))   # per label c(ex, ey, bx, by, corner): leader start ->
                                           # visible end (mask boundary) + ledge flag, for drawing
@@ -164,14 +164,14 @@ my_place_labels <- function(rects, polygons, polygons_pad, bounds, anchors,
 #' Draw-time worker for `makeContent.shape_enc()`: dilates the cluster polygons by `buffer`
 #' (the box keep-out), calls `my_place_labels()` for the placement, positions the label box
 #' grobs and builds the leader polylines (anchor -> visible mask-boundary end, plus the
-#' horizontal ledge for `con_type == "cl"`).
+#' horizontal ledge for `con_type == "ledge"`).
 #'
 #' @param labels List of label-box grobs (one per mark part).
 #' @param dims List of measured label box sizes `c(w, h)` in mm.
 #' @param polygons List of cluster rings (`list(x, y)`) in mm.
 #' @param ghosts Points to avoid (currently unused by the placer).
 #' @param buffer Grid unit: the `label.buffer` polygon padding / box keep-out.
-#' @param con_type Leader style: `"cl"`, `"cm"`, or `"none"`.
+#' @param con_type Leader style: `"ledge"`, `"direct"`, or `"none"`.
 #' @param con_cap Numeric gap (mm) left between the leader end and the cluster.
 #' @param con_gp A `gpar` for the connectors (per drawn label).
 #' @param anchor_x,anchor_y Optional per-label anchor overrides.
@@ -242,7 +242,7 @@ my_make_label <- function(labels, dims, polygons, ghosts, buffer, con_type,
   }, lab = labels, pos = labelpos)
   # Draw each leader as the placer scored it: from the box anchor c(ex,ey) to the visible end
   # c(bx,by) = the first mask boundary along anchor->pole (the part inside the cluster is
-  # hidden). For "cl" also draw the horizontal ledge along the box edge at the anchor's y.
+  # hidden). For "ledge" also draw the horizontal ledge along the box edge at the anchor's y.
   # Each drawn line is one polyline id; `gi` maps it back to its label for the connector gp.
   if (con_type == 'none') {
     connect <- nullGrob()
@@ -258,7 +258,7 @@ my_make_label <- function(labels, dims, polygons, ghosts, buffer, con_type,
         }
         k <- k + 1L; xs[[k]] <- c(x0, x1); ys[[k]] <- c(y0, y1); gi[k] <- i
       }
-      if (con_type == 'cl' && length(l) >= 5 && l[5] == 1) {    # ledge = box edge at anchor y
+      if (con_type == 'ledge' && length(l) >= 5 && l[5] == 1) {    # ledge = box edge at anchor y
         hw_i <- dims[[idx]][1] / 2
         k <- k + 1L; xs[[k]] <- c(ctr[1] - hw_i, ctr[1] + hw_i); ys[[k]] <- c(l[2], l[2]); gi[k] <- i
       }

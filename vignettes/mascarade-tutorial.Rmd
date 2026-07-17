@@ -143,7 +143,7 @@ myMask <- list(
     geom_mark_shape(data=maskTable, aes(group=cluster, color=cluster, label = cluster),
                     fill = NA,
                    linewidth=1, expand=unit(-1, "pt"),
-                   con.cap=0, con.type = "cm",
+                   con.cap=0, con.type = "direct",
                    label.fontsize = 10, label.buffer = unit(0, "cm"),
                    label.fontface = "plain",
                    label.minwidth = 0,

@@ -18,7 +18,7 @@ fancyMask(
   label.fontface = "plain",
   label.margin = margin(2, 2, 2, 2, "pt"),
   simp_ratio = 0.001,
-  con.type = "cl"
+  con.type = "ledge"
 )
 }
 \arguments{
@@ -88,8 +88,8 @@ box-fit and leader-routing geometry (both scale with vertex count). The
 simplified polygon encloses the original, so labels never overlap the real
 cluster. Larger values simplify more; set to \code{0} to disable. Default \code{0.001}.}
 
-\item{con.type}{Leader style passed to \code{geom_mark_shape()}: \code{"cl"} (corners + ledge,
-default), \code{"cm"} (corners + midpoints, no ledge), or \code{"none"}.}
+\item{con.type}{Leader style passed to \code{geom_mark_shape()}: \code{"ledge"} (corners + ledge,
+default), \code{"direct"} (corners + midpoints, no ledge), or \code{"none"}.}
 }
 \value{
 A list of ggplot2 components suitable for adding to a plot with \code{+},

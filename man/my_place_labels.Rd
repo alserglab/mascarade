@@ -11,7 +11,7 @@ my_place_labels(
   bounds,
   anchors,
   simp_ratio = 0.001,
-  con_type = "cl",
+  con_type = "ledge",
   buffer = 0
 )
 }
@@ -28,7 +28,7 @@ my_place_labels(
 
 \item{simp_ratio}{Numeric polygon-simplification fraction (see \code{simplify_outer()}).}
 
-\item{con_type}{Leader style: \code{"cl"}, \code{"cm"}, or \code{"none"}.}
+\item{con_type}{Leader style: \code{"ledge"}, \code{"direct"}, or \code{"none"}.}
 
 \item{buffer}{Numeric \code{label.buffer} in mm; the overflow viewport is inset by it.}
 }

@@ -142,7 +142,7 @@ packLen <- function(dx, py, h, gap, slot, ylo, yhi) {
 #' @param MU Numeric weight of the box-box spacing penalty.
 #' @param pad_tgt Numeric target inter-box spacing.
 #' @param stepmin Numeric smallest step tried before abandoning a direction.
-#' @param con_type Integer leader style: 0 = "cl" (corner), otherwise "cm"/"none".
+#' @param con_type Integer leader style: 0 = "ledge" (corner), otherwise "direct"/"none".
 #' @param sq Logical; if `TRUE`, the length term uses the squared distance.
 #' @return A list with numeric `cx`, `cy`: the polished label centres.
 #' @keywords internal
