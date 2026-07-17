@@ -140,10 +140,8 @@ mark. Use \code{"inherit"} to use the border colour of the enclosure or
 \item{con.size}{The width of the connector. Use \code{"inherit"} to use the border
 width of the enclosure.}
 
-\item{con.type}{Leader style: \code{"ledge"} (corners + ledge) draws the leader from a box
-corner and a short horizontal ledge along the box edge; \code{"direct"} (corners + midpoints)
-draws it from the box corner or edge-midpoint facing the cluster, with no ledge;
-\code{"none"} draws no leader. Default \code{"ledge"}.}
+\item{con.type}{Leader / label-mark style: one of \code{"ledge"}, \code{"direct"}, \code{"box"}, or
+\code{"none"} (see Details). Default \code{"ledge"}.}
 
 \item{con.linetype}{The linetype of the connector. Use \code{"inherit"} to use the
 border linetype of the enclosure.}
@@ -214,6 +212,16 @@ Unlike other \verb{ggforce::geom_mark_*} functions, \code{geom_mark_shape} shoul
 provided with the shape coordinates. As in \code{ggforce::geom_shape}, the polygon can be
 expanded/contracted and corners can be rounded, which is controlled by \code{expand} and
 \code{radius} parameters.
+}
+\details{
+\code{con.type} selects how each label is connected to its cluster:
+\itemize{
+\item \code{"ledge"} — leader from the box corner facing the cluster, plus a short horizontal ledge
+along the box edge at the leader's start (the default).
+\item \code{"direct"} — leader from the box corner or edge-midpoint facing the cluster, with no ledge.
+\item \code{"box"} — placed as for \code{"direct"}, and additionally outlines the label's bounding box.
+\item \code{"none"} — no connector is drawn; the label is still placed as for \code{"direct"}.
+}
 }
 \section{Aesthetics}{
 

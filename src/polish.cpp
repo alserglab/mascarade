@@ -29,7 +29,7 @@ using namespace Rcpp;
 //' @param MU Numeric weight of the box-box spacing penalty.
 //' @param pad_tgt Numeric target inter-box spacing.
 //' @param stepmin Numeric smallest step tried before abandoning a direction.
-//' @param con_type Integer leader style: 0 = "ledge" (corner), otherwise "direct"/"none".
+//' @param con_type Integer leader style: 0 = "ledge" (corner), otherwise "direct"/"box"/"none".
 //' @param sq Logical; if `TRUE`, the length term uses the squared distance.
 //' @return A list with numeric `cx`, `cy`: the polished label centres.
 //' @keywords internal
@@ -55,7 +55,7 @@ List forcePolish(SEXP boxfit, NumericVector cx0, NumericVector cy0,
   arcs.build(polysx, polysy);
 
   // Leader start on label i's box when its centre is (X, Y), aimed at the pole. Mirrors R's
-  // .anchorPoint(): con_type 0 = "ledge" sign-quadrant corner, else the "direct"/"none" 8-point rule.
+  // .anchorPoint(): con_type 0 = "ledge" sign-quadrant corner, else the direct 8-point rule.
   auto updateLeaderAnchor = [&](int i, double X, double Y, double& ax, double& ay) {
     double dx = tx[i] - X;
     double dy = ty[i] - Y;

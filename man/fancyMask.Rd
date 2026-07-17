@@ -88,8 +88,8 @@ box-fit and leader-routing geometry (both scale with vertex count). The
 simplified polygon encloses the original, so labels never overlap the real
 cluster. Larger values simplify more; set to \code{0} to disable. Default \code{0.001}.}
 
-\item{con.type}{Leader style passed to \code{geom_mark_shape()}: \code{"ledge"} (corners + ledge,
-default), \code{"direct"} (corners + midpoints, no ledge), or \code{"none"}.}
+\item{con.type}{Leader / label-mark style passed to \code{geom_mark_shape()}: one of \code{"ledge"},
+\code{"direct"}, \code{"box"}, or \code{"none"} (see the \code{geom_mark_shape()} Details). Default \code{"ledge"}.}
 }
 \value{
 A list of ggplot2 components suitable for adding to a plot with \code{+},

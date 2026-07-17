@@ -23,7 +23,8 @@
 #
 # `con_type` selects the leader style: "ledge" (corners + a short horizontal ledge along the box
 # edge, one sign-quadrant corner), "direct" (corners + edge-midpoints, 8-point rule, no ledge),
-# "none" (placed like "direct", no connector drawn).
+# "box" (like "direct", plus the label's bounding box outline), "none" (placed like "direct", no
+# connector drawn). Only "ledge" differs geometrically; the rest share the direct anchor rule.
 # The keep-out padding between labels and clusters is baked into the scene's box-fit R-tree: the
 # caller passes polygons already dilated by `label.buffer` (see my_make_label).
 
@@ -43,7 +44,7 @@ layoutCols <- c("label", "cx", "cy", "hw", "hh", "tx", "ty",
 #' @param xlim,ylim Numeric length-2 viewport bounds (already inset by `label.buffer`).
 #' @param hw,hh Numeric per-label box half-sizes (mm).
 #' @param char_h Numeric line height (mm) used to scale the internal spacing constants.
-#' @param con_type Leader style: `"ledge"`, `"direct"`, or `"none"`.
+#' @param con_type Leader style: `"ledge"`, `"direct"`, `"box"`, or `"none"`.
 #' @return A scene list.
 #' @keywords internal
 #' @noRd
@@ -72,7 +73,7 @@ placementScene <- function(geom, xlim, ylim, hw, hh, char_h, con_type) {
 #' @param cx,cy Numeric box-centre coordinates (vectorised).
 #' @param hw,hh Numeric box half-width / half-height.
 #' @param tx,ty Numeric pole (leader target) coordinates.
-#' @param con_type Leader style: `"ledge"`, `"direct"`, or `"none"`.
+#' @param con_type Leader style: `"ledge"`, `"direct"`, `"box"`, or `"none"`.
 #' @return A list with numeric `ex`, `ey` (the anchor) and logical `corner` (is it a corner?).
 #' @keywords internal
 #' @noRd
@@ -408,7 +409,7 @@ twoMoveSweep <- function(layout, maxpass = 50L, sq = TRUE) {
 #' Runs `forcePolish()` on the layout's selected placements: pattern-search descent off the
 #' candidate grid that preserves the discrete solution's conflict-freeness. Returns a Layout
 #' whose placements are the polished centres. `con_type` maps to the kernel's integer leader
-#' style (0 = "ledge" corner, else "direct"/"none").
+#' style (0 = "ledge" corner, else "direct"/"box"/"none" -- all share the direct anchor rule).
 #'
 #' @param layout A Layout.
 #' @return A Layout at the polished centres (one placement per label).
@@ -479,7 +480,7 @@ emptyPlacement <- function(scene) {
 #' @param xlim,ylim Numeric length-2 viewport bounds (already inset by `label.buffer`).
 #' @param hw,hh Numeric per-label box half-sizes (mm).
 #' @param char_h Numeric line height (mm) used to scale the internal spacing constants.
-#' @param con_type Leader style: `"ledge"`, `"direct"`, or `"none"`.
+#' @param con_type Leader style: `"ledge"`, `"direct"`, `"box"`, or `"none"`.
 #' @return A data.table (one row per cluster) with `cx`, `cy`, the box columns, the leader anchor
 #'   `ex`, `ey`, its `corner` flag and the visible leader end `bx`, `by`.
 #' @keywords internal

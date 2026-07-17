@@ -8,6 +8,14 @@
 #' expanded/contracted and corners can be rounded, which is controlled by `expand` and
 #' `radius` parameters.
 #'
+#' @details
+#' `con.type` selects how each label is connected to its cluster:
+#' - `"ledge"` — leader from the box corner facing the cluster, plus a short horizontal ledge
+#'   along the box edge at the leader's start (the default).
+#' - `"direct"` — leader from the box corner or edge-midpoint facing the cluster, with no ledge.
+#' - `"box"` — placed as for `"direct"`, and additionally outlines the label's bounding box.
+#' - `"none"` — no connector is drawn; the label is still placed as for `"direct"`.
+#'
 #' @inheritSection ggforce::geom_mark_circle Annotation
 #' @inheritSection ggforce::geom_mark_circle Filtering
 #' @section Aesthetics:
@@ -29,10 +37,8 @@
 #' - alpha
 #'
 #' @inheritParams ggforce::geom_mark_circle
-#' @param con.type Leader style: `"ledge"` (corners + ledge) draws the leader from a box
-#'   corner and a short horizontal ledge along the box edge; `"direct"` (corners + midpoints)
-#'   draws it from the box corner or edge-midpoint facing the cluster, with no ledge;
-#'   `"none"` draws no leader. Default `"ledge"`.
+#' @param con.type Leader / label-mark style: one of `"ledge"`, `"direct"`, `"box"`, or
+#'   `"none"` (see Details). Default `"ledge"`.
 #' @param label.buffer Polygon padding: cluster polygons are dilated by this distance and
 #'   labels are kept out of the dilated zone, leaving a gap between each label and its
 #'   cluster outline. A grid unit; `unit(0, "mm")` disables it. Default `unit(10, 'mm')`.
@@ -89,7 +95,7 @@ geom_mark_shape <- function(mapping = NULL, data = NULL, stat = 'identity',
                            con.border = 'one', con.cap = unit(3, 'mm'),
                            con.arrow = NULL, simp_ratio = 0.001, ..., na.rm = FALSE,
                            show.legend = NA, inherit.aes = TRUE) {
-  con.type <- match.arg(con.type, c('ledge', 'direct', 'none'))
+  con.type <- match.arg(con.type, c('ledge', 'direct', 'box', 'none'))
   layer(
     data = data,
     mapping = mapping,
