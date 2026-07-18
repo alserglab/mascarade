@@ -161,10 +161,9 @@ my_place_labels <- function(rects, polygons, polygons_pad, bounds, anchors,
   n_over <- sum(overflow > 1e-3)
   if (n_over > 0) {
     cli::cli_warn(c(
-      "!" = paste("{n_over} cluster label{?s} did not fit inside the plot area and {?was/were}",
-                  "placed partly outside it (they may be clipped)."),
-      "i" = paste("Decrease {.arg label.fontsize} or widen the plot limits (for example with",
-                  "{.fn ggplot2::expansion} on a scale) to make more room for label placement.")
+      "!" = paste("{n_over} cluster label{?s} did not full fit inside the plot area."),
+      "i" = paste("Decrease {.arg label.fontsize} or expand the plot limits",
+                  "to make more room for label placement.")
     ))
   }
 

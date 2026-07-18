@@ -1,10 +1,5 @@
 # mascarade 0.4.0
-* New leader-based label placement: cluster labels are placed by a boundary-seed
-  optimizer (min-cost seed, one-/two-move refinement, force-directed polish) that
-  keeps label boxes and leaders free of overlaps and crossings, replacing the
-  previous label positioning in `geom_mark_shape()`. Placement runs at draw time, so
-  labels re-place when the view or device size changes. Adds compiled code
-  (`LinkingTo: Rcpp, BH`) and depends on `polylabelr` for cluster poles.
+* Brand new label placement algorithm.
 
 # mascarade 0.3.5
 * bug fixes

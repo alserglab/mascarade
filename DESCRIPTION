@@ -39,7 +39,8 @@ Suggests:
     Seurat,
     scales,
     SeuratObject,
-    svglite
+    svglite,
+    colorrepel
 Config/testthat/edition: 3
 VignetteBuilder: knitr
 URL: https://alserglab.github.io/mascarade/

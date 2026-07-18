@@ -18,6 +18,7 @@ library(mascarade)
 library(data.table)
 library(ggplot2)
 library(ggsci)
+library(colorrepel)
 ```
 
 
@@ -39,6 +40,15 @@ ggplot(data, aes(x=UMAP_1, y=UMAP_2)) +
                                
 ```
 
+With labels:
+
+```{r}
+ggplot(data, aes(x=UMAP_1, y=UMAP_2)) + 
+    geom_point(aes(color=cluster)) + 
+    fancyMask(maskTable, ratio=1, linewidth = 0) +
+    theme_classic()
+```
+
 ### PBMC-3K t-SNE
 
 ```{r}
@@ -56,6 +66,17 @@ ggplot(data, aes(x=tSNE_1, y=tSNE_2)) +
     theme_classic()
                                
 ```
+
+
+With labels:
+
+```{r}
+ggplot(data, aes(x=tSNE_1, y=tSNE_2)) + 
+    geom_point(aes(color=cluster)) + 
+    fancyMask(maskTable, ratio=1, linewidth = 0) +
+    theme_classic()
+```
+
 
 ### Aya
 
@@ -108,6 +129,30 @@ ggplot(data, aes(x=UMAP_1, y=UMAP_2)) +
     coord_fixed() + 
     theme_classic()
                                
+```
+
+### Vladimir Shitov
+
+```{r fig.height=7, fig.width=8}
+example <- readRDS(url("https://alserglab.wustl.edu/files/mascarade/examples/vshitov.rds"))
+data <- data.table(example$dims, 
+                   cluster=example$clusters)
+
+maskTable <- generateMask(dims=example$dims, 
+                          clusters=example$clusters)
+
+ggplot(data, aes(x=UMAP1, y=UMAP2)) + 
+    geom_point(aes(color=cluster), size=0.1) + 
+    scale_color_repel() +
+    fancyMask(maskTable, 
+              con.type = "direct", 
+              ratio=1, 
+              linewidth = 0, 
+              limits.expand = c(0.2, 0.1),
+              label.fontsize = 8) +
+    theme_classic() + theme(legend.position = "none")
+                               
+```
 ```
 
 ### Session info
