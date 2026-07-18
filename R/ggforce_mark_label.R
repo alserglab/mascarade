@@ -114,7 +114,10 @@ labelboxGrob <- function(label, x = unit(0.5, 'npc'), y = unit(0.5, 'npc'),
   sep_height <- if (lab_height > 0 && desc_height > 0) {
     pad[1]
   } else if (lab_height > 0) {
-    font_descent(gp$fontfamily, gp$fontface, gp$fontsize, gp$cex)
+    # Descenders extend below grobHeight(lab_grob) (which is the ascent box). Reserve only the
+    # part the bottom margin does not already cover, so a label without descenders is not padded
+    # with dead space underneath.
+    max(0, font_descent(gp$fontfamily, gp$fontface, gp$fontsize, gp$cex) - pad[3])
   } else {
     0
   }
