@@ -153,6 +153,21 @@ my_place_labels <- function(rects, polygons, polygons_pad, bounds, anchors,
                   error = function(e) NULL)
   if (is.null(lay)) return(anchorFallback())
   lay <- lay[order(lay$label)]
+
+  # Warn when a label box could not be kept inside the panel: the placer minimises viewport
+  # overflow but will spill a box off-panel (where it is clipped) when there is no room left.
+  overflow <- pmax(0, -(lay$cx - lay$hw), (lay$cx + lay$hw) - bounds[1],
+                      -(lay$cy - lay$hh), (lay$cy + lay$hh) - bounds[2])
+  n_over <- sum(overflow > 1e-3)
+  if (n_over > 0) {
+    cli::cli_warn(c(
+      "!" = paste("{n_over} cluster label{?s} did not fit inside the plot area and {?was/were}",
+                  "placed partly outside it (they may be clipped)."),
+      "i" = paste("Decrease {.arg label.fontsize} or widen the plot limits (for example with",
+                  "{.fn ggplot2::expansion} on a scale) to make more room for label placement.")
+    ))
+  }
+
   for (j in seq_along(active)) {
     res[[active[j]]] <- c(lay$cx[j], lay$cy[j])
     lead[[active[j]]] <- c(lay$ex[j], lay$ey[j], lay$bx[j], lay$by[j], as.numeric(lay$corner[j]))
