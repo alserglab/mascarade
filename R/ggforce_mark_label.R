@@ -65,17 +65,27 @@ subset_gp <- function(gp, index, ignore = c('font')) {
 #' @importFrom grid valid.just textGrob nullGrob viewport grobWidth grobHeight
 #' rectGrob gpar grid.layout unit gTree gList grobDescent
 labelboxGrob <- function(label, x = unit(0.5, 'npc'), y = unit(0.5, 'npc'),
-                         description = NULL, width = NULL, min.width = 50,
+                         description = NULL, width = NULL, maxwidth = NULL,
+                         min.width = 50,
                          default.units = 'mm', hjust = 0,
                          pad = margin(2, 2, 2, 2, 'mm'), gp = gpar(), desc.gp = gpar(),
                          vp = NULL) {
   width <- as_mm(width, default.units)
+  maxwidth <- as_mm(maxwidth, default.units)
   min.width <- as_mm(min.width, default.units)
   pad <- as_mm(pad, default.units)
   pad[c(1, 3)] <- as_mm(pad[c(1, 3)], default.units, FALSE)
+  if (is.null(width) && !is.null(maxwidth)) {
+    # A soft max width caps the box, so it also lowers the effective minimum
+    # (otherwise a min.width above maxwidth would force the box past the cap).
+    # A strict `width`, when given, takes precedence over `maxwidth`.
+    min.width <- min(min.width, maxwidth)
+  }
   if (!is.null(label) && !is.na(label)) {
     if (!is.null(width)) {
       label <- wrap_text(label, gp, width - pad[2] - pad[4])
+    } else if (!is.null(maxwidth)) {
+      label <- balance_wrap(label, gp, maxwidth - pad[2] - pad[4])
     }
     just <- c(hjust[1], 0.5)
     lab_grob <- textGrob(label, x = just[1], y = just[2], just = just,
@@ -93,7 +103,11 @@ labelboxGrob <- function(label, x = unit(0.5, 'npc'), y = unit(0.5, 'npc'),
     }
   }
   if (!is.null(description) && !is.na(description)) {
-    description <- wrap_text(description, desc.gp, final_width)
+    description <- if (is.null(width) && !is.null(maxwidth)) {
+      balance_wrap(description, desc.gp, final_width)
+    } else {
+      wrap_text(description, desc.gp, final_width)
+    }
     just <- c(rep_len(hjust, 2)[2], 0.5)
     desc_grob <- textGrob(description, x = just[1], y = just[2], just = just,
                           gp = desc.gp)
@@ -163,6 +177,116 @@ wrap_text <- function(text, gp, width) {
     }
   }
   trimws(txt)
+}
+
+#' Split text into wrap tokens
+#'
+#' Break points are spaces and positions just *after* a hyphen (never before),
+#' matching `wrap_text()`. A hyphen stays attached to the token on its left, so
+#' a break there leaves the hyphen at the end of the upper line.
+#'
+#' @param text A length-1 character string.
+#' @return A character vector of tokens.
+#' @keywords internal
+#' @noRd
+wrap_tokens <- function(text) {
+  s <- gsub('-', '- ', text, fixed = TRUE)
+  toks <- strsplit(s, split = ' ', fixed = TRUE)[[1]]
+  toks[toks != '']
+}
+
+#' Balance wrapped text across lines to a soft target width
+#'
+#' Word-wraps `text` so the lines are as even as possible and close to `width`
+#' (in mm), using a minimum-raggedness dynamic program. Unlike the greedy
+#' `wrap_text()`, it avoids a short dangling final line and stray orphan words,
+#' and it treats `width` as a *soft* target: a line may exceed it slightly when
+#' that removes an orphan, and an over-long single word is never broken (the
+#' effective target grows to the widest word so it fits on its own line). Break
+#' points are the same as `wrap_text()` (spaces and after-hyphens).
+#'
+#' The line cost is `slack^2` for a line narrower than the target and
+#' `over * excess^2` for one wider than it. Squared slack penalises a nearly
+#' empty line about as much as the width itself, so a tiny leading word (e.g.
+#' `"T"`) is merged with its neighbour rather than stranded. Larger `over`
+#' tolerates less overflow (more, shorter lines).
+#'
+#' @param text A length-1 character string.
+#' @param gp A `grid::gpar()` describing the font; used to measure token widths.
+#' @param width Soft target line width, in mm.
+#' @param over Overflow penalty weight. Default `8`.
+#' @return A single string with lines separated by `\n`.
+#' @keywords internal
+#' @noRd
+#' @importFrom grid textGrob grobWidth
+balance_wrap <- function(text, gp, width, over = 8) {
+  toks <- wrap_tokens(text)
+  n <- length(toks)
+  if (n <= 1) {
+    return(text)
+  }
+  tokenWidth <- vapply(
+    toks, function(t) as_mm(grobWidth(textGrob(t, gp = gp))), numeric(1))
+  spaceWidth <- as_mm(grobWidth(textGrob('x x', gp = gp))) -
+    2 * as_mm(grobWidth(textGrob('x', gp = gp)))
+  # A space precedes each token that shares a line with its predecessor, unless
+  # that predecessor ends in '-' (a mid-word break point takes no space).
+  endsHyphen <- grepl('-$', toks)
+  gapBefore <- c(0, ifelse(endsHyphen[-n], 0, spaceWidth))
+  cumWidth <- cumsum(tokenWidth)
+  cumGap <- cumsum(gapBefore)
+  lineWidth <- function(a, b) {
+    tokens <- cumWidth[b] - if (a > 1) cumWidth[a - 1] else 0
+    gaps <- cumGap[b] - cumGap[a]              # internal gaps only
+    tokens + gaps
+  }
+  target <- max(width, max(tokenWidth))        # unbreakable-word rule
+  lineCost <- function(a, b) {
+    slack <- target - lineWidth(a, b)
+    if (slack >= 0) {
+      slack^2
+    } else {
+      over * slack^2
+    }
+  }
+
+  # DP over all line counts: cost[i + 1] = min raggedness of the first i tokens.
+  cost <- c(0, rep(Inf, n))
+  arg <- integer(n + 1)
+  for (i in seq_len(n)) {
+    best <- Inf
+    bestJ <- 0L
+    for (j in 0:(i - 1)) {                     # last line is tokens (j + 1)..i
+      cand <- cost[j + 1] + lineCost(j + 1, i)
+      if (cand < best) {
+        best <- cand
+        bestJ <- j
+      }
+    }
+    cost[i + 1] <- best
+    arg[i + 1] <- bestJ
+  }
+
+  # Backtrack to the line-start token indices.
+  starts <- integer(0)
+  i <- n
+  while (i > 0) {
+    j <- arg[i + 1]
+    starts <- c(j + 1, starts)
+    i <- j
+  }
+  ends <- c(starts[-1] - 1, n)
+  joinLine <- function(a, b) {
+    out <- toks[a]
+    if (b > a) {
+      for (t in (a + 1):b) {
+        sep <- if (endsHyphen[t - 1]) '' else ' '
+        out <- paste0(out, sep, toks[t])
+      }
+    }
+    out
+  }
+  paste(mapply(joinLine, starts, ends), collapse = '\n')
 }
 #' @importFrom grid unit is.unit convertWidth convertHeight
 as_mm <- function(x, def, width = TRUE) {

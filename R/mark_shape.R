@@ -39,6 +39,13 @@
 #' @inheritParams ggforce::geom_mark_circle
 #' @param con.type Leader / label-mark style: one of `"ledge"`, `"line"`, `"box"`, or
 #'   `"none"` (see Details). Default `"ledge"`.
+#' @param label.maxwidth Soft target width for wrapping the label (and description) when
+#'   `label.width` is not set. A grid unit (e.g. `unit(30, "mm")`). The text is balanced
+#'   across lines so line widths are even and close to this width, avoiding a short dangling
+#'   line; a line may slightly exceed it to prevent an orphan, and an over-long single word
+#'   is never broken. Unlike `label.width` (a strict fixed width) it is a soft cap, and it
+#'   also lowers the effective `label.minwidth` so the box never exceeds it. `NULL` (default)
+#'   leaves the label unwrapped.
 #' @param label.buffer Polygon padding: cluster polygons are dilated by this distance and
 #'   labels are kept out of the dilated zone, leaving a gap between each label and its
 #'   cluster outline. A grid unit; `unit(0, "mm")` disables it. Default `unit(10, 'mm')`.
@@ -96,7 +103,8 @@ geom_mark_shape <- function(mapping = NULL, data = NULL, stat = 'identity',
                            position = 'identity', expand = 0,
                            radius = 0,
                            label.margin = margin(2, 2, 2, 2, 'mm'),
-                           label.width = NULL, label.minwidth = unit(50, 'mm'),
+                           label.width = NULL, label.maxwidth = NULL,
+                           label.minwidth = unit(50, 'mm'),
                            label.hjust = 0, label.fontsize = 12,
                            label.family = '', label.lineheight = 1,
                            label.fontface = c('bold', 'plain'),
@@ -121,6 +129,7 @@ geom_mark_shape <- function(mapping = NULL, data = NULL, stat = 'identity',
       radius = radius,
       label.margin = label.margin,
       label.width = label.width,
+      label.maxwidth = label.maxwidth,
       label.minwidth = label.minwidth,
       label.fontsize = label.fontsize,
       label.family = label.family,
@@ -154,7 +163,8 @@ GeomMarkShape <- ggplot2::ggproto(
     draw_panel = function(self, data, panel_params, coord, expand = unit(5, 'mm'),
                           radius = unit(2.5, 'mm'),
                           label.margin = margin(2, 2, 2, 2, 'mm'),
-                          label.width = NULL, label.minwidth = unit(50, 'mm'),
+                          label.width = NULL, label.maxwidth = NULL,
+                          label.minwidth = unit(50, 'mm'),
                           label.hjust = 0, label.buffer = unit(10, 'mm'),
                           label.fontsize = 12, label.family = '',
                           label.fontface = c('bold', 'plain'),
@@ -233,6 +243,7 @@ GeomMarkShape <- ggplot2::ggproto(
                      ),
                      label.margin = label.margin,
                      label.width = label.width,
+                     label.maxwidth = label.maxwidth,
                      label.minwidth = label.minwidth,
                      label.hjust = label.hjust,
                      label.buffer = label.buffer,
@@ -264,7 +275,8 @@ shapeEncGrob <- function(x = c(0, 0.5, 1, 0.5), y = c(0.5, 1, 0.5, 0), id = NULL
                         label = NULL, ghosts = NULL, default.units = 'npc',
                         name = NULL, mark.gp = gpar(), label.gp = gpar(),
                         desc.gp = gpar(), con.gp = gpar(), label.margin = margin(),
-                        label.width = NULL, label.minwidth = unit(50, 'mm'),
+                        label.width = NULL, label.maxwidth = NULL,
+                        label.minwidth = unit(50, 'mm'),
                         label.hjust = 0, label.buffer = unit(10, 'mm'),
                         con.type = 'ledge', con.border = 'one',
                         con.cap = unit(3, "mm"), con.arrow = NULL,
@@ -284,6 +296,7 @@ shapeEncGrob <- function(x = c(0, 0.5, 1, 0.5), y = c(0.5, 1, 0.5, 0), id = NULL
                 gp = subset_gp(label.gp, i),
                 desc.gp = subset_gp(desc.gp, i),
                 pad = label.margin, width = label.width,
+                maxwidth = label.maxwidth,
                 min.width = label.minwidth, hjust = label.hjust
             )
             if (con.border == 'all') {

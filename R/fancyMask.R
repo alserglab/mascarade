@@ -53,6 +53,10 @@
 #'     not matter.
 #' @param label.margin Label margin passed to
 #'   `geom_mark_shape()`. Default is `margin(2, 2, 2, 2, "pt")`.
+#' @param label.maxwidth Soft target width for wrapping labels, passed to
+#'   `geom_mark_shape()`. A grid unit (e.g. `unit(30, "mm")`); labels are balanced across
+#'   lines to keep line widths even and close to this width, without a short dangling line.
+#'   `NULL` (default) leaves labels unwrapped. See `geom_mark_shape()` for details.
 #' @param simp_ratio Fraction of the polygon bounding-box area used to simplify
 #'   cluster polygons before label placement: small inward (concave) vertices whose
 #'   cut-off area is below `simp_ratio * bbox_area` are removed, which speeds up the
@@ -101,6 +105,7 @@ fancyMask <- function(maskTable,
                       label.buffer = unit(2, "mm"),
                       label.fontface = "plain",
                       label.margin = margin(2, 2, 2, 2, "pt"),
+                      label.maxwidth = NULL,
                       simp_ratio = 0.001,
                       con.type = "ledge"
                       ) {
@@ -121,6 +126,7 @@ fancyMask <- function(maskTable,
                  label.buffer = label.buffer,
                  label.fontface = label.fontface,
                  label.margin = label.margin,
+                 label.maxwidth = label.maxwidth,
                  simp_ratio   = simp_ratio,
                  con.type     = con.type),
             class = "fancyMask"
@@ -138,6 +144,7 @@ fancyMask <- function(maskTable,
                              label.buffer = label.buffer,
                              label.fontface = label.fontface,
                              label.margin = label.margin,
+                             label.maxwidth = label.maxwidth,
                              simp_ratio = simp_ratio,
                              con.type = con.type)
     }
@@ -188,6 +195,7 @@ ggplot_add.fancyMask <- function(object, plot, ...) {
         label.buffer  = object$label.buffer,
         label.fontface = object$label.fontface,
         label.margin  = object$label.margin,
+        label.maxwidth = object$label.maxwidth,
         simp_ratio    = object$simp_ratio,
         con.type      = object$con.type
     )
@@ -223,10 +231,15 @@ resolveCols <- function(cols, clusterLevels) {
 buildFancyMaskLayers <- function(maskTable, ratio, limits.expand, linewidth,
                                  shape.expand, cols, label, label.largest,
                                  label.fontsize, label.buffer, label.fontface,
-                                 label.margin, simp_ratio = 0.001,
+                                 label.margin, label.maxwidth = NULL,
+                                 simp_ratio = 0.001,
                                  con.type = "ledge") {
     xvar <- colnames(maskTable)[1]
     yvar <- colnames(maskTable)[2]
+
+    # Labels are single-line unless label.maxwidth wraps them; a multi-line label
+    # needs a positive line height so its lines do not overlap.
+    labelLineheight <- if (is.null(label.maxwidth)) 0 else 1
 
     # expanding to give a bit more space for labels
     xyRanges <- apply(maskTable[, 1:2], 2, range)
@@ -264,9 +277,10 @@ buildFancyMaskLayers <- function(maskTable, ratio, limits.expand, linewidth,
                                      label.buffer = label.buffer,
                                      label.fontface = label.fontface,
                                      label.margin = label.margin,
+                                     label.maxwidth = label.maxwidth,
                                      simp_ratio = simp_ratio,
                                      label.minwidth = 0,
-                                     label.lineheight = 0,
+                                     label.lineheight = labelLineheight,
                                      con.cap = 0,
                                      con.type = con.type,
                                      con.colour = "inherit")
@@ -312,9 +326,10 @@ buildFancyMaskLayers <- function(maskTable, ratio, limits.expand, linewidth,
                                  label.buffer = label.buffer,
                                  label.fontface = label.fontface,
                                  label.margin = label.margin,
+                                 label.maxwidth = label.maxwidth,
                                  simp_ratio = simp_ratio,
                                  label.minwidth = 0,
-                                 label.lineheight = 0,
+                                 label.lineheight = labelLineheight,
                                  con.cap=0,
                                  con.type = con.type,
                                  con.colour = "inherit")

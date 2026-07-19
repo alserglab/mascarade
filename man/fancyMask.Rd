@@ -17,6 +17,7 @@ fancyMask(
   label.buffer = unit(2, "mm"),
   label.fontface = "plain",
   label.margin = margin(2, 2, 2, 2, "pt"),
+  label.maxwidth = NULL,
   simp_ratio = 0.001,
   con.type = "ledge"
 )
@@ -80,6 +81,11 @@ keeps a gap from its cluster outline. Default \code{unit(2, "mm")}; \code{unit(0
 
 \item{label.margin}{Label margin passed to
 \code{geom_mark_shape()}. Default is \code{margin(2, 2, 2, 2, "pt")}.}
+
+\item{label.maxwidth}{Soft target width for wrapping labels, passed to
+\code{geom_mark_shape()}. A grid unit (e.g. \code{unit(30, "mm")}); labels are balanced across
+lines to keep line widths even and close to this width, without a short dangling line.
+\code{NULL} (default) leaves labels unwrapped. See \code{geom_mark_shape()} for details.}
 
 \item{simp_ratio}{Fraction of the polygon bounding-box area used to simplify
 cluster polygons before label placement: small inward (concave) vertices whose
