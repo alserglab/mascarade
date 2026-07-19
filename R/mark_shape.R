@@ -12,9 +12,9 @@
 #' `con.type` selects how each label is connected to its cluster:
 #' - `"ledge"` — leader from the box corner facing the cluster, plus a short horizontal ledge
 #'   along the box edge at the leader's start (the default).
-#' - `"direct"` — leader from the box corner or edge-midpoint facing the cluster, with no ledge.
-#' - `"box"` — placed as for `"direct"`, and additionally outlines the label's bounding box.
-#' - `"none"` — no connector is drawn; the label is still placed as for `"direct"`.
+#' - `"line"` — leader from the box corner or edge-midpoint facing the cluster, with no ledge.
+#' - `"box"` — placed as for `"line"`, and additionally outlines the label's bounding box.
+#' - `"none"` — no connector is drawn; the label is still placed as for `"line"`.
 #'
 #' @inheritSection ggforce::geom_mark_circle Annotation
 #' @inheritSection ggforce::geom_mark_circle Filtering
@@ -37,7 +37,7 @@
 #' - alpha
 #'
 #' @inheritParams ggforce::geom_mark_circle
-#' @param con.type Leader / label-mark style: one of `"ledge"`, `"direct"`, `"box"`, or
+#' @param con.type Leader / label-mark style: one of `"ledge"`, `"line"`, `"box"`, or
 #'   `"none"` (see Details). Default `"ledge"`.
 #' @param label.buffer Polygon padding: cluster polygons are dilated by this distance and
 #'   labels are kept out of the dilated zone, leaving a gap between each label and its
@@ -58,20 +58,31 @@
 #' shape1 <- data.frame(
 #'     x = c(0, 3, 3, 2, 2, 1, 1, 0),
 #'     y = c(0, 0, 3, 3, 1, 1, 3, 3),
-#' label="bracket"
+#'     label = "U-shape",
+#'     description = "two prongs on a base"
 #' )
 #' shape2 <- data.frame(
 #'     x = c(0, 3, 3, 0)+4,
 #'     y = c(0, 0, 3, 3),
-#'     label="square"
+#'     label = "square",
+#'     description = "four equal sides"
 #' )
 #' shape3 <- data.frame(
 #'     x = c(0, 1.5, 3, 1.5)+8,
 #'     y = c(1.5, 0, 1.5, 3),
-#'     label="diamond"
+#'     label = "diamond",
+#'     description = "a square on its corner"
 #' )
+#' shapes <- rbind(shape1, shape2, shape3)
 #'
-#' ggplot(rbind(shape1, shape2, shape3), aes(x=x, y=y, label=label, color=label, fill=label)) +
+#' # Label only
+#' ggplot(shapes, aes(x=x, y=y, label=label, color=label, fill=label)) +
+#'     geom_mark_shape() +
+#'     ylim(0, 5)
+#'
+#' # Label with a secondary description line
+#' ggplot(shapes, aes(x=x, y=y, label=label, description=description,
+#'                    color=label, fill=label)) +
 #'     geom_mark_shape() +
 #'     ylim(0, 5)
 #'
@@ -95,7 +106,7 @@ geom_mark_shape <- function(mapping = NULL, data = NULL, stat = 'identity',
                            con.border = 'one', con.cap = unit(3, 'mm'),
                            con.arrow = NULL, simp_ratio = 0.001, ..., na.rm = FALSE,
                            show.legend = NA, inherit.aes = TRUE) {
-  con.type <- match.arg(con.type, c('ledge', 'direct', 'box', 'none'))
+  con.type <- match.arg(con.type, c('ledge', 'line', 'box', 'none'))
   layer(
     data = data,
     mapping = mapping,
@@ -239,7 +250,8 @@ GeomMarkShape <- ggplot2::ggproto(
         linewidth = 0.5,
         linetype = 1,
         alpha = NA,
-        label = NA
+        label = NA,
+        description = NA
     )
 )
 

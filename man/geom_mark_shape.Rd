@@ -140,7 +140,7 @@ mark. Use \code{"inherit"} to use the border colour of the enclosure or
 \item{con.size}{The width of the connector. Use \code{"inherit"} to use the border
 width of the enclosure.}
 
-\item{con.type}{Leader / label-mark style: one of \code{"ledge"}, \code{"direct"}, \code{"box"}, or
+\item{con.type}{Leader / label-mark style: one of \code{"ledge"}, \code{"line"}, \code{"box"}, or
 \code{"none"} (see Details). Default \code{"ledge"}.}
 
 \item{con.linetype}{The linetype of the connector. Use \code{"inherit"} to use the
@@ -218,9 +218,9 @@ expanded/contracted and corners can be rounded, which is controlled by \code{exp
 \itemize{
 \item \code{"ledge"} — leader from the box corner facing the cluster, plus a short horizontal ledge
 along the box edge at the leader's start (the default).
-\item \code{"direct"} — leader from the box corner or edge-midpoint facing the cluster, with no ledge.
-\item \code{"box"} — placed as for \code{"direct"}, and additionally outlines the label's bounding box.
-\item \code{"none"} — no connector is drawn; the label is still placed as for \code{"direct"}.
+\item \code{"line"} — leader from the box corner or edge-midpoint facing the cluster, with no ledge.
+\item \code{"box"} — placed as for \code{"line"}, and additionally outlines the label's bounding box.
+\item \code{"none"} — no connector is drawn; the label is still placed as for \code{"line"}.
 }
 }
 \section{Aesthetics}{
@@ -280,20 +280,31 @@ library(ggplot2)
 shape1 <- data.frame(
     x = c(0, 3, 3, 2, 2, 1, 1, 0),
     y = c(0, 0, 3, 3, 1, 1, 3, 3),
-label="bracket"
+    label = "U-shape",
+    description = "two prongs on a base"
 )
 shape2 <- data.frame(
     x = c(0, 3, 3, 0)+4,
     y = c(0, 0, 3, 3),
-    label="square"
+    label = "square",
+    description = "four equal sides"
 )
 shape3 <- data.frame(
     x = c(0, 1.5, 3, 1.5)+8,
     y = c(1.5, 0, 1.5, 3),
-    label="diamond"
+    label = "diamond",
+    description = "a square on its corner"
 )
+shapes <- rbind(shape1, shape2, shape3)
 
-ggplot(rbind(shape1, shape2, shape3), aes(x=x, y=y, label=label, color=label, fill=label)) +
+# Label only
+ggplot(shapes, aes(x=x, y=y, label=label, color=label, fill=label)) +
+    geom_mark_shape() +
+    ylim(0, 5)
+
+# Label with a secondary description line
+ggplot(shapes, aes(x=x, y=y, label=label, description=description,
+                   color=label, fill=label)) +
     geom_mark_shape() +
     ylim(0, 5)
 

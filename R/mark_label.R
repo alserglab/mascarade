@@ -76,7 +76,7 @@ simplify_outer <- function(poly, max_area, min_vertices = 4L) {
 #' @param bounds Numeric `c(width, height)` of the panel in mm.
 #' @param anchors List of fallback anchor points, used only for degenerate input.
 #' @param simp_ratio Numeric polygon-simplification fraction (see `simplify_outer()`).
-#' @param con_type Leader style: `"ledge"`, `"direct"`, `"box"`, or `"none"`.
+#' @param con_type Leader style: `"ledge"`, `"line"`, `"box"`, or `"none"`.
 #' @param buffer Numeric `label.buffer` in mm; the overflow viewport is inset by it.
 #' @return A list, one entry per input label: the placed centre `c(x, y)` in mm (`NULL` if not
 #'   drawn), carrying `attr(., "leaders")` with `c(ex, ey, bx, by, corner)` per drawn label.
@@ -185,7 +185,7 @@ my_place_labels <- function(rects, polygons, polygons_pad, bounds, anchors,
 #' @param polygons List of cluster rings (`list(x, y)`) in mm.
 #' @param ghosts Points to avoid (currently unused by the placer).
 #' @param buffer Grid unit: the `label.buffer` polygon padding / box keep-out.
-#' @param con_type Leader style: `"ledge"`, `"direct"`, `"box"`, or `"none"`.
+#' @param con_type Leader style: `"ledge"`, `"line"`, `"box"`, or `"none"`.
 #' @param con_cap Numeric gap (mm) left between the leader end and the cluster.
 #' @param con_gp A `gpar` for the connectors (per drawn label).
 #' @param anchor_x,anchor_y Optional per-label anchor overrides.

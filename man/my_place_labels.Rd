@@ -28,7 +28,7 @@ my_place_labels(
 
 \item{simp_ratio}{Numeric polygon-simplification fraction (see \code{simplify_outer()}).}
 
-\item{con_type}{Leader style: \code{"ledge"}, \code{"direct"}, \code{"box"}, or \code{"none"}.}
+\item{con_type}{Leader style: \code{"ledge"}, \code{"line"}, \code{"box"}, or \code{"none"}.}
 
 \item{buffer}{Numeric \code{label.buffer} in mm; the overflow viewport is inset by it.}
 }

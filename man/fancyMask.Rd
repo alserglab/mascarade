@@ -89,7 +89,7 @@ simplified polygon encloses the original, so labels never overlap the real
 cluster. Larger values simplify more; set to \code{0} to disable. Default \code{0.001}.}
 
 \item{con.type}{Leader / label-mark style passed to \code{geom_mark_shape()}: one of \code{"ledge"},
-\code{"direct"}, \code{"box"}, or \code{"none"} (see the \code{geom_mark_shape()} Details). Default \code{"ledge"}.}
+\code{"line"}, \code{"box"}, or \code{"none"} (see the \code{geom_mark_shape()} Details). Default \code{"ledge"}.}
 }
 \value{
 A list of ggplot2 components suitable for adding to a plot with \code{+},

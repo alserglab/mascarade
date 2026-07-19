@@ -60,7 +60,7 @@
 #'   simplified polygon encloses the original, so labels never overlap the real
 #'   cluster. Larger values simplify more; set to `0` to disable. Default `0.001`.
 #' @param con.type Leader / label-mark style passed to `geom_mark_shape()`: one of `"ledge"`,
-#'   `"direct"`, `"box"`, or `"none"` (see the `geom_mark_shape()` Details). Default `"ledge"`.
+#'   `"line"`, `"box"`, or `"none"` (see the `geom_mark_shape()` Details). Default `"ledge"`.
 #'
 #' @return A list of ggplot2 components suitable for adding to a plot with `+`,
 #'   containing a `ggplot2::coord_cartesian()` specification and a

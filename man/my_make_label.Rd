@@ -30,7 +30,7 @@ my_make_label(
 
 \item{buffer}{Grid unit: the \code{label.buffer} polygon padding / box keep-out.}
 
-\item{con_type}{Leader style: \code{"ledge"}, \code{"direct"}, \code{"box"}, or \code{"none"}.}
+\item{con_type}{Leader style: \code{"ledge"}, \code{"line"}, \code{"box"}, or \code{"none"}.}
 
 \item{con_cap}{Numeric gap (mm) left between the leader end and the cluster.}
 
