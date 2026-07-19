@@ -239,7 +239,10 @@ buildFancyMaskLayers <- function(maskTable, ratio, limits.expand, linewidth,
 
     # Labels are single-line unless label.maxwidth wraps them; a multi-line label
     # needs a positive line height so its lines do not overlap.
-    labelLineheight <- if (is.null(label.maxwidth)) 0 else 1
+    labelLineheight <- 0
+    if (!is.null(label.maxwidth)) {
+      labelLineheight <- 1
+    }
 
     # expanding to give a bit more space for labels
     xyRanges <- apply(maskTable[, 1:2], 2, range)

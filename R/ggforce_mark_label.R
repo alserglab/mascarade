@@ -223,7 +223,7 @@ balance_wrap <- function(text, gp, width, over = 8) {
   toks <- wrap_tokens(text)
   n <- length(toks)
   if (n <= 1) {
-    return(text)
+    return(trimws(text))
   }
   tokenWidth <- vapply(
     toks, function(t) as_mm(grobWidth(textGrob(t, gp = gp))), numeric(1))
@@ -236,7 +236,11 @@ balance_wrap <- function(text, gp, width, over = 8) {
   cumWidth <- cumsum(tokenWidth)
   cumGap <- cumsum(gapBefore)
   lineWidth <- function(a, b) {
-    tokens <- cumWidth[b] - if (a > 1) cumWidth[a - 1] else 0
+    before <- 0
+    if (a > 1) {
+      before <- cumWidth[a - 1]
+    }
+    tokens <- cumWidth[b] - before
     gaps <- cumGap[b] - cumGap[a]              # internal gaps only
     tokens + gaps
   }
@@ -280,7 +284,10 @@ balance_wrap <- function(text, gp, width, over = 8) {
     out <- toks[a]
     if (b > a) {
       for (t in (a + 1):b) {
-        sep <- if (endsHyphen[t - 1]) '' else ' '
+        sep <- ' '
+        if (endsHyphen[t - 1]) {
+          sep <- ''
+        }
         out <- paste0(out, sep, toks[t])
       }
     }
