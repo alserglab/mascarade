@@ -13,7 +13,6 @@ geom_mark_shape(
   radius = 0,
   label.margin = margin(2, 2, 2, 2, "mm"),
   label.width = NULL,
-  label.maxwidth = NULL,
   label.minwidth = unit(50, "mm"),
   label.hjust = 0,
   label.fontsize = 12,
@@ -94,16 +93,13 @@ plot area width.}
 \item{label.margin}{The margin around the annotation boxes, given by a call
 to \code{\link[ggplot2:element]{ggplot2::margin()}}.}
 
-\item{label.width}{A fixed width for the label. Set to \code{NULL} to let the text
-or \code{label.minwidth} decide.}
-
-\item{label.maxwidth}{Soft target width for wrapping the label (and description) when
-\code{label.width} is not set. A grid unit (e.g. \code{unit(30, "mm")}). The text is balanced
-across lines so line widths are even and close to this width, avoiding a short dangling
-line; a line may slightly exceed it to prevent an orphan, and an over-long single word
-is never broken. Unlike \code{label.width} (a strict fixed width) it is a soft cap, and it
-also lowers the effective \code{label.minwidth} so the box never exceeds it. \code{NULL} (default)
-leaves the label unwrapped.}
+\item{label.width}{Soft target width for wrapping the label (and description). A grid
+unit (e.g. \code{unit(30, "mm")}). The text is balanced across lines so line widths are
+even and close to this width, avoiding a short dangling line; a line may slightly
+exceed it to prevent an orphan, and an over-long single word is never broken. It is a
+soft cap: the box shrinks to fit the wrapped text (never forced to this exact width),
+and the effective \code{label.minwidth} is lowered so the box never exceeds it. \code{NULL}
+(default) leaves the label unwrapped.}
 
 \item{label.minwidth}{The minimum width to provide for the description. If
 the size of the label exceeds this, the description is allowed to fill as

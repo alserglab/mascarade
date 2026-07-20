@@ -65,27 +65,22 @@ subset_gp <- function(gp, index, ignore = c('font')) {
 #' @importFrom grid valid.just textGrob nullGrob viewport grobWidth grobHeight
 #' rectGrob gpar grid.layout unit gTree gList grobDescent
 labelboxGrob <- function(label, x = unit(0.5, 'npc'), y = unit(0.5, 'npc'),
-                         description = NULL, width = NULL, maxwidth = NULL,
-                         min.width = 50,
+                         description = NULL, width = NULL, min.width = 50,
                          default.units = 'mm', hjust = 0,
                          pad = margin(2, 2, 2, 2, 'mm'), gp = gpar(), desc.gp = gpar(),
                          vp = NULL) {
   width <- as_mm(width, default.units)
-  maxwidth <- as_mm(maxwidth, default.units)
   min.width <- as_mm(min.width, default.units)
   pad <- as_mm(pad, default.units)
   pad[c(1, 3)] <- as_mm(pad[c(1, 3)], default.units, FALSE)
-  if (is.null(width) && !is.null(maxwidth)) {
-    # A soft max width caps the box, so it also lowers the effective minimum
-    # (otherwise a min.width above maxwidth would force the box past the cap).
-    # A strict `width`, when given, takes precedence over `maxwidth`.
-    min.width <- min(min.width, maxwidth)
+  if (!is.null(width)) {
+    # A soft target width caps the box, so it also lowers the effective minimum
+    # (otherwise a min.width above width would force the box past the cap).
+    min.width <- min(min.width, width)
   }
   if (!is.null(label) && !is.na(label)) {
     if (!is.null(width)) {
-      label <- wrap_text(label, gp, width - pad[2] - pad[4])
-    } else if (!is.null(maxwidth)) {
-      label <- balance_wrap(label, gp, maxwidth - pad[2] - pad[4])
+      label <- balance_wrap(label, gp, width - pad[2] - pad[4])
     }
     just <- c(hjust[1], 0.5)
     lab_grob <- textGrob(label, x = just[1], y = just[2], just = just,
@@ -93,34 +88,26 @@ labelboxGrob <- function(label, x = unit(0.5, 'npc'), y = unit(0.5, 'npc'),
   } else {
     lab_grob <- nullGrob()
   }
-  if (!is.null(width)) {
-    final_width <- max(width, min.width) - pad[2] - pad[4]
+  # The box always fits the (wrapped) label, clamped from below by min.width;
+  # width is a soft cap on the wrapping, never a fixed box dimension.
+  if (as_mm(grobWidth(lab_grob)) > (min.width - pad[2] - pad[4])) {
+    final_width <- as_mm(grobWidth(lab_grob)) + pad[2] + pad[4]
   } else {
-    if (as_mm(grobWidth(lab_grob)) > (min.width - pad[2] - pad[4])) {
-      final_width <- as_mm(grobWidth(lab_grob)) + pad[2] + pad[4]
-    } else {
-      final_width <- max(as_mm(grobWidth(lab_grob)), min.width) - pad[2] - pad[4]
-    }
+    final_width <- max(as_mm(grobWidth(lab_grob)), min.width) - pad[2] - pad[4]
   }
   if (!is.null(description) && !is.na(description)) {
-    description <- if (is.null(width) && !is.null(maxwidth)) {
-      balance_wrap(description, desc.gp, final_width)
-    } else {
-      wrap_text(description, desc.gp, final_width)
-    }
+    description <- balance_wrap(description, desc.gp, final_width)
     just <- c(rep_len(hjust, 2)[2], 0.5)
     desc_grob <- textGrob(description, x = just[1], y = just[2], just = just,
                           gp = desc.gp)
-    if (is.null(width)) {
-      final_width_desc <- min(final_width, as_mm(grobWidth(desc_grob)))
-      final_width <- as_mm(grobWidth(lab_grob))
-      if (final_width < final_width_desc) {
-        final_width <- final_width_desc
-      }
+    final_width_desc <- min(final_width, as_mm(grobWidth(desc_grob)))
+    final_width <- as_mm(grobWidth(lab_grob))
+    if (final_width < final_width_desc) {
+      final_width <- final_width_desc
     }
   } else {
     desc_grob <- nullGrob()
-    if (is.null(width)) final_width <- as_mm(grobWidth(lab_grob))
+    final_width <- as_mm(grobWidth(lab_grob))
   }
   bg_grob <- rectGrob(gp = gpar(col = NA, fill = gp$fill))
   lab_height <- as_mm(grobHeight(lab_grob), width = FALSE)
@@ -161,29 +148,11 @@ widthDetails.mark_label <- function(x) {
 heightDetails.mark_label <- function(x) {
   x$vp$height
 }
-#' @importFrom grid textGrob grobWidth
-wrap_text <- function(text, gp, width) {
-  text <- gsub('-', '- ', text)
-  text <- strsplit(text, split = ' ', fixed = TRUE)[[1]]
-  text <- paste0(text, ' ')
-  text <- sub('- ', '-', text)
-  txt <- ''
-  for (i in text) {
-    oldlab <- txt
-    txt <- paste0(txt, i)
-    tmpGrob <- textGrob(txt, gp = gp)
-    if (as_mm(grobWidth(tmpGrob)) > width) {
-      txt <- paste(trimws(oldlab), i, sep = '\n')
-    }
-  }
-  trimws(txt)
-}
-
 #' Split text into wrap tokens
 #'
-#' Break points are spaces and positions just *after* a hyphen (never before),
-#' matching `wrap_text()`. A hyphen stays attached to the token on its left, so
-#' a break there leaves the hyphen at the end of the upper line.
+#' Break points are spaces and positions just *after* a hyphen (never before).
+#' A hyphen stays attached to the token on its left, so a break there leaves the
+#' hyphen at the end of the upper line.
 #'
 #' @param text A length-1 character string.
 #' @return A character vector of tokens.
@@ -198,12 +167,12 @@ wrap_tokens <- function(text) {
 #' Balance wrapped text across lines to a soft target width
 #'
 #' Word-wraps `text` so the lines are as even as possible and close to `width`
-#' (in mm), using a minimum-raggedness dynamic program. Unlike the greedy
-#' `wrap_text()`, it avoids a short dangling final line and stray orphan words,
-#' and it treats `width` as a *soft* target: a line may exceed it slightly when
-#' that removes an orphan, and an over-long single word is never broken (the
-#' effective target grows to the widest word so it fits on its own line). Break
-#' points are the same as `wrap_text()` (spaces and after-hyphens).
+#' (in mm), using a minimum-raggedness dynamic program. It avoids a short
+#' dangling final line and stray orphan words, and it treats `width` as a
+#' *soft* target: a line may exceed it slightly when that removes an orphan,
+#' and an over-long single word is never broken (the effective target grows to
+#' the widest word so it fits on its own line). Break points are spaces and
+#' positions just after a hyphen.
 #'
 #' The line cost is `slack^2` for a line narrower than the target and
 #' `over * excess^2` for one wider than it. Squared slack penalises a nearly

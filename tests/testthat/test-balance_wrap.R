@@ -1,4 +1,4 @@
-# Tests for balance_wrap(): the balanced label wrapper behind label.maxwidth.
+# Tests for balance_wrap(): the balanced label wrapper behind label.width.
 
 # balance_wrap measures token widths, so it needs an open graphics device.
 with_device <- function(expr) {
