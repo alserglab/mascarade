@@ -63,6 +63,95 @@ simplify_outer <- function(poly, max_area, min_vertices = 4L) {
   list(x = rx, y = ry)
 }
 
+#' Clean and simplify polygon rings for placement
+#'
+#' Drops non-finite vertices and guarantees at least three points per ring, so the C++ box-fit
+#' and pole solvers never see a degenerate polygon (draw-stage rings can be cropped by axis
+#' limits, dropped by expansion, or collapsed to a point). When `simp_ratio > 0` it then removes
+#' small inward dents with `simplify_outer()` -- a big speed-up (box-fit and foreignLength walk
+#' every edge), and since only concave vertices are removed each ring still ENCLOSES the
+#' original, so the box-fit keep-out stays conservative.
+#'
+#' @param polys List of rings (`list(x, y)`), already subset to the drawn labels.
+#' @param simp_ratio Numeric simplification fraction; `0` disables simplification.
+#' @return A list of cleaned (and optionally simplified) rings.
+#' @keywords internal
+#' @noRd
+prepPolygons <- function(polys, simp_ratio) {
+  cleaned <- lapply(polys, function(p) {
+    finite <- is.finite(p$x) & is.finite(p$y)
+    x <- p$x[finite]
+    y <- p$y[finite]
+    if (length(x) < 3) {
+      # Fewer than three finite points is a degenerate ring the box-fit and pole solvers
+      # cannot use. Replace it with a tiny non-collinear triangle around the centroid: eps is
+      # 1 um (1e-3 mm), orders of magnitude below label/leader scale, so it seeds a valid ring
+      # without shifting placement.
+      cx <- if (length(x)) mean(x) else 0
+      cy <- if (length(y)) mean(y) else 0
+      eps <- 1e-3
+      x <- cx + c(-eps, eps, 0)
+      y <- cy + c(-eps, -eps, eps)
+    }
+    list(x = x, y = y)
+  })
+  if (simp_ratio > 0) {
+    allX <- unlist(lapply(cleaned, `[[`, "x"))
+    allY <- unlist(lapply(cleaned, `[[`, "y"))
+    maxArea <- simp_ratio * diff(range(allX)) * diff(range(allY))
+    cleaned <- lapply(cleaned, simplify_outer, max_area = maxArea)
+  }
+  cleaned
+}
+
+#' Pole of inaccessibility for each ring
+#'
+#' Returns the most-interior point of every ring via `polylabelr::poi()`, falling back to the
+#' vertex centroid when `poi()` errors or returns a non-finite point.
+#'
+#' @param polys List of cleaned rings (`list(x, y)`).
+#' @return A two-column matrix of pole `x`, `y` coordinates, one row per ring.
+#' @keywords internal
+#' @noRd
+#' @importFrom polylabelr poi
+polesOfInaccessibility <- function(polys) {
+  t(vapply(polys, function(p) {
+    pole <- tryCatch(polylabelr::poi(p$x, p$y), error = function(e) NULL)
+    if (is.null(pole) || !is.finite(pole$x) || !is.finite(pole$y)) {
+      c(mean(p$x), mean(p$y))
+    } else {
+      c(pole$x, pole$y)
+    }
+  }, numeric(2)))
+}
+
+#' Warn when placed label boxes spill outside the panel
+#'
+#' The placer minimises viewport overflow but will still push a box off-panel (where it is
+#' clipped) when there is no room left. Emits a single message naming how many labels overflowed.
+#'
+#' @param layout The placement table returned by `placeLabels()`.
+#' @param bounds Numeric `c(width, height)` of the panel in mm.
+#' @return `invisible(NULL)`; called for its warning side effect.
+#' @keywords internal
+#' @noRd
+warnOnOverflow <- function(layout, bounds) {
+  overflow <- pmax(0,
+                   -(layout$cx - layout$hw), (layout$cx + layout$hw) - bounds[1],
+                   -(layout$cy - layout$hh), (layout$cy + layout$hh) - bounds[2])
+  # Count only real spills: 1e-3 mm (1 um) tolerance ignores floating-point noise from a box
+  # that the placer parked flush against the panel edge.
+  nOver <- sum(overflow > 1e-3)
+  if (nOver == 0) {
+    return(invisible(NULL))
+  }
+  cli::cli_warn(c(
+    "!" = "{nOver} cluster label{?s} did not fully fit inside the plot area.",
+    "i" = paste("Decrease {.arg label.fontsize} or expand the plot limits",
+                "to make more room for label placement.")
+  ))
+}
+
 #' Draw-time label placement (boundary-seed placer)
 #'
 #' Runs at draw time in the panel's millimetre space: builds the poles and the box-fit R-tree
@@ -81,97 +170,100 @@ simplify_outer <- function(poly, max_area, min_vertices = 4L) {
 #' @return A list, one entry per input label: the placed centre `c(x, y)` in mm (`NULL` if not
 #'   drawn), carrying `attr(., "leaders")` with `c(ex, ey, bx, by, corner)` per drawn label.
 #' @keywords internal
-#' @importFrom polylabelr poi
 #' @importFrom stats median
 my_place_labels <- function(rects, polygons, polygons_pad, bounds, anchors,
                             simp_ratio = 0.001, con_type = "ledge", buffer = 0) {
-  res <- vector('list', length(rects))    # label centres (mm)
-  lead <- vector('list', length(rects))   # per label c(ex, ey, bx, by, corner): leader start ->
-                                          # visible end (mask boundary) + ledge flag, for drawing
-  withLeaders <- function() { attr(res, "leaders") <- lead; res }
-  active <- which(vapply(rects, function(r) !all(r == 0), logical(1)))
-  if (length(active) == 0) return(withLeaders())
+  nLabels <- length(rects)
 
-  # Clean + simplify a polygon list (aligned to `active`). Clean: drop non-finite vertices and
-  # guarantee >= 3 points so the C++ box-fit / pole solver never see a degenerate ring (draw-
-  # stage polygons can be cropped by axis limits, dropped by expansion, or reduced to a point).
-  # Simplify: drop small inward dents -- a big speed-up (box-fit and foreignLength walk every
-  # edge), and since simplify_outer only removes concave vertices the ring ENCLOSES the
-  # original, so the box-fit keep-out stays conservative.
-  prep <- function(polys) {
-    pa <- lapply(polys[active], function(p) {
-      ok <- is.finite(p$x) & is.finite(p$y); x <- p$x[ok]; y <- p$y[ok]
-      if (length(x) < 3) {
-        cx <- if (length(x)) mean(x) else 0; cy <- if (length(y)) mean(y) else 0
-        x <- cx + c(-1e-3, 1e-3, 0); y <- cy + c(-1e-3, -1e-3, 1e-3)
-      }
-      list(x = x, y = y)
-    })
-    if (simp_ratio > 0) {
-      ax <- unlist(lapply(pa, `[[`, 'x')); ay <- unlist(lapply(pa, `[[`, 'y'))
-      pa <- lapply(pa, simplify_outer, max_area = simp_ratio * diff(range(ax)) * diff(range(ay)))
+  # Assemble the return value: the centres list, carrying per-label leaders in an attribute.
+  # Each leader is c(ex, ey, bx, by, corner): leader start -> visible end (mask boundary) plus
+  # the ledge flag, consumed by the drawing code.
+  withLeaders <- function(centres, leaders) {
+    attr(centres, "leaders") <- leaders
+    centres
+  }
+
+  # A label is drawn only if its measured box is non-zero.
+  drawn <- which(vapply(rects, function(r) !all(r == 0), logical(1)))
+  if (length(drawn) == 0) {
+    return(withLeaders(vector("list", nLabels), vector("list", nLabels)))
+  }
+
+  # Drop every drawn label onto its anchor point with a zero-length (start == end, so invisible)
+  # leader. Used whenever the geometry is too degenerate for the placer to run.
+  placeOnAnchors <- function() {
+    centres <- vector("list", nLabels)
+    leaders <- vector("list", nLabels)
+    for (j in seq_along(drawn)) {
+      anchor <- as.numeric(anchors[[drawn[j]]])
+      centres[[drawn[j]]] <- anchor
+      leaders[[drawn[j]]] <- c(anchor, anchor, 0)
     }
-    pa
-  }
-  polys_t <- prep(polygons)               # true clusters: poles, leader ends, foreign routing
-  polys_d <- prep(polygons_pad)           # dilated by label.buffer: box-fit keep-out only
-  poimat <- t(vapply(polys_t, function(p) {
-    pl <- tryCatch(polylabelr::poi(p$x, p$y), error = function(e) NULL)
-    if (is.null(pl) || !is.finite(pl$x) || !is.finite(pl$y)) c(mean(p$x), mean(p$y)) else c(pl$x, pl$y)
-  }, numeric(2)))
-
-  # anchor fallback if anything is still degenerate (start == end => no visible leader drawn)
-  anchorFallback <- function() {
-    for (j in seq_along(active)) {
-      a <- as.numeric(anchors[[active[j]]])
-      res[[active[j]]] <<- a; lead[[active[j]]] <<- c(a, a, 0)
-    }
-    withLeaders()
-  }
-  if (any(!is.finite(poimat)) || any(!is.finite(bounds)) || bounds[1] <= 0 || bounds[2] <= 0)
-    return(anchorFallback())
-  if (length(active) == 1) {
-    res[[active]] <- poimat[1, ]; lead[[active]] <- c(poimat[1, ], poimat[1, ], 0)
-    return(withLeaders())
+    withLeaders(centres, leaders)
   }
 
-  hw <- vapply(active, function(i) rects[[i]][1] / 2, 0)
-  hh <- vapply(active, function(i) rects[[i]][2] / 2, 0)
-  char_h <- stats::median(2 * hh)
-  pxt <- lapply(polys_t, `[[`, 'x'); pyt <- lapply(polys_t, `[[`, 'y')
-  pxd <- lapply(polys_d, `[[`, 'x'); pyd <- lapply(polys_d, `[[`, 'y')
-  # box-fit keep-out from the dilated polygons; poles/foreign/leader-ends from the true ones,
-  # so leaders are drawn to the actual cluster outline. Seed columns use the dilated extent.
-  geom <- list(poi = poimat, rtree = buildBoxFit(pxd, pyd), polysx = pxt, polysy = pyt,
-               pad_xrange = range(unlist(pxd)))
+  # True rings drive poles, leader ends and foreign routing; padded rings (dilated by
+  # label.buffer) drive the box-fit keep-out, so leaders still reach the real cluster outline.
+  truePolys <- prepPolygons(polygons[drawn], simp_ratio)
+  paddedPolys <- prepPolygons(polygons_pad[drawn], simp_ratio)
+  poles <- polesOfInaccessibility(truePolys)
+
+  degenerate <- any(!is.finite(poles)) || any(!is.finite(bounds)) ||
+                bounds[1] <= 0 || bounds[2] <= 0
+  if (degenerate) {
+    return(placeOnAnchors())
+  }
+
+  centres <- vector("list", nLabels)
+  leaders <- vector("list", nLabels)
+
+  # A single label needs no layout: sit it on its pole with no visible leader.
+  if (length(drawn) == 1) {
+    centres[[drawn]] <- poles[1, ]
+    leaders[[drawn]] <- c(poles[1, ], poles[1, ], 0)
+    return(withLeaders(centres, leaders))
+  }
+
+  halfWidth <- vapply(drawn, function(i) rects[[i]][1] / 2, 0)
+  halfHeight <- vapply(drawn, function(i) rects[[i]][2] / 2, 0)
+  charHeight <- stats::median(2 * halfHeight)
+
+  truePolysX <- lapply(truePolys, `[[`, "x")
+  truePolysY <- lapply(truePolys, `[[`, "y")
+  paddedPolysX <- lapply(paddedPolys, `[[`, "x")
+  paddedPolysY <- lapply(paddedPolys, `[[`, "y")
+  geom <- list(
+    poi = poles,
+    rtree = buildBoxFit(paddedPolysX, paddedPolysY),
+    polysx = truePolysX,
+    polysy = truePolysY,
+    pad_xrange = range(unlist(paddedPolysX))
+  )
 
   # Inset the overflow viewport by label.buffer, so labels keep the same gap from the panel
   # edge that they keep from clusters (overflow is measured against xhi - buffer, etc.).
-  vb <- min(buffer, 0.4 * min(bounds))
-  lay <- tryCatch(placeLabels(geom, c(vb, bounds[1] - vb), c(vb, bounds[2] - vb), hw, hh, char_h,
-                              con_type = con_type),
-                  error = function(e) NULL)
-  if (is.null(lay)) return(anchorFallback())
-  lay <- lay[order(lay$label)]
-
-  # Warn when a label box could not be kept inside the panel: the placer minimises viewport
-  # overflow but will spill a box off-panel (where it is clipped) when there is no room left.
-  overflow <- pmax(0, -(lay$cx - lay$hw), (lay$cx + lay$hw) - bounds[1],
-                      -(lay$cy - lay$hh), (lay$cy + lay$hh) - bounds[2])
-  n_over <- sum(overflow > 1e-3)
-  if (n_over > 0) {
-    cli::cli_warn(c(
-      "!" = paste("{n_over} cluster label{?s} did not full fit inside the plot area."),
-      "i" = paste("Decrease {.arg label.fontsize} or expand the plot limits",
-                  "to make more room for label placement.")
-    ))
+  viewportInset <- min(buffer, 0.4 * min(bounds))
+  layout <- tryCatch(
+    placeLabels(geom,
+                c(viewportInset, bounds[1] - viewportInset),
+                c(viewportInset, bounds[2] - viewportInset),
+                halfWidth, halfHeight, charHeight, con_type = con_type),
+    error = function(e) NULL
+  )
+  if (is.null(layout)) {
+    return(placeOnAnchors())
   }
+  layout <- layout[order(layout$label)]
 
-  for (j in seq_along(active)) {
-    res[[active[j]]] <- c(lay$cx[j], lay$cy[j])
-    lead[[active[j]]] <- c(lay$ex[j], lay$ey[j], lay$bx[j], lay$by[j], as.numeric(lay$corner[j]))
+  warnOnOverflow(layout, bounds)
+
+  for (j in seq_along(drawn)) {
+    centres[[drawn[j]]] <- c(layout$cx[j], layout$cy[j])
+    leaders[[drawn[j]]] <- c(layout$ex[j], layout$ey[j],
+                             layout$bx[j], layout$by[j],
+                             as.numeric(layout$corner[j]))
   }
-  withLeaders()
+  withLeaders(centres, leaders)
 }
 #' Build the label + leader grobs for a mark
 #'
