@@ -13,7 +13,7 @@ knitr::opts_chunk$set(echo = TRUE, fig.width = 7, fig.height=5)
 
 ### Loading necessary libraries
 
-```{r}
+```{r message=FALSE}
 library(mascarade)
 library(data.table)
 library(ggplot2)
@@ -46,7 +46,7 @@ With labels:
 ggplot(data, aes(x=UMAP_1, y=UMAP_2)) + 
     geom_point(aes(color=cluster)) + 
     fancyMask(maskTable, ratio=1, linewidth = 0) +
-    theme_classic()
+    theme_classic() + theme(legend.position = "none")
 ```
 
 ### PBMC-3K t-SNE
@@ -74,7 +74,7 @@ With labels:
 ggplot(data, aes(x=tSNE_1, y=tSNE_2)) + 
     geom_point(aes(color=cluster)) + 
     fancyMask(maskTable, ratio=1, linewidth = 0) +
-    theme_classic()
+    theme_classic() + theme(legend.position = "none")
 ```
 
 
@@ -133,7 +133,7 @@ ggplot(data, aes(x=UMAP_1, y=UMAP_2)) +
 
 ### Vladimir Shitov
 
-```{r fig.height=7, fig.width=8}
+```{r fig.height=7, fig.width=8, message=FALSE}
 example <- readRDS(url("https://alserglab.wustl.edu/files/mascarade/examples/vshitov.rds"))
 data <- data.table(example$dims, 
                    cluster=example$clusters)
@@ -145,11 +145,12 @@ ggplot(data, aes(x=UMAP1, y=UMAP2)) +
     geom_point(aes(color=cluster), size=0.1) + 
     scale_color_repel() +
     fancyMask(maskTable, 
-              con.type = "direct", 
+              con.type = "line",
               ratio=1, 
               linewidth = 0, 
               limits.expand = c(0.2, 0.1),
-              label.fontsize = 8) +
+              label.maxwidth = unit(20, "mm"),
+              label.fontsize = 10) +
     theme_classic() + theme(legend.position = "none")
                                
 ```
