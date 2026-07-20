@@ -265,6 +265,184 @@ my_place_labels <- function(rects, polygons, polygons_pad, bounds, anchors,
   }
   withLeaders(centres, leaders)
 }
+
+#' Replace single-point clusters with a tight jittered point cloud
+#'
+#' A cluster that survived as a single `(x, y)` has no extent for the pole / box-fit geometry.
+#' Scatter it into 200 points within a +/- 5e-5 box so the downstream ring code has something to
+#' work with; the jitter is far below label scale, so placement is unaffected.
+#'
+#' @param polygons List of cluster rings (`list(x, y)`).
+#' @return The same list with any single-point ring replaced by a 200-point cloud.
+#' @keywords internal
+#' @noRd
+#' @importFrom stats runif
+expandSinglePoints <- function(polygons) {
+  lapply(polygons, function(p) {
+    if (length(p$x) == 1 && length(p$y) == 1) {
+      list(
+        x = runif(200, p$x - 5e-5, p$x + 5e-5),
+        y = runif(200, p$y - 5e-5, p$y + 5e-5)
+      )
+    } else {
+      list(x = p$x, y = p$y)
+    }
+  })
+}
+
+#' Per-cluster anchor points, with optional overrides
+#'
+#' The anchor defaults to the bounding-box centre of each ring; a finite `anchor_x` / `anchor_y`
+#' entry (when supplied for every polygon) overrides that coordinate. Anchors are the fallback
+#' target used only when the placer cannot run.
+#'
+#' @param polygons List of cluster rings (`list(x, y)`).
+#' @param anchor_x,anchor_y Optional per-label anchor overrides (or `NULL`).
+#' @return A list of `c(x, y)` anchor points, one per polygon.
+#' @keywords internal
+#' @noRd
+computeAnchors <- function(polygons, anchor_x, anchor_y) {
+  lapply(seq_along(polygons), function(i) {
+    x <- mean(range(polygons[[i]]$x))
+    y <- mean(range(polygons[[i]]$y))
+    if (length(anchor_x) == length(polygons) && !is.na(anchor_x[i])) {
+      x <- anchor_x[i]
+    }
+    if (length(anchor_y) == length(polygons) && !is.na(anchor_y[i])) {
+      y <- anchor_y[i]
+    }
+    c(x, y)
+  })
+}
+
+#' Absolute area of a polygon ring (shoelace formula)
+#'
+#' @param p A ring (`list(x, y)`).
+#' @return The non-negative area enclosed by the ring.
+#' @keywords internal
+#' @noRd
+ringArea <- function(p) {
+  abs(sum(p$x * c(p$y[-1], p$y[1]) - c(p$x[-1], p$x[1]) * p$y)) / 2
+}
+
+#' Dilate each cluster ring individually by `delta` mm (the label keep-out)
+#'
+#' Offsets one ring at a time: `polyoffset()` on the whole list reorders (and can merge) its
+#' output, which would break the 1:1 mapping the placer relies on (polygon `i` pairs with
+#' `rects[i]` / `anchors[i]`). A degenerate offset falls back to the original ring; a ring that
+#' splits into pieces keeps its largest, so exactly one ring maps to each label. Used only for
+#' the box-fit keep-out -- poles, leader ends and foreign routing use the true rings.
+#'
+#' @param polygons List of cluster rings (`list(x, y)`) in mm.
+#' @param delta Dilation distance in mm.
+#' @return A list of dilated rings, aligned 1:1 with `polygons`.
+#' @keywords internal
+#' @noRd
+#' @importFrom polyclip polyoffset
+dilatePolygons <- function(polygons, delta) {
+  lapply(polygons, function(p) {
+    dilated <- polyoffset(list(p), delta)
+    if (length(dilated) == 0) {
+      return(p)
+    }
+    if (length(dilated) == 1) {
+      return(dilated[[1]])
+    }
+    areas <- vapply(dilated, ringArea, numeric(1))
+    dilated[[which.max(areas)]]
+  })
+}
+
+#' Build the connector grob for the drawn labels
+#'
+#' Each drawn label contributes zero or more 2-point line segments: the leader (box anchor ->
+#' visible mask-boundary end, trimmed to leave a `con_cap` gap at the cluster), the horizontal
+#' ledge along the box edge for `con_type == "ledge"`, and the four box-outline edges for
+#' `con_type == "box"`. All segments are drawn as one `polylineGrob`, one id per segment, with
+#' the connector `gp` subset to each segment's label.
+#'
+#' @param labels_drawn Integer indices (into the full label list) of the drawn labels.
+#' @param leaders Per-label `c(ex, ey, bx, by, corner)` leader descriptors.
+#' @param labelpos Per-label placed centres `c(x, y)`.
+#' @param dims List of measured label box sizes `c(w, h)` in mm.
+#' @param con_type Leader style: `"ledge"`, `"line"`, `"box"`, or `"none"`.
+#' @param con_cap Numeric gap (mm) left between the leader end and the cluster.
+#' @param con_gp A `gpar` for the connectors (per drawn label).
+#' @param arrow Optional `grid::arrow` for the connectors.
+#' @return A single `polylineGrob`, or `nullGrob()` when there is nothing to draw.
+#' @keywords internal
+#' @noRd
+#' @importFrom grid nullGrob polylineGrob
+buildConnectorGrob <- function(labels_drawn, leaders, labelpos, dims,
+                               con_type, con_cap, con_gp, arrow) {
+  if (con_type == "none") {
+    return(nullGrob())
+  }
+
+  # The 2-point segments contributed by one drawn label (index `i` into `labels_drawn`).
+  segmentsFor <- function(i) {
+    idx <- labels_drawn[i]
+    leader <- leaders[[idx]]
+    centre <- labelpos[[idx]]
+    halfWidth <- dims[[idx]][1] / 2
+    halfHeight <- dims[[idx]][2] / 2
+    segs <- list()
+
+    # Leader: box anchor c(ex, ey) -> visible end c(bx, by). A zero-length leader (start == end,
+    # e.g. the single-label / anchor fallback) is below the 1e-4 mm floor and draws nothing.
+    x0 <- leader[1]
+    y0 <- leader[2]
+    x1 <- leader[3]
+    y1 <- leader[4]
+    leaderLen <- sqrt((x1 - x0)^2 + (y1 - y0)^2)
+    if (leaderLen > 1e-4) {
+      if (con_cap > 0 && leaderLen > con_cap) {
+        # Stop the leader con_cap mm short of the cluster.
+        shrink <- (leaderLen - con_cap) / leaderLen
+        x1 <- x0 + (x1 - x0) * shrink
+        y1 <- y0 + (y1 - y0) * shrink
+      }
+      segs <- c(segs, list(list(x = c(x0, x1), y = c(y0, y1), label = i)))
+    }
+
+    # Ledge: a short horizontal line along the box edge at the anchor's y.
+    if (con_type == "ledge" && length(leader) >= 5 && leader[5] == 1) {
+      segs <- c(segs, list(list(
+        x = c(centre[1] - halfWidth, centre[1] + halfWidth),
+        y = c(y0, y0), label = i
+      )))
+    }
+
+    # Box: outline the label's bounding box as four edges (corners in a closed loop).
+    if (con_type == "box") {
+      cornerX <- centre[1] + c(-halfWidth, halfWidth, halfWidth, -halfWidth, -halfWidth)
+      cornerY <- centre[2] + c(-halfHeight, -halfHeight, halfHeight, halfHeight, -halfHeight)
+      for (e in seq_len(4L)) {
+        segs <- c(segs, list(list(
+          x = cornerX[c(e, e + 1L)], y = cornerY[c(e, e + 1L)], label = i
+        )))
+      }
+    }
+    segs
+  }
+
+  segments <- do.call(c, lapply(seq_along(labels_drawn), segmentsFor))
+  if (length(segments) == 0) {
+    return(nullGrob())
+  }
+  if (!is.null(arrow)) {
+    arrow$ends <- 2L
+  }
+  labelIndex <- vapply(segments, `[[`, integer(1), "label")
+  gp <- subset_gp(subset_gp(con_gp, labels_drawn), labelIndex)
+  polylineGrob(
+    x = unlist(lapply(segments, `[[`, "x")),
+    y = unlist(lapply(segments, `[[`, "y")),
+    id = rep(seq_along(segments), each = 2L),
+    default.units = "mm", gp = gp, arrow = arrow
+  )
+}
+
 #' Build the label + leader grobs for a mark
 #'
 #' Draw-time worker for `makeContent.shape_enc()`: dilates the cluster polygons by `buffer`
@@ -285,108 +463,45 @@ my_place_labels <- function(rects, polygons, polygons_pad, bounds, anchors,
 #' @param simp_ratio Numeric polygon-simplification fraction (see `simplify_outer()`).
 #' @return A `gList`-ready list: the positioned label grobs followed by the connector grob.
 #' @keywords internal
-#' @importFrom polyclip polyoffset
-#' @importFrom grid convertWidth convertHeight nullGrob polylineGrob
-#' @importFrom stats runif
+#' @importFrom grid convertWidth convertHeight nullGrob unit
 my_make_label <- function(labels, dims, polygons, ghosts, buffer, con_type,
-                       con_cap, con_gp, anchor_x,
-                       anchor_y, arrow, simp_ratio = 0.001) {
-  polygons <- lapply(polygons, function(p) {
-    if (length(p$x) == 1 & length(p$y) == 1) {
-      list(
-        x = runif(200, p$x-0.00005, p$x+0.00005),
-        y = runif(200, p$y-0.00005, p$y+0.00005)
-      )
-    } else {
-      list(
-        x = p$x,
-        y = p$y
-      )
-    }
-  })
+                          con_cap, con_gp, anchor_x, anchor_y, arrow,
+                          simp_ratio = 0.001) {
+  polygons <- expandSinglePoints(polygons)
+  anchors <- computeAnchors(polygons, anchor_x, anchor_y)
 
-  anchors <- lapply(seq_along(polygons), function(i) {
-    x <- mean(range(polygons[[i]]$x))
-    if (length(anchor_x) == length(polygons) && !is.na(anchor_x[i])) x <- anchor_x[i]
-    y <- mean(range(polygons[[i]]$y))
-    if (length(anchor_y) == length(polygons) && !is.na(anchor_y[i])) y <- anchor_y[i]
-    c(x, y)
-  })
-  # `label.buffer` polygon padding: dilate each cluster by `buffer` to form the label
-  # keep-out zone. Offset each polygon INDIVIDUALLY -- polyoffset() on the whole list reorders
-  # (and can merge) its output, breaking the 1:1 mapping the placer relies on (polygon i is
-  # paired with rects[i]/anchors[i]). The dilated set is used only for the box-fit keep-out;
-  # poles, leader ends and foreign-routing use the true `polygons` so leaders reach the
-  # actual cluster outline.
-  delta <- convertWidth(buffer, 'mm', TRUE)
-  p_big <- lapply(polygons, function(p) {
-    off <- polyoffset(list(p), delta)
-    if (length(off) == 0) return(p)          # degenerate offset: keep the original ring
-    if (length(off) == 1) return(off[[1]])
-    # a ring can split into pieces; keep the largest so exactly one ring maps to this label
-    a <- vapply(off, function(q)
-      abs(sum(q$x * c(q$y[-1], q$y[1]) - c(q$x[-1], q$x[1]) * q$y)) / 2, numeric(1))
-    off[[which.max(a)]]
-  })
+  # `label.buffer` keep-out: dilate each cluster by `buffer` (mm). Used only for the box-fit
+  # keep-out; poles, leader ends and foreign routing use the true `polygons`, so leaders reach
+  # the actual cluster outline.
+  delta <- convertWidth(buffer, "mm", TRUE)
+  polygons_pad <- dilatePolygons(polygons, delta)
 
-  area <- c(
-    convertWidth(unit(1, 'npc'), 'mm', TRUE),
-    convertHeight(unit(1, 'npc'), 'mm', TRUE)
+  panel <- c(
+    convertWidth(unit(1, "npc"), "mm", TRUE),
+    convertHeight(unit(1, "npc"), "mm", TRUE)
   )
-  labelpos <- my_place_labels(dims, polygons, p_big, area, anchors, simp_ratio = simp_ratio,
-                              con_type = con_type, buffer = delta)
+  labelpos <- my_place_labels(dims, polygons, polygons_pad, panel, anchors,
+                              simp_ratio = simp_ratio, con_type = con_type,
+                              buffer = delta)
   if (all(lengths(labelpos) == 0)) {
     return(list(nullGrob()))
   }
+
   labels_drawn <- which(!vapply(labelpos, is.null, logical(1)))
   leaders <- attr(labelpos, "leaders")
+
+  # Position each label-box grob at its placed centre; undrawn entries become nullGrobs.
   labels <- Map(function(lab, pos) {
-    if (is.null(pos) || inherits(lab, 'null')) return(nullGrob())
-    lab$vp$x <- unit(pos[1], 'mm')
-    lab$vp$y <- unit(pos[2], 'mm')
+    if (is.null(pos) || inherits(lab, "null")) {
+      return(nullGrob())
+    }
+    lab$vp$x <- unit(pos[1], "mm")
+    lab$vp$y <- unit(pos[2], "mm")
     lab
   }, lab = labels, pos = labelpos)
-  # Draw each leader as the placer scored it: from the box anchor c(ex,ey) to the visible end
-  # c(bx,by) = the first mask boundary along anchor->pole (the part inside the cluster is
-  # hidden). For "ledge" also draw the horizontal ledge along the box edge at the anchor's y;
-  # for "box" also outline the label's bounding box. Each drawn line is one polyline id; `gi`
-  # maps it back to its label for the connector gp.
-  if (con_type == 'none') {
-    connect <- nullGrob()
-  } else {
-    xs <- list(); ys <- list(); gi <- integer(0); k <- 0L
-    for (i in seq_along(labels_drawn)) {
-      idx <- labels_drawn[i]; l <- leaders[[idx]]; ctr <- labelpos[[idx]]
-      x0 <- l[1]; y0 <- l[2]; x1 <- l[3]; y1 <- l[4]
-      d <- sqrt((x1 - x0)^2 + (y1 - y0)^2)
-      if (d > 1e-4) {                                          # visible leader present
-        if (con_cap > 0 && d > con_cap) {                      # leave con.cap gap at the cluster
-          f <- (d - con_cap) / d; x1 <- x0 + (x1 - x0) * f; y1 <- y0 + (y1 - y0) * f
-        }
-        k <- k + 1L; xs[[k]] <- c(x0, x1); ys[[k]] <- c(y0, y1); gi[k] <- i
-      }
-      if (con_type == 'ledge' && length(l) >= 5 && l[5] == 1) {    # ledge = box edge at anchor y
-        hw_i <- dims[[idx]][1] / 2
-        k <- k + 1L; xs[[k]] <- c(ctr[1] - hw_i, ctr[1] + hw_i); ys[[k]] <- c(l[2], l[2]); gi[k] <- i
-      }
-      if (con_type == 'box') {                                # outline the label's bounding box
-        hw_i <- dims[[idx]][1] / 2; hh_i <- dims[[idx]][2] / 2
-        bx <- ctr[1] + c(-hw_i, hw_i, hw_i, -hw_i, -hw_i)      # corners, closed loop
-        by <- ctr[2] + c(-hh_i, -hh_i, hh_i, hh_i, -hh_i)
-        for (e in seq_len(4L)) {
-          k <- k + 1L; xs[[k]] <- bx[c(e, e + 1L)]; ys[[k]] <- by[c(e, e + 1L)]; gi[k] <- i
-        }
-      }
-    }
-    if (k == 0) {
-      connect <- nullGrob()
-    } else {
-      if (!is.null(arrow)) arrow$ends <- 2L
-      gp <- subset_gp(subset_gp(con_gp, labels_drawn), gi)
-      connect <- polylineGrob(unlist(xs), unlist(ys), id = rep(seq_len(k), each = 2),
-                              default.units = 'mm', gp = gp, arrow = arrow)
-    }
-  }
+
+  connect <- buildConnectorGrob(labels_drawn, leaders, labelpos, dims,
+                                con_type, con_cap, con_gp, arrow)
   c(labels, list(connect))
 }
 
