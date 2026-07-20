@@ -370,20 +370,45 @@ makeContent.shape_enc <- function(x) {
                         x = split(as.numeric(mark$x), mark$id),
                         y = split(as.numeric(mark$y), mark$id)
         )
-        # ggforce's shapeGrob may silently drop polygons that contract to nothing
-        # under a negative expand (polyoffset returns empty). The surviving IDs are
-        # a subset of the original 1:n sequence. Prune labels, dims, and anchors to
-        # match so that my_make_label receives aligned lists.
-        surviving <- unique(mark$id)
+        # `split()` groups by sorted id, so bind `surviving` to the same order (sort, not
+        # first-appearance) — this keeps polygons[[k]] aligned with surviving[k].
+        surviving <- sort(unique(mark$id))
         anchor_x <- if (is.null(x$anchor.x)) NULL else convertX(x$anchor.x, 'mm', TRUE)
         anchor_y <- if (is.null(x$anchor.y)) NULL else convertY(x$anchor.y, 'mm', TRUE)
-        if (length(surviving) < length(x$label)) {
-            x$label    <- x$label[surviving]
-            x$labeldim <- x$labeldim[surviving]
-            if (!is.null(anchor_x)) anchor_x <- anchor_x[surviving]
-            if (!is.null(anchor_y)) anchor_y <- anchor_y[surviving]
-            mark$gp    <- mark$gp[surviving]
-            x$con.gp   <- subset_gp(x$con.gp, surviving)
+
+        # A single keep-set covers both reasons a polygon leaves the drawing:
+        #   1. ggforce's shapeGrob silently drops polygons that contract to nothing under a
+        #      negative expand (polyoffset returns empty) -- reflected in `surviving`.
+        #   2. A ring collapsed to a point, line, or zero-area sliver (degenerateRing()) that the
+        #      pole / box-fit solvers cannot use. generateMask() never emits these, but a real
+        #      cluster can collapse this way after axis-limit cropping or a negative expand.
+        # Drop such clusters entirely (no outline, no label) and warn, pruning every
+        # positionally-indexed structure through the one keep-set so colours stay aligned.
+        is_degenerate <- vapply(polygons, degenerateRing, logical(1))
+        keep_local <- which(!is_degenerate)
+        keep_ids   <- surviving[keep_local]
+        if (any(is_degenerate)) {
+            n_bad <- sum(is_degenerate)
+            cli::cli_warn(c(
+                "!" = paste("{n_bad} cluster{?s} collapsed to a point, line, or zero-area",
+                            "shape and {cli::qty(n_bad)}{?was/were} dropped."),
+                "i" = "This usually means a cluster was cropped by the plot limits or `expand`."
+            ))
+        }
+        if (length(keep_ids) == 0) {
+            # Nothing placeable: draw only the (empty) mark, no labels.
+            return(setChildren(x, gList(pruneMark(mark, keep_ids))))
+        }
+        # Guarded so the happy path (nothing dropped) is byte-identical to today and never
+        # touches the gp-subsetting machinery.
+        if (length(keep_ids) < length(x$label)) {
+            polygons   <- polygons[keep_local]
+            x$label    <- x$label[keep_ids]
+            x$labeldim <- x$labeldim[keep_ids]
+            if (!is.null(anchor_x)) anchor_x <- anchor_x[keep_ids]
+            if (!is.null(anchor_y)) anchor_y <- anchor_y[keep_ids]
+            mark       <- pruneMark(mark, keep_ids)
+            x$con.gp   <- subset_gp(x$con.gp, keep_ids)
         }
         labels <- my_make_label(
             labels = x$label, dims = x$labeldim, polygons = polygons,
@@ -396,4 +421,26 @@ makeContent.shape_enc <- function(x) {
     } else {
         setChildren(x, gList(mark))
     }
+}
+
+#' Restrict a drawn mark grob to a set of polygon ids
+#'
+#' Drops the vertices of every polygon not in `keep_ids` and subsets the per-polygon graphical
+#' parameters to match. `mark$gp` is indexed by original polygon id and grid recycles it per
+#' group in appearance order, so `gp[keep_ids]` stays aligned with the surviving ids without
+#' renumbering them (mirroring the existing `mark$gp[surviving]` colour fix).
+#'
+#' @param mark The expanded mark grob, carrying vertex `x`, `y`, per-vertex `id`, and per-polygon
+#'   `gp`.
+#' @param keep_ids Sorted polygon ids to keep.
+#' @return `mark` with non-kept polygons removed.
+#' @keywords internal
+#' @noRd
+pruneMark <- function(mark, keep_ids) {
+    keep_row <- mark$id %in% keep_ids
+    mark$x  <- mark$x[keep_row]
+    mark$y  <- mark$y[keep_row]
+    mark$id <- mark$id[keep_row]
+    mark$gp <- mark$gp[keep_ids]
+    mark
 }

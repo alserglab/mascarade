@@ -83,10 +83,11 @@ prepPolygons <- function(polys, simp_ratio) {
     x <- p$x[finite]
     y <- p$y[finite]
     if (length(x) < 3) {
-      # Fewer than three finite points is a degenerate ring the box-fit and pole solvers
-      # cannot use. Replace it with a tiny non-collinear triangle around the centroid: eps is
-      # 1 um (1e-3 mm), orders of magnitude below label/leader scale, so it seeds a valid ring
-      # without shifting placement.
+      # Defensive net: makeContent.shape_enc() now drops degenerate rings before they reach the
+      # placer (see degenerateRing()), so this should no longer trigger. Kept because a sub-three
+      # point ring would otherwise crash the box-fit and pole solvers. Replace it with a tiny
+      # non-collinear triangle around the centroid: eps is 1 um (1e-3 mm), orders of magnitude
+      # below label/leader scale, so it seeds a valid ring without shifting placement.
       cx <- if (length(x)) mean(x) else 0
       cy <- if (length(y)) mean(y) else 0
       eps <- 1e-3
@@ -266,30 +267,6 @@ my_place_labels <- function(rects, polygons, polygons_pad, bounds, anchors,
   withLeaders(centres, leaders)
 }
 
-#' Replace single-point clusters with a tight jittered point cloud
-#'
-#' A cluster that survived as a single `(x, y)` has no extent for the pole / box-fit geometry.
-#' Scatter it into 200 points within a +/- 5e-5 box so the downstream ring code has something to
-#' work with; the jitter is far below label scale, so placement is unaffected.
-#'
-#' @param polygons List of cluster rings (`list(x, y)`).
-#' @return The same list with any single-point ring replaced by a 200-point cloud.
-#' @keywords internal
-#' @noRd
-#' @importFrom stats runif
-expandSinglePoints <- function(polygons) {
-  lapply(polygons, function(p) {
-    if (length(p$x) == 1 && length(p$y) == 1) {
-      list(
-        x = runif(200, p$x - 5e-5, p$x + 5e-5),
-        y = runif(200, p$y - 5e-5, p$y + 5e-5)
-      )
-    } else {
-      list(x = p$x, y = p$y)
-    }
-  })
-}
-
 #' Per-cluster anchor points, with optional overrides
 #'
 #' The anchor defaults to the bounding-box centre of each ring; a finite `anchor_x` / `anchor_y`
@@ -323,6 +300,35 @@ computeAnchors <- function(polygons, anchor_x, anchor_y) {
 #' @noRd
 ringArea <- function(p) {
   abs(sum(p$x * c(p$y[-1], p$y[1]) - c(p$x[-1], p$x[1]) * p$y)) / 2
+}
+
+#' Is a polygon ring too degenerate to place a label against?
+#'
+#' A ring is degenerate when the pole / box-fit solvers have nothing to work with: fewer than
+#' three finite vertices (a point or a line, possibly after NA cropping), or three-plus vertices
+#' enclosing a ~zero area (all-collinear or a repeated-vertex sliver). `generateMask()` never
+#' emits such rings, but a real cluster can still collapse this way after axis-limit cropping or
+#' a negative `expand`.
+#'
+#' In principle these could be *supported* rather than dropped: `prepPolygons()` already
+#' substitutes an eps-triangle for a sub-three-point ring, and a point/line has a well-defined
+#' anchor (its centroid / midpoint). The caller drops them for now because the supported input
+#' never produces them.
+#'
+#' @param p A ring (`list(x, y)`) in mm.
+#' @param area_eps Minimum enclosed area (mm^2) a non-degenerate ring must exceed. `1e-6` is a
+#'   1 um square -- conservative enough to catch only genuinely collapsed rings.
+#' @return `TRUE` if the ring is degenerate.
+#' @keywords internal
+#' @noRd
+degenerateRing <- function(p, area_eps = 1e-6) {
+  finite <- is.finite(p$x) & is.finite(p$y)
+  x <- p$x[finite]
+  y <- p$y[finite]
+  if (length(x) < 3) {
+    return(TRUE)
+  }
+  ringArea(list(x = x, y = y)) < area_eps
 }
 
 #' Dilate each cluster ring individually by `delta` mm (the label keep-out)
@@ -467,7 +473,6 @@ buildConnectorGrob <- function(labels_drawn, leaders, labelpos, dims,
 my_make_label <- function(labels, dims, polygons, ghosts, buffer, con_type,
                           con_cap, con_gp, anchor_x, anchor_y, arrow,
                           simp_ratio = 0.001) {
-  polygons <- expandSinglePoints(polygons)
   anchors <- computeAnchors(polygons, anchor_x, anchor_y)
 
   # `label.buffer` keep-out: dilate each cluster by `buffer` (mm). Used only for the box-fit
