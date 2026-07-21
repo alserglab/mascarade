@@ -7,7 +7,6 @@
 library(mascarade)
 library(data.table)
 library(ggplot2)
-library(ggsci)
 library(colorrepel)
 ```
 
@@ -88,6 +87,7 @@ maskTable <- generateMask(dims=example$dims,
 
 ggplot(data, aes(x=UMAP_1, y=UMAP_2)) + 
     geom_point(aes(color=cluster), size=0.5) + 
+    scale_color_repel() +
     geom_path(data=maskTable, aes(group=group)) +
     coord_fixed() + 
     theme_classic()
@@ -108,7 +108,7 @@ maskTable <- generateMask(dims=example$dims,
 
 ggplot(data, aes(x=UMAP_1, y=UMAP_2)) + 
     geom_point(aes(color=cluster), size=0.1) + 
-    scale_color_ucscgb() +
+    scale_color_repel() +
     geom_path(data=maskTable, aes(group=group)) +
     coord_fixed() + 
     theme_classic()
@@ -127,6 +127,7 @@ maskTable <- generateMask(dims=example$dims,
 
 ggplot(data, aes(x=UMAP_1, y=UMAP_2)) + 
     geom_point(aes(color=cluster)) + 
+    scale_color_repel() +
     geom_path(data=maskTable, aes(group=group)) +
     coord_fixed() + 
     theme_classic()
@@ -135,6 +136,8 @@ ggplot(data, aes(x=UMAP_1, y=UMAP_2)) +
 ![](mascarade-gallery_files/figure-html/unnamed-chunk-8-1.png)
 
 ### Vladimir Shitov
+
+Really hard case, so playing with parameters a bit to make more space.
 
 ``` r
 
@@ -149,13 +152,13 @@ ggplot(data, aes(x=UMAP1, y=UMAP2)) +
     geom_point(aes(color=cluster), size=0.1) + 
     scale_color_repel() +
     fancyMask(maskTable, 
-              con.type = "line",
+              con.type = "line", # ledges clutter the image visually here
               ratio=1, 
               linewidth = 0, 
-              limits.expand = c(0.2, 0.1),
-              label.buffer = unit(1, "mm"),
-              label.width = unit(20, "mm"),
-              label.margin = margin(1, 1, 1, 1, "pt"),
+              limits.expand = c(0.2, 0.1), # more space to the left and right of the plot
+              label.buffer = unit(1, "mm"), # smaller buffer zone around clusters
+              label.width = unit(25, "mm"), # wrap long lines
+              label.margin = margin(1, 1, 1, 1, "pt"), # tighter label margins
               label.fontsize = 10) +
     theme_classic() + theme(legend.position = "none")
 ```
@@ -190,30 +193,29 @@ sessionInfo()
     ## [1] stats     graphics  grDevices utils     datasets  methods   base     
     ## 
     ## other attached packages:
-    ## [1] colorrepel_0.5.0  ggsci_5.1.0       ggplot2_4.0.3     data.table_1.18.4
-    ## [5] mascarade_0.4.0  
+    ## [1] colorrepel_0.5.0  ggplot2_4.0.3     data.table_1.18.4 mascarade_0.4.0  
     ## 
     ## loaded via a namespace (and not attached):
-    ##  [1] gtable_0.3.6           xfun_0.60              bslib_0.11.0          
-    ##  [4] htmlwidgets_1.6.4      spatstat.sparse_3.2-0  lattice_0.22-9        
-    ##  [7] vctrs_0.7.3            tools_4.6.1            spatstat.utils_3.2-4  
-    ## [10] generics_0.1.4         goftest_1.2-3          tibble_3.3.1          
-    ## [13] pkgconfig_2.0.3        Matrix_1.7-5           RColorBrewer_1.1-3    
-    ## [16] polylabelr_1.0.0       S7_0.2.2               desc_1.4.3            
-    ## [19] dqrng_0.4.1            lifecycle_1.0.5        compiler_4.6.1        
-    ## [22] farver_2.1.2           deldir_2.0-4           textshaping_1.0.5     
-    ## [25] ggforce_0.5.0          spatstat.explore_3.8-1 htmltools_0.5.9       
-    ## [28] sass_0.4.10            yaml_2.3.12            pillar_1.11.1         
-    ## [31] pkgdown_2.2.1          jquerylib_0.1.4        MASS_7.3-65           
-    ## [34] cachem_1.1.0           spatstat.univar_3.2-0  abind_1.4-8           
-    ## [37] nlme_3.1-169           spatstat.geom_3.8-1    gtools_3.9.5          
-    ## [40] tidyselect_1.2.1       digest_0.6.39          dplyr_1.2.1           
-    ## [43] purrr_1.2.2            labeling_0.4.3         distances_0.1.13      
-    ## [46] polyclip_1.10-7        fastmap_1.2.0          grid_4.6.1            
-    ## [49] cli_3.6.6              magrittr_2.0.5         spatstat.data_3.1-9   
-    ## [52] withr_3.0.3            tensor_1.5.1           scales_1.4.0          
-    ## [55] rmarkdown_2.31         matrixStats_1.5.0      otel_0.2.0            
-    ## [58] ragg_1.5.2             evaluate_1.0.5         knitr_1.51            
-    ## [61] rlang_1.3.0            Rcpp_1.1.2             spatstat.random_3.5-0 
-    ## [64] glue_1.8.1             tweenr_2.0.3           jsonlite_2.0.0        
-    ## [67] R6_2.6.1               systemfonts_1.3.2      fs_2.1.0
+    ##  [1] dqrng_0.4.1            sass_0.4.10            generics_0.1.4        
+    ##  [4] spatstat.explore_3.8-1 gtools_3.9.5           polylabelr_1.0.0      
+    ##  [7] tensor_1.5.1           distances_0.1.13       spatstat.data_3.1-9   
+    ## [10] lattice_0.22-9         digest_0.6.39          magrittr_2.0.5        
+    ## [13] spatstat.utils_3.2-4   evaluate_1.0.5         grid_4.6.1            
+    ## [16] RColorBrewer_1.1-3     fastmap_1.2.0          jsonlite_2.0.0        
+    ## [19] Matrix_1.7-5           spatstat.sparse_3.2-0  purrr_1.2.2           
+    ## [22] scales_1.4.0           tweenr_2.0.3           textshaping_1.0.5     
+    ## [25] jquerylib_0.1.4        abind_1.4-8            cli_3.6.6             
+    ## [28] rlang_1.3.0            polyclip_1.10-7        withr_3.0.3           
+    ## [31] cachem_1.1.0           yaml_2.3.12            otel_0.2.0            
+    ## [34] spatstat.univar_3.2-0  tools_4.6.1            deldir_2.0-4          
+    ## [37] dplyr_1.2.1            spatstat.geom_3.8-1    vctrs_0.7.3           
+    ## [40] R6_2.6.1               matrixStats_1.5.0      lifecycle_1.0.5       
+    ## [43] fs_2.1.0               htmlwidgets_1.6.4      MASS_7.3-65           
+    ## [46] ragg_1.5.2             pkgconfig_2.0.3        desc_1.4.3            
+    ## [49] pkgdown_2.2.1          pillar_1.11.1          bslib_0.11.0          
+    ## [52] gtable_0.3.6           Rcpp_1.1.2             glue_1.8.1            
+    ## [55] ggforce_0.5.0          systemfonts_1.3.2      xfun_0.60             
+    ## [58] tibble_3.3.1           tidyselect_1.2.1       knitr_1.51            
+    ## [61] goftest_1.2-3          farver_2.1.2           nlme_3.1-169          
+    ## [64] spatstat.random_3.5-0  htmltools_0.5.9        labeling_0.4.3        
+    ## [67] rmarkdown_2.31         compiler_4.6.1         S7_0.2.2
