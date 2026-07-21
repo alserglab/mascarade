@@ -185,15 +185,16 @@ currentPlacements <- function(layout) {
 #' line `x = Xline`. A column may be empty (0 labels) or hold a single label, in which case the
 #' label just sits at its pole y. Otherwise each side chooses its slot height once:
 #'
-#' * If the labels all fit the viewport in slots as tall as the tallest box (`tallest + gap`), a
-#'   single Hungarian assigns labels to those slots -- one box per slot, so any assignment is
-#'   overlap-free and no packing is needed (single- and multi-line labels alike). The slots cover
-#'   the pole span (a bounded window clamped into the viewport) so labels sit near their poles.
-#' * Otherwise the column is too crowded for full-height slots: the Hungarian only fixes the
-#'   top-to-bottom order and `packLen()` packs the mixed-height boxes tightly on a one-line grid
-#'   (`one line height + gap`), extended past the viewport when they still cannot fit.
+#' Labels are placed on a uniform grid of slots as tall as the tallest box (`tallest + gap`) and
+#' a single Hungarian assigns each label to a slot -- one box per slot, so any assignment is
+#' overlap-free (single- and multi-line labels alike).
 #'
-#' @param scene The placement scene (for `poi`, `hh`, `gap`, `char_h`, `ylim`).
+#' * If the whole column fits the viewport, the grid is a bounded window clamped into the
+#'   viewport with a few slack slots, so labels sit near their poles.
+#' * Otherwise the column is too crowded for slack: the grid is exactly `m` slots centred on the
+#'   pole span, extended past the viewport when the labels still cannot all fit.
+#'
+#' @param scene The placement scene (for `poi`, `hh`, `gap`, `ylim`).
 #' @param set Integer labels assigned to this column.
 #' @param Xline Numeric x-coordinate of the column line.
 #' @param side Integer -1 (left column) or +1 (right column).
@@ -204,7 +205,6 @@ currentPlacements <- function(layout) {
   poi <- scene$poi
   boxH <- 2 * scene$hh                          # full box height per label
   gap <- scene$gap
-  char_h <- scene$char_h
   ylim <- scene$ylim
   m <- length(set)
   poleY <- poi[set, 2]
@@ -236,18 +236,15 @@ currentPlacements <- function(layout) {
                                   Xline = Xline, side = side))
   }
 
-  # too crowded for full-height slots: the Hungarian fixes the top-to-bottom order and packLen()
-  # packs the mixed-height boxes tightly on a one-line grid (extended past the viewport if needed).
-  orderY <- mean(range(poleY)) + (seq_len(m) - (m + 1) / 2) * coarseSlot
-  cost <- sqrt(outer(dx2, rep(1, m)) +          # leader length from label i to order-slot j
-               outer(poleY, orderY, function(a, b) (a - b)^2))
+  # too crowded to give each label a slack slot: lay a uniform tallest-box grid of exactly m
+  # slots centred on the pole span (extending past the viewport when they cannot all fit) and
+  # Hungarian-assign the labels to it. One box per slot, so the assignment is overlap-free.
+  gridY <- mean(range(poleY)) + (seq_len(m) - (m + 1) / 2) * coarseSlot
+  cost <- sqrt(outer(dx2, rep(1, m)) +          # leader length from label i to grid slot j
+               outer(poleY, gridY, function(a, b) (a - b)^2))
   assignment <- hungarian(cost) + 1L
-  ordered <- set[order(-orderY[assignment])]    # top-to-bottom label order
-  data.table::data.table(
-    label = ordered,
-    cy = packLen(Xline - poi[ordered, 1], poi[ordered, 2], boxH[ordered],
-                 gap, char_h + gap, ylim[1], ylim[2]),
-    Xline = Xline, side = side)
+  data.table::data.table(label = set, cy = gridY[assignment],
+                         Xline = Xline, side = side)
 }
 
 #' Build the conflict-free boundary side slots
