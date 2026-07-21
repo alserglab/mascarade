@@ -124,8 +124,8 @@ test_that(".sideColumn on a crowded column lays labels on a uniform tallest-box 
   cy <- sort(out$cy)
   expect_equal(diff(cy), rep(slotH, m - 1))         # uniform pitch = tallest box (unpadded touch)
   expect_gt(max(cy) - min(cy), diff(scene$ylim))    # grid extends past the viewport (unclamped)
-  expect_equal(mean(range(cy)),                     # grid centred on the pole span
-               mean(range(scene$poi[, 2])), tolerance = 1e-9)
+  expect_equal(mean(range(cy)),                     # grid centred on the viewport center
+               mean(scene$ylim), tolerance = 1e-9)
 
   # hardPad widens the slot pitch to the tallest *padded* box (box + 2*hardPad), so the padded
   # boxes still at most touch.
