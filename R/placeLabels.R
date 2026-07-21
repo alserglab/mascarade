@@ -223,13 +223,9 @@ currentPlacements <- function(layout) {
   # Lay a grid of uniform tallest-box slots centred on the pole span, then Hungarian-assign the
   # labels to it. When the column fits (m <= capacity) fill the viewport, so the slack slots let
   # labels sit near their poles; when it is too crowded, use exactly `m` slots and let the grid
-  # extend past the viewport. The far slack slots stay empty (the Hungarian hugs the poles), so
-  # capacity only sets the cost-matrix size, not where labels land.
+  # extend past the viewport.
   nSlot <- max(m, capacity)
   lo <- mean(range(poleY)) - nSlot * slotH / 2
-  if (nSlot * slotH <= viewH) {                 # clamp into the viewport only when it fits
-    lo <- max(ylim[1], min(lo, ylim[2] - nSlot * slotH))
-  }
   slotY <- lo + (seq_len(nSlot) - 0.5) * slotH
 
   # square cost: m real label rows (leader length to each slot) + dummy zero-cost rows. One box
@@ -491,8 +487,8 @@ placeLabels <- function(geom, xlim, ylim, hw, hh, char_h, con_type = "ledge",
 
   layout <- seedLayout(scene)
   layout <- addRadialCandidates(layout)
-  layout <- oneMoveSweep(layout)
-  layout <- twoMoveSweep(layout)
-  layout <- polishLayout(layout)
+    layout <- oneMoveSweep(layout)
+    layout <- twoMoveSweep(layout)
+    layout <- polishLayout(layout)
   withLeaderEnds(layout)
 }
