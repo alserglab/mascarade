@@ -7,8 +7,13 @@
 // same quantity.
 
 #include "geometry.h"    // ClusterArcs -- the foreign-cluster arc field
-#include "constants.h"   // OVERFLOW_WEIGHT
 #include <algorithm>
+
+// Weight of the viewport-overflow penalty (how far a label box sticks out of the panel),
+// relative to leader length. Both users of the effective length -- the discrete candidate
+// ranking (effectiveLength()) and the continuous polish energy (forcePolish()) -- go through
+// effectiveLengthImpl() below, so defining it here keeps the two stages in agreement.
+static const double OVERFLOW_WEIGHT = 10.0;
 
 // Effective length of a single leader.
 //   arcs            prebuilt foreign-cluster arc field
