@@ -255,7 +255,7 @@ currentPlacements <- function(layout) {
 #' The starting placement: two columns hang off the cluster cloud on the vertical lines
 #' `x = min/max` polygon x. Because the polygons are dilated by `label.buffer`, those lines sit
 #' outside the true clusters, so a box resting on its line never clips a cluster. Labels are
-#' split left/right by pole x (balancing total height) and each column is stacked by
+#' split left/right by pole x (balancing the label count) and each column is stacked by
 #' `.sideColumn()`.
 #'
 #' @param scene The placement scene.
@@ -267,16 +267,10 @@ currentPlacements <- function(layout) {
   K <- scene$K
   hw <- scene$hw
   hh <- scene$hh
-  boxH <- 2 * hh                                # full box height per label
 
-  # split labels into a left / right column by pole x, balancing total box height
+  # split labels into a left / right column by pole x, balancing the label count
   byX <- order(poi[, 1])
-  cumH <- cumsum(boxH[byX])
-  split <- which(cumH >= sum(boxH) / 2)[1]
-  if (is.na(split)) {
-    split <- K
-  }
-  split <- max(1L, min(split, K - 1L))
+  split <- max(1L, min(K %/% 2L, K - 1L))
   leftSet <- byX[seq_len(split)]
   rightSet <- byX[-seq_len(split)]             # the rest (empty when split == K, i.e. K == 1)
 
