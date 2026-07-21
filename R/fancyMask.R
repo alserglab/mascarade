@@ -29,6 +29,12 @@
 #' @param label.buffer Polygon padding passed to `geom_mark_shape()`: cluster polygons are
 #'   dilated by this distance and labels are kept out of the dilated zone, so each label
 #'   keeps a gap from its cluster outline. Default `unit(2, "mm")`; `unit(0, "mm")` disables.
+#' @param label.hardpad Hard box clearance passed to `geom_mark_shape()`: each label box is
+#'   grown by this padding for all placement decisions, so labels keep at least this gap from
+#'   each other. Default `unit(0, "pt")` (the label margin usually suffices; raise it mainly
+#'   for `con.type = "box"`).
+#' @param label.softpad Extra box spacing the polish step aims for, on top of `label.hardpad`,
+#'   passed to `geom_mark_shape()`. Default `unit(6, "pt")`.
 #' @param label.fontface Label font face passed to
 #'   `geom_mark_shape()`. Default is `"plain"`.
 #' @param cols Color specification for cluster outlines (and labels). One of:
@@ -103,6 +109,8 @@ fancyMask <- function(maskTable,
                       label.largest=TRUE,
                       label.fontsize = 10,
                       label.buffer = unit(2, "mm"),
+                      label.hardpad = unit(0, "pt"),
+                      label.softpad = unit(6, "pt"),
                       label.fontface = "plain",
                       label.margin = margin(2, 2, 2, 2, "pt"),
                       label.width = NULL,
@@ -124,6 +132,8 @@ fancyMask <- function(maskTable,
                  label.largest = label.largest,
                  label.fontsize = label.fontsize,
                  label.buffer = label.buffer,
+                 label.hardpad = label.hardpad,
+                 label.softpad = label.softpad,
                  label.fontface = label.fontface,
                  label.margin = label.margin,
                  label.width = label.width,
@@ -142,6 +152,8 @@ fancyMask <- function(maskTable,
                              label.largest = label.largest,
                              label.fontsize = label.fontsize,
                              label.buffer = label.buffer,
+                             label.hardpad = label.hardpad,
+                             label.softpad = label.softpad,
                              label.fontface = label.fontface,
                              label.margin = label.margin,
                              label.width = label.width,
@@ -193,6 +205,8 @@ ggplot_add.fancyMask <- function(object, plot, ...) {
         label.largest = object$label.largest,
         label.fontsize = object$label.fontsize,
         label.buffer  = object$label.buffer,
+        label.hardpad = object$label.hardpad,
+        label.softpad = object$label.softpad,
         label.fontface = object$label.fontface,
         label.margin  = object$label.margin,
         label.width = object$label.width,
@@ -232,6 +246,8 @@ buildFancyMaskLayers <- function(maskTable, ratio, limits.expand, linewidth,
                                  shape.expand, cols, label, label.largest,
                                  label.fontsize, label.buffer, label.fontface,
                                  label.margin, label.width = NULL,
+                                 label.hardpad = unit(0, "pt"),
+                                 label.softpad = unit(6, "pt"),
                                  simp_ratio = 0.001,
                                  con.type = "ledge") {
     xvar <- colnames(maskTable)[1]
@@ -271,6 +287,8 @@ buildFancyMaskLayers <- function(maskTable, ratio, limits.expand, linewidth,
                                      show.legend = FALSE,
                                      label.fontsize = label.fontsize,
                                      label.buffer = label.buffer,
+                                     label.hardpad = label.hardpad,
+                                     label.softpad = label.softpad,
                                      label.fontface = label.fontface,
                                      label.margin = label.margin,
                                      label.width = label.width,
@@ -318,6 +336,8 @@ buildFancyMaskLayers <- function(maskTable, ratio, limits.expand, linewidth,
                                  expand=shape.expand,
                                  label.fontsize = label.fontsize,
                                  label.buffer = label.buffer,
+                                 label.hardpad = label.hardpad,
+                                 label.softpad = label.softpad,
                                  label.fontface = label.fontface,
                                  label.margin = label.margin,
                                  label.width = label.width,

@@ -22,6 +22,8 @@ geom_mark_shape(
   label.fill = "white",
   label.colour = "black",
   label.buffer = unit(10, "mm"),
+  label.hardpad = unit(0, "pt"),
+  label.softpad = unit(6, "pt"),
   con.colour = "black",
   con.size = 0.5,
   con.type = "ledge",
@@ -136,6 +138,16 @@ description. Use \code{"inherit"} to use the border colour of the enclosure or
 \item{label.buffer}{Polygon padding: cluster polygons are dilated by this distance and
 labels are kept out of the dilated zone, leaving a gap between each label and its
 cluster outline. A grid unit; \code{unit(0, "mm")} disables it. Default \code{unit(10, 'mm')}.}
+
+\item{label.hardpad}{Hard box clearance: each label box is grown by this padding for \emph{all}
+placement decisions (seed slots, label-label and label-leader conflict tests, and the
+polish), so labels keep at least this gap from each other. A grid unit. Defaults to
+\code{unit(0, 'pt')} -- the label margin usually gives enough separation; raise it mainly for
+\code{con.type = 'box'}, where the drawn box outlines would otherwise touch.}
+
+\item{label.softpad}{Soft box spacing the polish step \emph{additionally} aims for, on top of
+\code{label.hardpad} (it does not tighten the hard conflict tests). A grid unit. Default
+\code{unit(6, 'pt')}.}
 
 \item{con.colour}{The colour for the line connecting the annotation to the
 mark. Use \code{"inherit"} to use the border colour of the enclosure or

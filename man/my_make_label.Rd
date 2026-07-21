@@ -14,7 +14,9 @@ my_make_label(
   con_cap,
   con_gp,
   arrow,
-  simp_ratio = 0.001
+  simp_ratio = 0.001,
+  hardpad = unit(0, "pt"),
+  softpad = unit(0, "pt")
 )
 }
 \arguments{
@@ -37,6 +39,10 @@ my_make_label(
 \item{arrow}{Optional \code{grid::arrow} for the connectors.}
 
 \item{simp_ratio}{Numeric polygon-simplification fraction (see \code{simplify_outer()}).}
+
+\item{hardpad}{Grid unit: the \code{label.hardpad} hard box clearance.}
+
+\item{softpad}{Grid unit: the \code{label.softpad} extra polish-only target box spacing.}
 }
 \value{
 A \code{gList}-ready list: the positioned label grobs followed by the connector grob.

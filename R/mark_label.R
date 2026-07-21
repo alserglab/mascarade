@@ -159,12 +159,17 @@ warnOnOverflow <- function(layout, bounds) {
 #' @param simp_ratio Numeric polygon-simplification fraction (see `simplify_outer()`).
 #' @param con_type Leader style: `"ledge"`, `"line"`, `"box"`, or `"none"`.
 #' @param buffer Numeric `label.buffer` in mm; the overflow viewport is inset by it.
+#' @param hardpad Numeric `label.hardpad` in mm: hard box clearance folded into every placement
+#'   rectangle (seed slots, sweeps and polish alike).
+#' @param softpad Numeric `label.softpad` in mm: extra target box spacing the polish aims for, on
+#'   top of `hardpad`.
 #' @return A list, one entry per input label: the placed centre `c(x, y)` in mm (`NULL` if not
 #'   drawn), carrying `attr(., "leaders")` with `c(ex, ey, bx, by, corner)` per drawn label.
 #' @keywords internal
 #' @importFrom stats median
 my_place_labels <- function(rects, polygons, polygons_pad, bounds,
-                            simp_ratio = 0.001, con_type = "ledge", buffer = 0) {
+                            simp_ratio = 0.001, con_type = "ledge", buffer = 0,
+                            hardpad = 0, softpad = 0) {
   nLabels <- length(rects)
 
   # Assemble the return value: the centres list, carrying per-label leaders in an attribute.
@@ -232,7 +237,8 @@ my_place_labels <- function(rects, polygons, polygons_pad, bounds,
     placeLabels(geom,
                 c(viewportInset, bounds[1] - viewportInset),
                 c(viewportInset, bounds[2] - viewportInset),
-                halfWidth, halfHeight, charHeight, con_type = con_type),
+                halfWidth, halfHeight, charHeight, con_type = con_type,
+                hardPad = hardpad, softPad = softpad),
     error = function(e) NULL
   )
   if (is.null(layout)) {
@@ -420,11 +426,14 @@ buildConnectorGrob <- function(labels_drawn, leaders, labelpos, dims,
 #' @param con_gp A `gpar` for the connectors (per drawn label).
 #' @param arrow Optional `grid::arrow` for the connectors.
 #' @param simp_ratio Numeric polygon-simplification fraction (see `simplify_outer()`).
+#' @param hardpad Grid unit: the `label.hardpad` hard box clearance.
+#' @param softpad Grid unit: the `label.softpad` extra polish-only target box spacing.
 #' @return A `gList`-ready list: the positioned label grobs followed by the connector grob.
 #' @keywords internal
 #' @importFrom grid convertWidth convertHeight nullGrob unit
 my_make_label <- function(labels, dims, polygons, ghosts, buffer, con_type,
-                          con_cap, con_gp, arrow, simp_ratio = 0.001) {
+                          con_cap, con_gp, arrow, simp_ratio = 0.001,
+                          hardpad = unit(0, "pt"), softpad = unit(0, "pt")) {
   # `label.buffer` keep-out: dilate each cluster by `buffer` (mm). Used only for the box-fit
   # keep-out; poles, leader ends and foreign routing use the true `polygons`, so leaders reach
   # the actual cluster outline. label.buffer is a padding, so it must be non-negative -- a
@@ -433,13 +442,19 @@ my_make_label <- function(labels, dims, polygons, ghosts, buffer, con_type,
   stopifnot(delta >= 0)
   polygons_pad <- dilatePolygons(polygons, delta)
 
+  # Hard/soft box clearances (mm). Both are non-negative padding amounts.
+  hardpad_mm <- convertWidth(hardpad, "mm", TRUE)
+  softpad_mm <- convertWidth(softpad, "mm", TRUE)
+  stopifnot(hardpad_mm >= 0, softpad_mm >= 0)
+
   panel <- c(
     convertWidth(unit(1, "npc"), "mm", TRUE),
     convertHeight(unit(1, "npc"), "mm", TRUE)
   )
   labelpos <- my_place_labels(dims, polygons, polygons_pad, panel,
                               simp_ratio = simp_ratio, con_type = con_type,
-                              buffer = delta)
+                              buffer = delta,
+                              hardpad = hardpad_mm, softpad = softpad_mm)
   if (all(lengths(labelpos) == 0)) {
     return(list(nullGrob()))
   }
