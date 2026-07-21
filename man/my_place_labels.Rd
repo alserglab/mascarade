@@ -11,7 +11,9 @@ my_place_labels(
   bounds,
   simp_ratio = 0.001,
   con_type = "ledge",
-  buffer = 0
+  buffer = 0,
+  hardpad = 0,
+  softpad = 0
 )
 }
 \arguments{
@@ -28,6 +30,12 @@ my_place_labels(
 \item{con_type}{Leader style: \code{"ledge"}, \code{"line"}, \code{"box"}, or \code{"none"}.}
 
 \item{buffer}{Numeric \code{label.buffer} in mm; the overflow viewport is inset by it.}
+
+\item{hardpad}{Numeric \code{label.hardpad} in mm: hard box clearance folded into every placement
+rectangle (seed slots, sweeps and polish alike).}
+
+\item{softpad}{Numeric \code{label.softpad} in mm: extra target box spacing the polish aims for, on
+top of \code{hardpad}.}
 }
 \value{
 A list, one entry per input label: the placed centre \code{c(x, y)} in mm (\code{NULL} if not

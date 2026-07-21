@@ -46,6 +46,14 @@
 #' @param label.buffer Polygon padding: cluster polygons are dilated by this distance and
 #'   labels are kept out of the dilated zone, leaving a gap between each label and its
 #'   cluster outline. A grid unit; `unit(0, "mm")` disables it. Default `unit(10, 'mm')`.
+#' @param label.hardpad Hard box clearance: each label box is grown by this padding for *all*
+#'   placement decisions (seed slots, label-label and label-leader conflict tests, and the
+#'   polish), so labels keep at least this gap from each other. A grid unit. Defaults to
+#'   `unit(0, 'pt')` -- the label margin usually gives enough separation; raise it mainly for
+#'   `con.type = 'box'`, where the drawn box outlines would otherwise touch.
+#' @param label.softpad Soft box spacing the polish step *additionally* aims for, on top of
+#'   `label.hardpad` (it does not tighten the hard conflict tests). A grid unit. Default
+#'   `unit(6, 'pt')`.
 #' @param simp_ratio Fraction of the polygon bounding-box area used to simplify
 #'   cluster polygons before label placement (removes small inward vertices; the
 #'   simplified polygon encloses the original, so labels never overlap the real shape).
@@ -106,7 +114,9 @@ geom_mark_shape <- function(mapping = NULL, data = NULL, stat = 'identity',
                            label.family = '', label.lineheight = 1,
                            label.fontface = c('bold', 'plain'),
                            label.fill = 'white', label.colour = 'black',
-                           label.buffer = unit(10, 'mm'), con.colour = 'black',
+                           label.buffer = unit(10, 'mm'),
+                           label.hardpad = unit(0, 'pt'), label.softpad = unit(6, 'pt'),
+                           con.colour = 'black',
                            con.size = 0.5, con.type = 'ledge', con.linetype = 1,
                            con.border = 'one', con.cap = unit(3, 'mm'),
                            con.arrow = NULL, simp_ratio = 0.001, ..., na.rm = FALSE,
@@ -135,6 +145,8 @@ geom_mark_shape <- function(mapping = NULL, data = NULL, stat = 'identity',
       label.fill = label.fill,
       label.colour = label.colour,
       label.buffer = label.buffer,
+      label.hardpad = label.hardpad,
+      label.softpad = label.softpad,
       con.colour = con.colour,
       con.size = con.size,
       con.type = con.type,
@@ -162,6 +174,7 @@ GeomMarkShape <- ggplot2::ggproto(
                           label.width = NULL,
                           label.minwidth = 0,
                           label.hjust = 0, label.buffer = unit(10, 'mm'),
+                          label.hardpad = unit(0, 'pt'), label.softpad = unit(6, 'pt'),
                           label.fontsize = 12, label.family = '',
                           label.fontface = c('bold', 'plain'),
                           label.lineheight = 1,
@@ -239,6 +252,8 @@ GeomMarkShape <- ggplot2::ggproto(
                      label.minwidth = label.minwidth,
                      label.hjust = label.hjust,
                      label.buffer = label.buffer,
+                     label.hardpad = label.hardpad,
+                     label.softpad = label.softpad,
                      con.type = con.type,
                      con.border = con.border,
                      con.cap = con.cap,
@@ -268,6 +283,7 @@ shapeEncGrob <- function(x = c(0, 0.5, 1, 0.5), y = c(0.5, 1, 0.5, 0), id = NULL
                         label.width = NULL,
                         label.minwidth = 0,
                         label.hjust = 0, label.buffer = unit(10, 'mm'),
+                        label.hardpad = unit(0, 'pt'), label.softpad = unit(6, 'pt'),
                         con.type = 'ledge', con.border = 'one',
                         con.cap = unit(3, "mm"), con.arrow = NULL, vp = NULL,
                         simp_ratio = 0.001) {
@@ -308,7 +324,8 @@ shapeEncGrob <- function(x = c(0, 0.5, 1, 0.5), y = c(0.5, 1, 0.5, 0), id = NULL
     }
     gTree(
         mark = mark, label = label, labeldim = labeldim,
-        buffer = label.buffer, ghosts = ghosts, con.gp = con.gp, con.type = con.type,
+        buffer = label.buffer, hardpad = label.hardpad, softpad = label.softpad,
+        ghosts = ghosts, con.gp = con.gp, con.type = con.type,
         con.cap = as_mm(con.cap, default.units), con.border = con.border,
         con.arrow = con.arrow,
         simp_ratio = simp_ratio, name = name,
@@ -400,7 +417,7 @@ makeContent.shape_enc <- function(x) {
             labels = x$label, dims = x$labeldim, polygons = polygons,
             ghosts = x$ghosts, buffer = x$buffer, con_type = x$con.type,
             con_cap = x$con.cap, con_gp = x$con.gp, arrow = x$con.arrow,
-            simp_ratio = x$simp_ratio
+            simp_ratio = x$simp_ratio, hardpad = x$hardpad, softpad = x$softpad
         )
         setChildren(x, rlang::inject(gList(!!!c(list(mark), labels))))
     } else {

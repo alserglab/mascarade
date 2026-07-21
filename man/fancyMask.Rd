@@ -15,6 +15,8 @@ fancyMask(
   label.largest = TRUE,
   label.fontsize = 10,
   label.buffer = unit(2, "mm"),
+  label.hardpad = unit(0, "pt"),
+  label.softpad = unit(6, "pt"),
   label.fontface = "plain",
   label.margin = margin(2, 2, 2, 2, "pt"),
   label.width = NULL,
@@ -75,6 +77,14 @@ Default is \code{10}.}
 \item{label.buffer}{Polygon padding passed to \code{geom_mark_shape()}: cluster polygons are
 dilated by this distance and labels are kept out of the dilated zone, so each label
 keeps a gap from its cluster outline. Default \code{unit(2, "mm")}; \code{unit(0, "mm")} disables.}
+
+\item{label.hardpad}{Hard box clearance passed to \code{geom_mark_shape()}: each label box is
+grown by this padding for all placement decisions, so labels keep at least this gap from
+each other. Default \code{unit(0, "pt")} (the label margin usually suffices; raise it mainly
+for \code{con.type = "box"}).}
+
+\item{label.softpad}{Extra box spacing the polish step aims for, on top of \code{label.hardpad},
+passed to \code{geom_mark_shape()}. Default \code{unit(6, "pt")}.}
 
 \item{label.fontface}{Label font face passed to
 \code{geom_mark_shape()}. Default is \code{"plain"}.}
