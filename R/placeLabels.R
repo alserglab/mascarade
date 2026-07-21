@@ -185,9 +185,9 @@ currentPlacements <- function(layout) {
 #' line `x = Xline`. A column may be empty (0 labels) or hold a single label, in which case the
 #' label just sits at its pole y. Otherwise each side chooses its slot height once:
 #'
-#' Labels are placed on a uniform grid of slots as tall as the tallest box (`tallest + gap`) and
-#' a single Hungarian assigns each label to a slot -- one box per slot, so any assignment is
-#' overlap-free (single- and multi-line labels alike).
+#' Labels are placed on a uniform grid of slots as tall as the tallest box and a single Hungarian
+#' assigns each label to a slot -- one box per slot, so any assignment leaves the boxes at most
+#' touching (single- and multi-line labels alike).
 #'
 #' * If the whole column fits the viewport, the grid is a bounded window clamped into the
 #'   viewport with a few slack slots, so labels sit near their poles.
@@ -204,7 +204,6 @@ currentPlacements <- function(layout) {
 .sideColumn <- function(scene, set, Xline, side) {
   poi <- scene$poi
   boxH <- 2 * scene$hh                          # full box height per label
-  gap <- scene$gap
   ylim <- scene$ylim
   m <- length(set)
   poleY <- poi[set, 2]
@@ -215,7 +214,7 @@ currentPlacements <- function(layout) {
   }
   dx2 <- (Xline - poi[set, 1])^2                # squared horizontal pole-to-column distance
   viewH <- ylim[2] - ylim[1]
-  coarseSlot <- max(boxH[set]) + gap            # uniform slot as tall as the tallest box
+  coarseSlot <- max(boxH[set])                  # uniform slot as tall as the tallest box (no pad)
   capacity <- floor(viewH / coarseSlot)         # such slots the viewport holds
 
   if (m <= capacity) {
@@ -276,8 +275,8 @@ currentPlacements <- function(layout) {
     .sideColumn(scene, rightSet, scene$polyxlim[2], +1))
 
   # box centre so the padded near edge sits on the column line; the leader starts on the true
-  # (unpadded) near edge so a "ledge" connector's ledge meets it. It stays a padded-margin width
-  # inside the line, still clear of every other column box (separated in y by gap > pad).
+  # (unpadded) near edge so a "ledge" connector's ledge meets it. The box stays a padded-margin
+  # width inside the line; column neighbours sit one tallest-box apart, so they at most touch.
   slots[, `:=`(
     cx = Xline + side * (hw[label] + scene$pad),
     ex = Xline + side * scene$pad,
