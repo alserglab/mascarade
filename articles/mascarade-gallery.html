@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">mascarade</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.3.5</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.4.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -71,20 +71,15 @@
 </h3>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://alserglab.github.io/mascarade/">mascarade</a></span><span class="op">)</span></span>
-<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://r-datatable.com" class="external-link">data.table</a></span><span class="op">)</span></span></code></pre></div>
-<pre><code><span><span class="co">## </span></span>
-<span><span class="co">## Attaching package: 'data.table'</span></span></code></pre>
-<pre><code><span><span class="co">## The following object is masked from 'package:base':</span></span>
-<span><span class="co">## </span></span>
-<span><span class="co">##     %notin%</span></span></code></pre>
-<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://ggplot2.tidyverse.org" class="external-link">ggplot2</a></span><span class="op">)</span></span>
-<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://nanx.me/ggsci/" class="external-link">ggsci</a></span><span class="op">)</span></span></code></pre></div>
+<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://r-datatable.com" class="external-link">data.table</a></span><span class="op">)</span></span>
+<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://ggplot2.tidyverse.org" class="external-link">ggplot2</a></span><span class="op">)</span></span>
+<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://nanx.me/ggsci/" class="external-link">ggsci</a></span><span class="op">)</span></span>
+<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/raysinensis/color_repel" class="external-link">colorrepel</a></span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level3">
 <h3 id="pbmc-3k-umap">PBMC-3K UMAP<a class="anchor" aria-label="anchor" href="#pbmc-3k-umap"></a>
 </h3>
-<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">example</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">readRDS</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/connections.html" class="external-link">url</a></span><span class="op">(</span><span class="st">"https://alserglab.wustl.edu/files/mascarade/examples/pbmc3k_umap.rds"</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">data</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/data.table/man/data.table.html" class="external-link">data.table</a></span><span class="op">(</span><span class="va">example</span><span class="op">$</span><span class="va">dims</span>, </span>
 <span>                   cluster<span class="op">=</span><span class="va">example</span><span class="op">$</span><span class="va">clusters</span><span class="op">)</span></span>
@@ -98,11 +93,18 @@
 <span>    <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/coord_fixed.html" class="external-link">coord_fixed</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span> </span>
 <span>    <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html" class="external-link">theme_classic</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
 <p><img src="mascarade-gallery_files/figure-html/unnamed-chunk-2-1.png" class="r-plt" alt="" width="672"></p>
+<p>With labels:</p>
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="va">data</span>, <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>x<span class="op">=</span><span class="va">UMAP_1</span>, y<span class="op">=</span><span class="va">UMAP_2</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span> </span>
+<span>    <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_point.html" class="external-link">geom_point</a></span><span class="op">(</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>color<span class="op">=</span><span class="va">cluster</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span> </span>
+<span>    <span class="fu"><a href="../reference/fancyMask.html">fancyMask</a></span><span class="op">(</span><span class="va">maskTable</span>, ratio<span class="op">=</span><span class="fl">1</span>, linewidth <span class="op">=</span> <span class="fl">0</span><span class="op">)</span> <span class="op">+</span></span>
+<span>    <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html" class="external-link">theme_classic</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/theme.html" class="external-link">theme</a></span><span class="op">(</span>legend.position <span class="op">=</span> <span class="st">"none"</span><span class="op">)</span></span></code></pre></div>
+<p><img src="mascarade-gallery_files/figure-html/unnamed-chunk-3-1.png" class="r-plt" alt="" width="672"></p>
 </div>
 <div class="section level3">
 <h3 id="pbmc-3k-t-sne">PBMC-3K t-SNE<a class="anchor" aria-label="anchor" href="#pbmc-3k-t-sne"></a>
 </h3>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">example</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">readRDS</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/connections.html" class="external-link">url</a></span><span class="op">(</span><span class="st">"https://alserglab.wustl.edu/files/mascarade/examples/pbmc3k_tsne.rds"</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">data</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/data.table/man/data.table.html" class="external-link">data.table</a></span><span class="op">(</span><span class="va">example</span><span class="op">$</span><span class="va">dims</span>, </span>
 <span>                   cluster<span class="op">=</span><span class="va">example</span><span class="op">$</span><span class="va">clusters</span><span class="op">)</span></span>
@@ -115,12 +117,19 @@
 <span>    <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_path.html" class="external-link">geom_path</a></span><span class="op">(</span>data<span class="op">=</span><span class="va">maskTable</span>, <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>group<span class="op">=</span><span class="va">group</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
 <span>    <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/coord_fixed.html" class="external-link">coord_fixed</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span> </span>
 <span>    <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html" class="external-link">theme_classic</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
-<p><img src="mascarade-gallery_files/figure-html/unnamed-chunk-3-1.png" class="r-plt" alt="" width="672"></p>
+<p><img src="mascarade-gallery_files/figure-html/unnamed-chunk-4-1.png" class="r-plt" alt="" width="672"></p>
+<p>With labels:</p>
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="va">data</span>, <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>x<span class="op">=</span><span class="va">tSNE_1</span>, y<span class="op">=</span><span class="va">tSNE_2</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span> </span>
+<span>    <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_point.html" class="external-link">geom_point</a></span><span class="op">(</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>color<span class="op">=</span><span class="va">cluster</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span> </span>
+<span>    <span class="fu"><a href="../reference/fancyMask.html">fancyMask</a></span><span class="op">(</span><span class="va">maskTable</span>, ratio<span class="op">=</span><span class="fl">1</span>, linewidth <span class="op">=</span> <span class="fl">0</span><span class="op">)</span> <span class="op">+</span></span>
+<span>    <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html" class="external-link">theme_classic</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/theme.html" class="external-link">theme</a></span><span class="op">(</span>legend.position <span class="op">=</span> <span class="st">"none"</span><span class="op">)</span></span></code></pre></div>
+<p><img src="mascarade-gallery_files/figure-html/unnamed-chunk-5-1.png" class="r-plt" alt="" width="672"></p>
 </div>
 <div class="section level3">
 <h3 id="aya">Aya<a class="anchor" aria-label="anchor" href="#aya"></a>
 </h3>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">example</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">readRDS</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/connections.html" class="external-link">url</a></span><span class="op">(</span><span class="st">"https://alserglab.wustl.edu/files/mascarade/examples/aya.rds"</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">data</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/data.table/man/data.table.html" class="external-link">data.table</a></span><span class="op">(</span><span class="va">example</span><span class="op">$</span><span class="va">dims</span>, </span>
 <span>                   cluster<span class="op">=</span><span class="va">example</span><span class="op">$</span><span class="va">clusters</span><span class="op">)</span></span>
@@ -133,12 +142,12 @@
 <span>    <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_path.html" class="external-link">geom_path</a></span><span class="op">(</span>data<span class="op">=</span><span class="va">maskTable</span>, <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>group<span class="op">=</span><span class="va">group</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
 <span>    <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/coord_fixed.html" class="external-link">coord_fixed</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span> </span>
 <span>    <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html" class="external-link">theme_classic</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
-<p><img src="mascarade-gallery_files/figure-html/unnamed-chunk-4-1.png" class="r-plt" alt="" width="672"></p>
+<p><img src="mascarade-gallery_files/figure-html/unnamed-chunk-6-1.png" class="r-plt" alt="" width="672"></p>
 </div>
 <div class="section level3">
 <h3 id="chia-jung">Chia-Jung<a class="anchor" aria-label="anchor" href="#chia-jung"></a>
 </h3>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">example</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">readRDS</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/connections.html" class="external-link">url</a></span><span class="op">(</span><span class="st">"https://alserglab.wustl.edu/files/mascarade/examples/chiajung1.rds"</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">data</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/data.table/man/data.table.html" class="external-link">data.table</a></span><span class="op">(</span><span class="va">example</span><span class="op">$</span><span class="va">dims</span>, </span>
 <span>                   cluster<span class="op">=</span><span class="va">example</span><span class="op">$</span><span class="va">clusters</span><span class="op">)</span></span>
@@ -152,8 +161,8 @@
 <span>    <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_path.html" class="external-link">geom_path</a></span><span class="op">(</span>data<span class="op">=</span><span class="va">maskTable</span>, <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>group<span class="op">=</span><span class="va">group</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
 <span>    <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/coord_fixed.html" class="external-link">coord_fixed</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span> </span>
 <span>    <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html" class="external-link">theme_classic</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
-<p><img src="mascarade-gallery_files/figure-html/unnamed-chunk-5-1.png" class="r-plt" alt="" width="672"></p>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<p><img src="mascarade-gallery_files/figure-html/unnamed-chunk-7-1.png" class="r-plt" alt="" width="672"></p>
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">example</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">readRDS</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/connections.html" class="external-link">url</a></span><span class="op">(</span><span class="st">"https://alserglab.wustl.edu/files/mascarade/examples/chiajung2.rds"</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">data</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/data.table/man/data.table.html" class="external-link">data.table</a></span><span class="op">(</span><span class="va">example</span><span class="op">$</span><span class="va">dims</span>, </span>
 <span>                   cluster<span class="op">=</span><span class="va">example</span><span class="op">$</span><span class="va">clusters</span><span class="op">)</span></span>
@@ -166,7 +175,33 @@
 <span>    <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_path.html" class="external-link">geom_path</a></span><span class="op">(</span>data<span class="op">=</span><span class="va">maskTable</span>, <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>group<span class="op">=</span><span class="va">group</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
 <span>    <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/coord_fixed.html" class="external-link">coord_fixed</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span> </span>
 <span>    <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html" class="external-link">theme_classic</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
-<p><img src="mascarade-gallery_files/figure-html/unnamed-chunk-6-1.png" class="r-plt" alt="" width="672"></p>
+<p><img src="mascarade-gallery_files/figure-html/unnamed-chunk-8-1.png" class="r-plt" alt="" width="672"></p>
+</div>
+<div class="section level3">
+<h3 id="vladimir-shitov">Vladimir Shitov<a class="anchor" aria-label="anchor" href="#vladimir-shitov"></a>
+</h3>
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">example</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">readRDS</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/connections.html" class="external-link">url</a></span><span class="op">(</span><span class="st">"https://alserglab.wustl.edu/files/mascarade/examples/vshitov.rds"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">data</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/data.table/man/data.table.html" class="external-link">data.table</a></span><span class="op">(</span><span class="va">example</span><span class="op">$</span><span class="va">dims</span>, </span>
+<span>                   cluster<span class="op">=</span><span class="va">example</span><span class="op">$</span><span class="va">clusters</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">maskTable</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/generateMask.html">generateMask</a></span><span class="op">(</span>dims<span class="op">=</span><span class="va">example</span><span class="op">$</span><span class="va">dims</span>, </span>
+<span>                          clusters<span class="op">=</span><span class="va">example</span><span class="op">$</span><span class="va">clusters</span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="va">data</span>, <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>x<span class="op">=</span><span class="va">UMAP1</span>, y<span class="op">=</span><span class="va">UMAP2</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span> </span>
+<span>    <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_point.html" class="external-link">geom_point</a></span><span class="op">(</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>color<span class="op">=</span><span class="va">cluster</span><span class="op">)</span>, size<span class="op">=</span><span class="fl">0.1</span><span class="op">)</span> <span class="op">+</span> </span>
+<span>    <span class="fu"><a href="https://rdrr.io/pkg/colorrepel/man/scale_color_repel.html" class="external-link">scale_color_repel</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span></span>
+<span>    <span class="fu"><a href="../reference/fancyMask.html">fancyMask</a></span><span class="op">(</span><span class="va">maskTable</span>, </span>
+<span>              con.type <span class="op">=</span> <span class="st">"line"</span>,</span>
+<span>              ratio<span class="op">=</span><span class="fl">1</span>, </span>
+<span>              linewidth <span class="op">=</span> <span class="fl">0</span>, </span>
+<span>              limits.expand <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.2</span>, <span class="fl">0.1</span><span class="op">)</span>,</span>
+<span>              label.buffer <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/grid/unit.html" class="external-link">unit</a></span><span class="op">(</span><span class="fl">1</span>, <span class="st">"mm"</span><span class="op">)</span>,</span>
+<span>              label.width <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/grid/unit.html" class="external-link">unit</a></span><span class="op">(</span><span class="fl">20</span>, <span class="st">"mm"</span><span class="op">)</span>,</span>
+<span>              label.margin <span class="op">=</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/element.html" class="external-link">margin</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">1</span>, <span class="fl">1</span>, <span class="fl">1</span>, <span class="st">"pt"</span><span class="op">)</span>,</span>
+<span>              label.fontsize <span class="op">=</span> <span class="fl">10</span><span class="op">)</span> <span class="op">+</span></span>
+<span>    <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html" class="external-link">theme_classic</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/theme.html" class="external-link">theme</a></span><span class="op">(</span>legend.position <span class="op">=</span> <span class="st">"none"</span><span class="op">)</span></span></code></pre></div>
+<p><img src="mascarade-gallery_files/figure-html/unnamed-chunk-9-1.png" class="r-plt" alt="" width="768"></p>
 </div>
 <div class="section level3">
 <h3 id="session-info">Session info<a class="anchor" aria-label="anchor" href="#session-info"></a>
@@ -194,30 +229,33 @@
 <span><span class="co">## [1] stats     graphics  grDevices utils     datasets  methods   base     </span></span>
 <span><span class="co">## </span></span>
 <span><span class="co">## other attached packages:</span></span>
-<span><span class="co">## [1] ggsci_5.1.0       ggplot2_4.0.3     data.table_1.18.4 mascarade_0.3.5  </span></span>
+<span><span class="co">## [1] colorrepel_0.5.0  ggsci_5.1.0       ggplot2_4.0.3     data.table_1.18.4</span></span>
+<span><span class="co">## [5] mascarade_0.4.0  </span></span>
 <span><span class="co">## </span></span>
 <span><span class="co">## loaded via a namespace (and not attached):</span></span>
-<span><span class="co">##  [1] sass_0.4.10            generics_0.1.4         spatstat.explore_3.8-1</span></span>
-<span><span class="co">##  [4] tensor_1.5.1           spatstat.data_3.1-9    lattice_0.22-9        </span></span>
-<span><span class="co">##  [7] digest_0.6.39          magrittr_2.0.5         spatstat.utils_3.2-3  </span></span>
-<span><span class="co">## [10] evaluate_1.0.5         grid_4.6.1             RColorBrewer_1.1-3    </span></span>
-<span><span class="co">## [13] fastmap_1.2.0          jsonlite_2.0.0         Matrix_1.7-5          </span></span>
-<span><span class="co">## [16] spatstat.sparse_3.2-0  scales_1.4.0           tweenr_2.0.3          </span></span>
-<span><span class="co">## [19] textshaping_1.0.5      jquerylib_0.1.4        abind_1.4-8           </span></span>
-<span><span class="co">## [22] cli_3.6.6              rlang_1.3.0            polyclip_1.10-7       </span></span>
-<span><span class="co">## [25] withr_3.0.3            cachem_1.1.0           yaml_2.3.12           </span></span>
-<span><span class="co">## [28] otel_0.2.0             spatstat.univar_3.2-0  tools_4.6.1           </span></span>
-<span><span class="co">## [31] deldir_2.0-4           dplyr_1.2.1            spatstat.geom_3.8-1   </span></span>
-<span><span class="co">## [34] vctrs_0.7.3            R6_2.6.1               lifecycle_1.0.5       </span></span>
-<span><span class="co">## [37] fs_2.1.0               htmlwidgets_1.6.4      MASS_7.3-65           </span></span>
-<span><span class="co">## [40] ragg_1.5.2             pkgconfig_2.0.3        desc_1.4.3            </span></span>
-<span><span class="co">## [43] pkgdown_2.2.1          pillar_1.11.1          bslib_0.11.0          </span></span>
-<span><span class="co">## [46] gtable_0.3.6           glue_1.8.1             ggforce_0.5.0         </span></span>
-<span><span class="co">## [49] systemfonts_1.3.2      xfun_0.59              tibble_3.3.1          </span></span>
-<span><span class="co">## [52] tidyselect_1.2.1       knitr_1.51             goftest_1.2-3         </span></span>
-<span><span class="co">## [55] farver_2.1.2           nlme_3.1-169           spatstat.random_3.5-0 </span></span>
-<span><span class="co">## [58] htmltools_0.5.9        labeling_0.4.3         rmarkdown_2.31        </span></span>
-<span><span class="co">## [61] compiler_4.6.1         S7_0.2.2</span></span></code></pre>
+<span><span class="co">##  [1] gtable_0.3.6           xfun_0.60              bslib_0.11.0          </span></span>
+<span><span class="co">##  [4] htmlwidgets_1.6.4      spatstat.sparse_3.2-0  lattice_0.22-9        </span></span>
+<span><span class="co">##  [7] vctrs_0.7.3            tools_4.6.1            spatstat.utils_3.2-4  </span></span>
+<span><span class="co">## [10] generics_0.1.4         goftest_1.2-3          tibble_3.3.1          </span></span>
+<span><span class="co">## [13] pkgconfig_2.0.3        Matrix_1.7-5           RColorBrewer_1.1-3    </span></span>
+<span><span class="co">## [16] polylabelr_1.0.0       S7_0.2.2               desc_1.4.3            </span></span>
+<span><span class="co">## [19] dqrng_0.4.1            lifecycle_1.0.5        compiler_4.6.1        </span></span>
+<span><span class="co">## [22] farver_2.1.2           deldir_2.0-4           textshaping_1.0.5     </span></span>
+<span><span class="co">## [25] ggforce_0.5.0          spatstat.explore_3.8-1 htmltools_0.5.9       </span></span>
+<span><span class="co">## [28] sass_0.4.10            yaml_2.3.12            pillar_1.11.1         </span></span>
+<span><span class="co">## [31] pkgdown_2.2.1          jquerylib_0.1.4        MASS_7.3-65           </span></span>
+<span><span class="co">## [34] cachem_1.1.0           spatstat.univar_3.2-0  abind_1.4-8           </span></span>
+<span><span class="co">## [37] nlme_3.1-169           spatstat.geom_3.8-1    gtools_3.9.5          </span></span>
+<span><span class="co">## [40] tidyselect_1.2.1       digest_0.6.39          dplyr_1.2.1           </span></span>
+<span><span class="co">## [43] purrr_1.2.2            labeling_0.4.3         distances_0.1.13      </span></span>
+<span><span class="co">## [46] polyclip_1.10-7        fastmap_1.2.0          grid_4.6.1            </span></span>
+<span><span class="co">## [49] cli_3.6.6              magrittr_2.0.5         spatstat.data_3.1-9   </span></span>
+<span><span class="co">## [52] withr_3.0.3            tensor_1.5.1           scales_1.4.0          </span></span>
+<span><span class="co">## [55] rmarkdown_2.31         matrixStats_1.5.0      otel_0.2.0            </span></span>
+<span><span class="co">## [58] ragg_1.5.2             evaluate_1.0.5         knitr_1.51            </span></span>
+<span><span class="co">## [61] rlang_1.3.0            Rcpp_1.1.2             spatstat.random_3.5-0 </span></span>
+<span><span class="co">## [64] glue_1.8.1             tweenr_2.0.3           jsonlite_2.0.0        </span></span>
+<span><span class="co">## [67] R6_2.6.1               systemfonts_1.3.2      fs_2.1.0</span></span></code></pre>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside>

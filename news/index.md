@@ -1,6 +1,14 @@
 # Changelog
 
+## mascarade 0.4.0
+
+- Brand new label placement algorithm.
+- [`geom_mark_shape()`](https://alserglab.github.io/mascarade/reference/geom_mark_shape.md)
+  `label.minwidth` now defaults to `0` (shrink-to-fit labels).
+
 ## mascarade 0.3.5
+
+CRAN release: 2026-07-08
 
 - bug fixes
 

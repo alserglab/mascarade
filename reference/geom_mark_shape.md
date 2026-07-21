@@ -19,7 +19,7 @@ geom_mark_shape(
   radius = 0,
   label.margin = margin(2, 2, 2, 2, "mm"),
   label.width = NULL,
-  label.minwidth = unit(50, "mm"),
+  label.minwidth = 0,
   label.hjust = 0,
   label.fontsize = 12,
   label.family = "",
@@ -30,7 +30,7 @@ geom_mark_shape(
   label.buffer = unit(10, "mm"),
   con.colour = "black",
   con.size = 0.5,
-  con.type = "elbow",
+  con.type = "ledge",
   con.linetype = 1,
   con.border = "one",
   con.cap = unit(3, "mm"),
@@ -129,8 +129,13 @@ geom_mark_shape(
 
 - label.width:
 
-  A fixed width for the label. Set to `NULL` to let the text or
-  `label.minwidth` decide.
+  Soft target width for wrapping the label (and description). A grid
+  unit (e.g. `unit(30, "mm")`). The text is balanced across lines so
+  line widths are even and close to this width, avoiding a short
+  dangling line; a line may slightly exceed it to prevent an orphan, and
+  an over-long single word is never broken. It is a soft cap: the box
+  shrinks to fit the wrapped text (never forced to this exact width).
+  `NULL` (default) leaves the label unwrapped.
 
 - label.minwidth:
 
@@ -182,7 +187,10 @@ geom_mark_shape(
 
 - label.buffer:
 
-  The size of the region around the mark where labels cannot be placed.
+  Polygon padding: cluster polygons are dilated by this distance and
+  labels are kept out of the dilated zone, leaving a gap between each
+  label and its cluster outline. A grid unit; `unit(0, "mm")` disables
+  it. Default `unit(10, 'mm')`.
 
 - con.colour:
 
@@ -197,8 +205,8 @@ geom_mark_shape(
 
 - con.type:
 
-  The type of the connector. Either `"elbow"`, `"straight"`, or
-  `"none"`.
+  Leader / label-mark style: one of `"ledge"`, `"line"`, `"box"`, or
+  `"none"` (see Details). Default `"ledge"`.
 
 - con.linetype:
 
@@ -223,12 +231,11 @@ geom_mark_shape(
 
 - simp_ratio:
 
-  Fraction of the polygon bounding box area used as the label-placement
-  simplification threshold. Cluster polygons are simplified before the
-  label placement search by removing small concave vertices, which
-  reduces computation while guaranteeing the simplified polygon encloses
-  the original. Larger values simplify more aggressively; set to `0` to
-  disable. Default is `0.001`.
+  Fraction of the polygon bounding-box area used to simplify cluster
+  polygons before label placement (removes small inward vertices; the
+  simplified polygon encloses the original, so labels never overlap the
+  real shape). Speeds up placement geometry. Larger values simplify
+  more; `0` disables. Default `0.001`.
 
 - ...:
 
@@ -294,6 +301,23 @@ A ggplot2 layer
 ([`ggplot2::layer`](https://ggplot2.tidyverse.org/reference/layer.html))
 that adds polygonal shape annotations to a plot.
 
+## Details
+
+`con.type` selects how each label is connected to its cluster:
+
+- `"ledge"` — leader from the box corner facing the cluster, plus a
+  short horizontal ledge along the box edge at the leader's start (the
+  default).
+
+- `"line"` — leader from the box corner or edge-midpoint facing the
+  cluster, with no ledge.
+
+- `"box"` — placed as for `"line"`, and additionally outlines the
+  label's bounding box.
+
+- `"none"` — no connector is drawn; the label is still placed as for
+  `"line"`.
+
 ## Aesthetics
 
 `geom_mark_shape` understand the following aesthetics (required
@@ -302,10 +326,6 @@ aesthetics are in bold):
 - **x**
 
 - **y**
-
-- x0 *(used to anchor the label)*
-
-- y0 *(used to anchor the label)*
 
 - filter
 
@@ -357,20 +377,32 @@ library(ggplot2)
 shape1 <- data.frame(
     x = c(0, 3, 3, 2, 2, 1, 1, 0),
     y = c(0, 0, 3, 3, 1, 1, 3, 3),
-label="bracket"
+    label = "U-shape",
+    description = "two prongs on a base"
 )
 shape2 <- data.frame(
     x = c(0, 3, 3, 0)+4,
     y = c(0, 0, 3, 3),
-    label="square"
+    label = "square",
+    description = "four equal sides"
 )
 shape3 <- data.frame(
     x = c(0, 1.5, 3, 1.5)+8,
     y = c(1.5, 0, 1.5, 3),
-    label="diamond"
+    label = "diamond",
+    description = "a square on its corner"
 )
+shapes <- rbind(shape1, shape2, shape3)
 
-ggplot(rbind(shape1, shape2, shape3), aes(x=x, y=y, label=label, color=label, fill=label)) +
+# Label only
+ggplot(shapes, aes(x=x, y=y, label=label, color=label, fill=label)) +
+    geom_mark_shape() +
+    ylim(0, 5)
+
+
+# Label with a secondary description line
+ggplot(shapes, aes(x=x, y=y, label=label, description=description,
+                   color=label, fill=label)) +
     geom_mark_shape() +
     ylim(0, 5)
 
