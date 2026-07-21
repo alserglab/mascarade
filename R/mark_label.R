@@ -105,7 +105,7 @@ prepPolygons <- function(polys, simp_ratio) {
   cleaned
 }
 
-#' Pole of inaccessibility for each ring
+#' Find each ring's pole of inaccessibility
 #'
 #' Returns the most-interior point of every ring via `polylabelr::poi()`, falling back to the
 #' vertex centroid when `poi()` errors or returns a non-finite point.
@@ -153,7 +153,7 @@ warnOnOverflow <- function(layout, bounds) {
   ))
 }
 
-#' Draw-time label placement (boundary-seed placer)
+#' Place labels at draw time (boundary-seed placer)
 #'
 #' Runs at draw time in the panel's millimetre space: builds the poles and the box-fit R-tree
 #' from the cluster rings (cheap, ~20 ms for ~40 clusters; the expensive mask is not
@@ -267,7 +267,7 @@ my_place_labels <- function(rects, polygons, polygons_pad, bounds, anchors,
   withLeaders(centres, leaders)
 }
 
-#' Per-cluster anchor points, with optional overrides
+#' Compute the per-cluster anchor points (with optional overrides)
 #'
 #' The anchor defaults to the bounding-box centre of each ring; a finite `anchor_x` / `anchor_y`
 #' entry (when supplied for every polygon) overrides that coordinate. Anchors are the fallback
@@ -292,7 +292,7 @@ computeAnchors <- function(polygons, anchor_x, anchor_y) {
   })
 }
 
-#' Absolute area of a polygon ring (shoelace formula)
+#' Compute a polygon ring's absolute area (shoelace formula)
 #'
 #' @param p A ring (`list(x, y)`).
 #' @return The non-negative area enclosed by the ring.

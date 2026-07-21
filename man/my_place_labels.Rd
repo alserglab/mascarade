@@ -2,7 +2,7 @@
 % Please edit documentation in R/mark_label.R
 \name{my_place_labels}
 \alias{my_place_labels}
-\title{Draw-time label placement (boundary-seed placer)}
+\title{Place labels at draw time (boundary-seed placer)}
 \usage{
 my_place_labels(
   rects,

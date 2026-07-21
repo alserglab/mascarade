@@ -62,7 +62,7 @@ placementScene <- function(geom, xlim, ylim, hw, hh, char_h, con_type) {
     pad = 0.05 * char_h, gap = 0.25 * char_h)
 }
 
-#' Leader start anchor on a label box
+#' Find the leader's start anchor on a label box
 #'
 #' The point on the box border where the leader begins, aimed at the pole (`tx`, `ty`). For
 #' `con_type == "ledge"` this is always the sign(dx),sign(dy) quadrant corner. Otherwise (the
@@ -166,7 +166,7 @@ placementScene <- function(geom, xlim, ylim, hw, hh, char_h, con_type) {
   list(scene = scene, place = place, sel = sel)
 }
 
-#' The current one-row-per-label solution of a Layout
+#' Get a Layout's current one-row-per-label solution
 #'
 #' The selected placement of every label, in label order, as the canonical `layoutCols` columns
 #' (dropping any transient optimizer columns such as `eff`).
@@ -179,7 +179,7 @@ currentPlacements <- function(layout) {
   layout$place[layout$sel + 1L, layoutCols, with = FALSE]
 }
 
-#' One boundary-seed column of stacked label slots
+#' Stack one boundary side column of label slots
 #'
 #' Places the labels assigned to one side (`side` -1 left, +1 right) as a vertical stack on the
 #' line `x = Xline`. A column may be empty (0 labels) or hold a single label, in which case the
@@ -200,7 +200,7 @@ currentPlacements <- function(layout) {
 #' @return A data.table with `label`, `cy`, `Xline`, `side`.
 #' @keywords internal
 #' @noRd
-.seedColumn <- function(scene, set, Xline, side) {
+.sideColumn <- function(scene, set, Xline, side) {
   poi <- scene$poi
   boxH <- 2 * scene$hh                          # full box height per label
   gap <- scene$gap
@@ -250,19 +250,19 @@ currentPlacements <- function(layout) {
     Xline = Xline, side = side)
 }
 
-#' Seed placement slots: the conflict-free boundary fallback
+#' Build the conflict-free boundary side slots
 #'
-#' Two columns hang off the cluster cloud on the vertical lines `x = min/max` polygon x. Since the
-#' polygons are dilated by `label.buffer`, those lines sit a keep-out margin outside the true
-#' clusters; each box's padded near edge sits on its line and the leader starts on the line
-#' (bottom corner for `"ledge"`, edge centre otherwise), so it never clips a box. Labels are split
-#' left/right by pole x (balancing total height) and each column is stacked by `.seedColumn()`.
+#' The starting placement: two columns hang off the cluster cloud on the vertical lines
+#' `x = min/max` polygon x. Because the polygons are dilated by `label.buffer`, those lines sit
+#' outside the true clusters, so a box resting on its line never clips a cluster. Labels are
+#' split left/right by pole x (balancing total height) and each column is stacked by
+#' `.sideColumn()`.
 #'
 #' @param scene The placement scene.
 #' @return A data.table with `label`, `cx`, `cy`, `ex`, `ey`, `corner`.
 #' @keywords internal
 #' @noRd
-.seedSlots <- function(scene) {
+.sideSlots <- function(scene) {
   poi <- scene$poi
   K <- scene$K
   hw <- scene$hw
@@ -281,8 +281,8 @@ currentPlacements <- function(layout) {
   rightSet <- byX[-seq_len(split)]             # the rest (empty when split == K, i.e. K == 1)
 
   slots <- rbind(
-    .seedColumn(scene, leftSet, scene$polyxlim[1], -1),
-    .seedColumn(scene, rightSet, scene$polyxlim[2], +1))
+    .sideColumn(scene, leftSet, scene$polyxlim[1], -1),
+    .sideColumn(scene, rightSet, scene$polyxlim[2], +1))
 
   # box centre so the padded near edge sits on the column line; the leader starts on the true
   # (unpadded) near edge so a "ledge" connector's ledge meets it. It stays a padded-margin width
@@ -295,23 +295,23 @@ currentPlacements <- function(layout) {
   slots[]
 }
 
-#' Seed Layout: the initial feasible placement
+#' Build the initial feasible layout (the seed)
 #'
-#' Builds the guaranteed-clean boundary seed (`.seedSlots()`) as a Layout -- one placement per
-#' label, all selected. This is the starting layout state the rest of the pipeline improves.
+#' Wraps the conflict-free boundary side slots (`.sideSlots()`) into a Layout -- one placement
+#' per label, all selected. This is the starting state the rest of the pipeline improves.
 #'
 #' @param scene The placement scene.
 #' @return A Layout.
 #' @keywords internal
 #' @noRd
 seedLayout <- function(scene) {
-  slots <- .seedSlots(scene)
+  slots <- .sideSlots(scene)
   place <- .layout(scene, slots$label, slots$cx, slots$cy,
                    slots$ex, slots$ey, slots$corner)
   .assemble(scene, place, active = rep(TRUE, nrow(place)))
 }
 
-#' Radial free-space candidate placements
+#' Generate radial free-space slot candidates
 #'
 #' From each pole, `radialCandidates()` marches rays outward and emits a box centre wherever a
 #' padded box is cluster-free; this turns those centres into placement rows.
@@ -320,7 +320,7 @@ seedLayout <- function(scene) {
 #' @return A data.table of placement rows (many per label).
 #' @keywords internal
 #' @noRd
-.radialPlacements <- function(scene) {
+.radialSlots <- function(scene) {
   ndir <- 48L
   radStep <- 0.3 * scene$char_h
   radStart <- 0.2 * scene$char_h
@@ -335,7 +335,7 @@ seedLayout <- function(scene) {
 
 #' Append radial candidate placements to a Layout
 #'
-#' Adds the radial free-space candidates (`.radialPlacements()`) to the layout's current
+#' Adds the radial free-space candidates (`.radialSlots()`) to the layout's current
 #' placements as candidate alternatives, keeping the current selection active, and re-ranks
 #' (`.assemble()`). After this a label may own several rows; the sweeps pick among them.
 #'
@@ -346,13 +346,13 @@ seedLayout <- function(scene) {
 addRadialCandidates <- function(layout) {
   scene <- layout$scene
   current <- currentPlacements(layout)          # the selected placement of each label
-  radial <- .radialPlacements(scene)
+  radial <- .radialSlots(scene)
   place <- rbind(current, radial)
   active <- c(rep(TRUE, nrow(current)), rep(FALSE, nrow(radial)))
   .assemble(scene, place, active)
 }
 
-#' 0-based candidate rows of each label
+#' List each label's 0-based candidate rows
 #'
 #' `rows[[i]]` lists the 0-based `place` rows available to label i -- the candidate index lists
 #' the C++ sweep kernels search over.
@@ -365,7 +365,7 @@ addRadialCandidates <- function(layout) {
   unname(split(seq_len(nrow(layout$place)) - 1L, layout$place$label))
 }
 
-#' One-move conflict sweep
+#' Run the one-move conflict sweep
 #'
 #' Wraps `oneMoveSweepKernel()`: moves each label to its lexicographically best candidate versus
 #' the current others (including staying put), ranking by effective length. Updates the Layout's
@@ -384,7 +384,7 @@ oneMoveSweep <- function(layout, maxpass = 100L) {
   layout
 }
 
-#' Two-move conflict / length refinement
+#' Run the two-move conflict / length refinement
 #'
 #' Wraps `twoMoveSweepKernel()`: per label, applies the best two-move (length branch-and-bound
 #' when the label is conflict-free, all-pairs search when it is conflicted). Updates the Layout's
@@ -404,7 +404,7 @@ twoMoveSweep <- function(layout, maxpass = 50L, sq = TRUE) {
   layout
 }
 
-#' Continuous force-directed polish
+#' Run the continuous force-directed polish
 #'
 #' Runs `forcePolish()` on the layout's selected placements: pattern-search descent off the
 #' candidate grid that preserves the discrete solution's conflict-freeness. Returns a Layout
@@ -453,7 +453,7 @@ withLeaderEnds <- function(layout) {
   sol[]
 }
 
-#' Empty placement for a view with no clusters
+#' Build the empty placement for a view with no clusters
 #'
 #' @param scene The placement scene (with `K == 0`).
 #' @return A 0-row placement data.table with the full column set.
