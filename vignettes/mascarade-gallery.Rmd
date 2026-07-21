@@ -149,7 +149,9 @@ ggplot(data, aes(x=UMAP1, y=UMAP2)) +
               ratio=1, 
               linewidth = 0, 
               limits.expand = c(0.2, 0.1),
+              label.buffer = unit(1, "mm"),
               label.width = unit(20, "mm"),
+              label.margin = margin(1, 1, 1, 1, "pt"),
               label.fontsize = 10) +
     theme_classic() + theme(legend.position = "none")
                                
