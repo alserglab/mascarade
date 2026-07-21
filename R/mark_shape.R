@@ -8,6 +8,14 @@
 #' expanded/contracted and corners can be rounded, which is controlled by `expand` and
 #' `radius` parameters.
 #'
+#' @details
+#' `con.type` selects how each label is connected to its cluster:
+#' - `"ledge"` — leader from the box corner facing the cluster, plus a short horizontal ledge
+#'   along the box edge at the leader's start (the default).
+#' - `"line"` — leader from the box corner or edge-midpoint facing the cluster, with no ledge.
+#' - `"box"` — placed as for `"line"`, and additionally outlines the label's bounding box.
+#' - `"none"` — no connector is drawn; the label is still placed as for `"line"`.
+#'
 #' @inheritSection ggforce::geom_mark_circle Annotation
 #' @inheritSection ggforce::geom_mark_circle Filtering
 #' @section Aesthetics:
@@ -16,8 +24,6 @@
 #'
 #' - **x**
 #' - **y**
-#' - x0 *(used to anchor the label)*
-#' - y0 *(used to anchor the label)*
 #' - filter
 #' - label
 #' - description
@@ -29,12 +35,22 @@
 #' - alpha
 #'
 #' @inheritParams ggforce::geom_mark_circle
-#' @param simp_ratio Fraction of the polygon bounding box area used as the
-#'   label-placement simplification threshold. Cluster polygons are simplified
-#'   before the label placement search by removing small concave vertices,
-#'   which reduces computation while guaranteeing the simplified polygon
-#'   encloses the original. Larger values simplify more aggressively;
-#'   set to `0` to disable. Default is `0.001`.
+#' @param con.type Leader / label-mark style: one of `"ledge"`, `"line"`, `"box"`, or
+#'   `"none"` (see Details). Default `"ledge"`.
+#' @param label.width Soft target width for wrapping the label (and description). A grid
+#'   unit (e.g. `unit(30, "mm")`). The text is balanced across lines so line widths are
+#'   even and close to this width, avoiding a short dangling line; a line may slightly
+#'   exceed it to prevent an orphan, and an over-long single word is never broken. It is a
+#'   soft cap: the box shrinks to fit the wrapped text (never forced to this exact width).
+#'   `NULL` (default) leaves the label unwrapped.
+#' @param label.buffer Polygon padding: cluster polygons are dilated by this distance and
+#'   labels are kept out of the dilated zone, leaving a gap between each label and its
+#'   cluster outline. A grid unit; `unit(0, "mm")` disables it. Default `unit(10, 'mm')`.
+#' @param simp_ratio Fraction of the polygon bounding-box area used to simplify
+#'   cluster polygons before label placement (removes small inward vertices; the
+#'   simplified polygon encloses the original, so labels never overlap the real shape).
+#'   Speeds up placement geometry. Larger values simplify more; `0` disables.
+#'   Default `0.001`.
 #' @return A ggplot2 layer (`ggplot2::layer`) that adds polygonal shape annotations to a plot.
 #'
 #' @family mark geoms
@@ -46,20 +62,31 @@
 #' shape1 <- data.frame(
 #'     x = c(0, 3, 3, 2, 2, 1, 1, 0),
 #'     y = c(0, 0, 3, 3, 1, 1, 3, 3),
-#' label="bracket"
+#'     label = "U-shape",
+#'     description = "two prongs on a base"
 #' )
 #' shape2 <- data.frame(
 #'     x = c(0, 3, 3, 0)+4,
 #'     y = c(0, 0, 3, 3),
-#'     label="square"
+#'     label = "square",
+#'     description = "four equal sides"
 #' )
 #' shape3 <- data.frame(
 #'     x = c(0, 1.5, 3, 1.5)+8,
 #'     y = c(1.5, 0, 1.5, 3),
-#'     label="diamond"
+#'     label = "diamond",
+#'     description = "a square on its corner"
 #' )
+#' shapes <- rbind(shape1, shape2, shape3)
 #'
-#' ggplot(rbind(shape1, shape2, shape3), aes(x=x, y=y, label=label, color=label, fill=label)) +
+#' # Label only
+#' ggplot(shapes, aes(x=x, y=y, label=label, color=label, fill=label)) +
+#'     geom_mark_shape() +
+#'     ylim(0, 5)
+#'
+#' # Label with a secondary description line
+#' ggplot(shapes, aes(x=x, y=y, label=label, description=description,
+#'                    color=label, fill=label)) +
 #'     geom_mark_shape() +
 #'     ylim(0, 5)
 #'
@@ -73,16 +100,18 @@ geom_mark_shape <- function(mapping = NULL, data = NULL, stat = 'identity',
                            position = 'identity', expand = 0,
                            radius = 0,
                            label.margin = margin(2, 2, 2, 2, 'mm'),
-                           label.width = NULL, label.minwidth = unit(50, 'mm'),
+                           label.width = NULL,
+                           label.minwidth = 0,
                            label.hjust = 0, label.fontsize = 12,
                            label.family = '', label.lineheight = 1,
                            label.fontface = c('bold', 'plain'),
                            label.fill = 'white', label.colour = 'black',
                            label.buffer = unit(10, 'mm'), con.colour = 'black',
-                           con.size = 0.5, con.type = 'elbow', con.linetype = 1,
+                           con.size = 0.5, con.type = 'ledge', con.linetype = 1,
                            con.border = 'one', con.cap = unit(3, 'mm'),
                            con.arrow = NULL, simp_ratio = 0.001, ..., na.rm = FALSE,
                            show.legend = NA, inherit.aes = TRUE) {
+  con.type <- match.arg(con.type, c('ledge', 'line', 'box', 'none'))
   layer(
     data = data,
     mapping = mapping,
@@ -130,21 +159,19 @@ GeomMarkShape <- ggplot2::ggproto(
     draw_panel = function(self, data, panel_params, coord, expand = unit(5, 'mm'),
                           radius = unit(2.5, 'mm'),
                           label.margin = margin(2, 2, 2, 2, 'mm'),
-                          label.width = NULL, label.minwidth = unit(50, 'mm'),
+                          label.width = NULL,
+                          label.minwidth = 0,
                           label.hjust = 0, label.buffer = unit(10, 'mm'),
                           label.fontsize = 12, label.family = '',
                           label.fontface = c('bold', 'plain'),
                           label.lineheight = 1,
                           label.fill = 'white', label.colour = 'black',
-                          con.colour = 'black', con.size = 0.5, con.type = 'elbow',
+                          con.colour = 'black', con.size = 0.5, con.type = 'ledge',
                           con.linetype = 1, con.border = 'one',
-                          con.cap = unit(3, 'mm'), con.arrow = NULL,
+                          con.cap = unit(3, "mm"), con.arrow = NULL,
                           simp_ratio = 0.001) {
         if (nrow(data) == 0) return(ggplot2::zeroGrob())
 
-        # As long as coord$transform() doesn't recognise x0/y0
-        data$xmin <- data$x0
-        data$ymin <- data$y0
         coords <- coord$transform(data, panel_params)
         if (!is.integer(coords$group)) {
             coords$group <- match(coords$group, unique0(coords$group))
@@ -215,9 +242,7 @@ GeomMarkShape <- ggplot2::ggproto(
                      con.type = con.type,
                      con.border = con.border,
                      con.cap = con.cap,
-                     con.arrow = con.arrow,
-                     anchor.x = first_rows$xmin,
-                     anchor.y = first_rows$ymin
+                     con.arrow = con.arrow
         )
     },
     default_aes = ggplot2::aes(
@@ -226,24 +251,25 @@ GeomMarkShape <- ggplot2::ggproto(
         linewidth = 0.5,
         linetype = 1,
         alpha = NA,
-        label = NA
+        label = NA,
+        description = NA
     )
 )
 
 # Helpers -----------------------------------------------------------------
 
 #' @import ggforce
-#' @importFrom grid gpar grobWidth grobHeight gTree is.unit
+#' @importFrom grid gpar grobWidth grobHeight gTree
 shapeEncGrob <- function(x = c(0, 0.5, 1, 0.5), y = c(0.5, 1, 0.5, 0), id = NULL,
                         id.lengths = NULL, expand = 0, radius = 0,
                         label = NULL, ghosts = NULL, default.units = 'npc',
                         name = NULL, mark.gp = gpar(), label.gp = gpar(),
                         desc.gp = gpar(), con.gp = gpar(), label.margin = margin(),
-                        label.width = NULL, label.minwidth = unit(50, 'mm'),
+                        label.width = NULL,
+                        label.minwidth = 0,
                         label.hjust = 0, label.buffer = unit(10, 'mm'),
-                        con.type = 'elbow', con.border = 'one',
-                        con.cap = unit(3, 'mm'), con.arrow = NULL,
-                        anchor.x = NULL, anchor.y = NULL, vp = NULL,
+                        con.type = 'ledge', con.border = 'one',
+                        con.cap = unit(3, "mm"), con.arrow = NULL, vp = NULL,
                         simp_ratio = 0.001) {
     mark <- shapeGrob(
         x = x, y = y, id = id, id.lengths = id.lengths,
@@ -258,7 +284,8 @@ shapeEncGrob <- function(x = c(0, 0.5, 1, 0.5), y = c(0.5, 1, 0.5, 0), id = NULL
                 label$label[i], 0, 0, label$description[i],
                 gp = subset_gp(label.gp, i),
                 desc.gp = subset_gp(desc.gp, i),
-                pad = label.margin, width = label.width,
+                pad = label.margin,
+                width = label.width,
                 min.width = label.minwidth, hjust = label.hjust
             )
             if (con.border == 'all') {
@@ -279,17 +306,11 @@ shapeEncGrob <- function(x = c(0, 0.5, 1, 0.5), y = c(0.5, 1, 0.5, 0), id = NULL
     } else {
         labeldim <- NULL
     }
-    if (!is.null(anchor.x) && !is.unit(anchor.x)) {
-        anchor.x <- unit(anchor.x, default.units)
-    }
-    if (!is.null(anchor.y) && !is.unit(anchor.y)) {
-        anchor.y <- unit(anchor.y, default.units)
-    }
     gTree(
         mark = mark, label = label, labeldim = labeldim,
         buffer = label.buffer, ghosts = ghosts, con.gp = con.gp, con.type = con.type,
         con.cap = as_mm(con.cap, default.units), con.border = con.border,
-        con.arrow = con.arrow, anchor.x = anchor.x, anchor.y = anchor.y,
+        con.arrow = con.arrow,
         simp_ratio = simp_ratio, name = name,
         vp = vp, cl = 'shape_enc'
     )
@@ -305,6 +326,11 @@ makeContent.shape_enc <- function(x) {
     y_new <- split(y_new, mark$id)
     polygons <- Map(function(xx, yy, type) {
         mat <- unique0(cbind(xx, yy))
+        # LEGACY (inherited from ggforce's mark_hull): collapse a degenerate part to its
+        # extreme points -- a single vertex / two points, an all-vertical column, or a collinear
+        # run. These reduced (< 3-point / zero-area) parts are then dropped downstream by
+        # degeneratePolygon() in the label branch, so this normalization is largely redundant now;
+        # kept because it also feeds the drawn `mark` and predates the degeneracy drop.
         if (nrow(mat) <= 2) {
             return(mat)
         }
@@ -334,31 +360,72 @@ makeContent.shape_enc <- function(x) {
                         x = split(as.numeric(mark$x), mark$id),
                         y = split(as.numeric(mark$y), mark$id)
         )
-        # ggforce's shapeGrob may silently drop polygons that contract to nothing
-        # under a negative expand (polyoffset returns empty). The surviving IDs are
-        # a subset of the original 1:n sequence. Prune labels, dims, and anchors to
-        # match so that my_make_label receives aligned lists.
-        surviving <- unique(mark$id)
-        anchor_x <- if (is.null(x$anchor.x)) NULL else convertX(x$anchor.x, 'mm', TRUE)
-        anchor_y <- if (is.null(x$anchor.y)) NULL else convertY(x$anchor.y, 'mm', TRUE)
-        if (length(surviving) < length(x$label)) {
-            x$label    <- x$label[surviving]
-            x$labeldim <- x$labeldim[surviving]
-            if (!is.null(anchor_x)) anchor_x <- anchor_x[surviving]
-            if (!is.null(anchor_y)) anchor_y <- anchor_y[surviving]
-            mark$gp    <- mark$gp[surviving]
-            x$con.gp   <- subset_gp(x$con.gp, surviving)
+        # `split()` groups by sorted id, so bind `surviving` to the same order (sort, not
+        # first-appearance) — this keeps polygons[[k]] aligned with surviving[k].
+        surviving <- sort(unique(mark$id))
+
+        # A single keep-set covers both reasons a polygon leaves the drawing:
+        #   1. ggforce's shapeGrob silently drops polygons that contract to nothing under a
+        #      negative expand (polyoffset returns empty) -- reflected in `surviving`.
+        #   2. A polygon collapsed to a point, line, or zero-area sliver (degeneratePolygon()) that the
+        #      pole / box-fit solvers cannot use. generateMask() never emits these, but a real
+        #      cluster can collapse this way after axis-limit cropping or a negative expand.
+        # Drop such clusters entirely (no outline, no label) and warn, pruning every
+        # positionally-indexed structure through the one keep-set so colours stay aligned.
+        is_degenerate <- vapply(polygons, degeneratePolygon, logical(1))
+        keep_local <- which(!is_degenerate)
+        keep_ids   <- surviving[keep_local]
+        if (any(is_degenerate)) {
+            n_bad <- sum(is_degenerate)
+            cli::cli_warn(c(
+                "!" = paste("{n_bad} cluster{?s} collapsed to a point, line, or zero-area",
+                            "shape and {cli::qty(n_bad)}{?was/were} dropped."),
+                "i" = "This usually means a cluster was cropped by the plot limits or `expand`."
+            ))
+        }
+        if (length(keep_ids) == 0) {
+            # Nothing placeable: draw only the (empty) mark, no labels.
+            return(setChildren(x, gList(pruneMark(mark, keep_ids))))
+        }
+        # Guarded so the happy path (nothing dropped) is byte-identical to today and never
+        # touches the gp-subsetting machinery.
+        if (length(keep_ids) < length(x$label)) {
+            polygons   <- polygons[keep_local]
+            x$label    <- x$label[keep_ids]
+            x$labeldim <- x$labeldim[keep_ids]
+            mark       <- pruneMark(mark, keep_ids)
+            x$con.gp   <- subset_gp(x$con.gp, keep_ids)
         }
         labels <- my_make_label(
             labels = x$label, dims = x$labeldim, polygons = polygons,
             ghosts = x$ghosts, buffer = x$buffer, con_type = x$con.type,
-            con_border = x$con.border, con_cap = x$con.cap,
-            con_gp = x$con.gp, anchor_mod = 2, anchor_x = anchor_x,
-            anchor_y = anchor_y, arrow = x$con.arrow,
+            con_cap = x$con.cap, con_gp = x$con.gp, arrow = x$con.arrow,
             simp_ratio = x$simp_ratio
         )
         setChildren(x, rlang::inject(gList(!!!c(list(mark), labels))))
     } else {
         setChildren(x, gList(mark))
     }
+}
+
+#' Restrict a drawn mark grob to a set of polygon ids
+#'
+#' Drops the vertices of every polygon not in `keep_ids` and subsets the per-polygon graphical
+#' parameters to match. `mark$gp` is indexed by original polygon id and grid recycles it per
+#' group in appearance order, so `gp[keep_ids]` stays aligned with the surviving ids without
+#' renumbering them (mirroring the existing `mark$gp[surviving]` colour fix).
+#'
+#' @param mark The expanded mark grob, carrying vertex `x`, `y`, per-vertex `id`, and per-polygon
+#'   `gp`.
+#' @param keep_ids Sorted polygon ids to keep.
+#' @return `mark` with non-kept polygons removed.
+#' @keywords internal
+#' @noRd
+pruneMark <- function(mark, keep_ids) {
+    keep_row <- mark$id %in% keep_ids
+    mark$x  <- mark$x[keep_row]
+    mark$y  <- mark$y[keep_row]
+    mark$id <- mark$id[keep_row]
+    mark$gp <- mark$gp[keep_ids]
+    mark
 }

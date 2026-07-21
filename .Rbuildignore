@@ -3,6 +3,8 @@
 ^data-raw$
 ^.git$
 ^\.github$
+^\.gitignore$
+^build$
 ^README.*$
 ^LICENSE\.md$
 ^_pkgdown\.yml$

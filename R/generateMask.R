@@ -236,7 +236,7 @@ getPartDensityClipped <- function(curPoints, part, window, smoothSigma, pixelSiz
 #'      that part index 1 is always the largest disconnected component.
 #' @importFrom data.table rbindlist data.table setnames :=
 #' @importFrom utils head tail
-#' @importFrom stats median bw.nrd
+#' @importFrom stats median bw.nrd runif
 #' @import spatstat.geom spatstat.explore
 #' @export
 #' @examples

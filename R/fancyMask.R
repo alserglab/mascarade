@@ -26,8 +26,9 @@
 #'   `label = FALSE`.
 #' @param label.fontsize Label font size passed to `geom_mark_shape()`.
 #'   Default is `10`.
-#' @param label.buffer Label buffer distance passed to
-#'   `geom_mark_shape()`. Default is `unit(0, "cm")`.
+#' @param label.buffer Polygon padding passed to `geom_mark_shape()`: cluster polygons are
+#'   dilated by this distance and labels are kept out of the dilated zone, so each label
+#'   keeps a gap from its cluster outline. Default `unit(2, "mm")`; `unit(0, "mm")` disables.
 #' @param label.fontface Label font face passed to
 #'   `geom_mark_shape()`. Default is `"plain"`.
 #' @param cols Color specification for cluster outlines (and labels). One of:
@@ -52,12 +53,18 @@
 #'     not matter.
 #' @param label.margin Label margin passed to
 #'   `geom_mark_shape()`. Default is `margin(2, 2, 2, 2, "pt")`.
-#' @param simp_ratio Fraction of the polygon bounding box area used as the
-#'   label-placement simplification threshold. Cluster polygons are simplified
-#'   before the label placement search by removing small concave vertices,
-#'   which reduces computation while guaranteeing the simplified polygon
-#'   encloses the original. Larger values simplify more aggressively;
-#'   set to `0` to disable. Default is `0.001`.
+#' @param label.width Soft target width for wrapping labels, passed to
+#'   `geom_mark_shape()`. A grid unit (e.g. `unit(30, "mm")`); labels are balanced across
+#'   lines to keep line widths even and close to this width, without a short dangling line.
+#'   `NULL` (default) leaves labels unwrapped. See `geom_mark_shape()` for details.
+#' @param simp_ratio Fraction of the polygon bounding-box area used to simplify
+#'   cluster polygons before label placement: small inward (concave) vertices whose
+#'   cut-off area is below `simp_ratio * bbox_area` are removed, which speeds up the
+#'   box-fit and leader-routing geometry (both scale with vertex count). The
+#'   simplified polygon encloses the original, so labels never overlap the real
+#'   cluster. Larger values simplify more; set to `0` to disable. Default `0.001`.
+#' @param con.type Leader / label-mark style passed to `geom_mark_shape()`: one of `"ledge"`,
+#'   `"line"`, `"box"`, or `"none"` (see the `geom_mark_shape()` Details). Default `"ledge"`.
 #'
 #' @return A list of ggplot2 components suitable for adding to a plot with `+`,
 #'   containing a `ggplot2::coord_cartesian()` specification and a
@@ -95,10 +102,12 @@ fancyMask <- function(maskTable,
                       label=TRUE,
                       label.largest=TRUE,
                       label.fontsize = 10,
-                      label.buffer = unit(0, "cm"),
+                      label.buffer = unit(2, "mm"),
                       label.fontface = "plain",
                       label.margin = margin(2, 2, 2, 2, "pt"),
-                      simp_ratio = 0.001
+                      label.width = NULL,
+                      simp_ratio = 0.001,
+                      con.type = "ledge"
                       ) {
 
     if (identical(cols, "auto")) {
@@ -117,7 +126,9 @@ fancyMask <- function(maskTable,
                  label.buffer = label.buffer,
                  label.fontface = label.fontface,
                  label.margin = label.margin,
-                 simp_ratio   = simp_ratio),
+                 label.width = label.width,
+                 simp_ratio   = simp_ratio,
+                 con.type     = con.type),
             class = "fancyMask"
         )
     } else {
@@ -133,7 +144,9 @@ fancyMask <- function(maskTable,
                              label.buffer = label.buffer,
                              label.fontface = label.fontface,
                              label.margin = label.margin,
-                             simp_ratio = simp_ratio)
+                             label.width = label.width,
+                             simp_ratio = simp_ratio,
+                             con.type = con.type)
     }
 }
 
@@ -182,7 +195,9 @@ ggplot_add.fancyMask <- function(object, plot, ...) {
         label.buffer  = object$label.buffer,
         label.fontface = object$label.fontface,
         label.margin  = object$label.margin,
-        simp_ratio    = object$simp_ratio
+        label.width = object$label.width,
+        simp_ratio    = object$simp_ratio,
+        con.type      = object$con.type
     )
     ggplot2::ggplot_add(layers, plot, ...)
 }
@@ -216,7 +231,9 @@ resolveCols <- function(cols, clusterLevels) {
 buildFancyMaskLayers <- function(maskTable, ratio, limits.expand, linewidth,
                                  shape.expand, cols, label, label.largest,
                                  label.fontsize, label.buffer, label.fontface,
-                                 label.margin, simp_ratio = 0.001) {
+                                 label.margin, label.width = NULL,
+                                 simp_ratio = 0.001,
+                                 con.type = "ledge") {
     xvar <- colnames(maskTable)[1]
     yvar <- colnames(maskTable)[2]
 
@@ -256,11 +273,10 @@ buildFancyMaskLayers <- function(maskTable, ratio, limits.expand, linewidth,
                                      label.buffer = label.buffer,
                                      label.fontface = label.fontface,
                                      label.margin = label.margin,
+                                     label.width = label.width,
                                      simp_ratio = simp_ratio,
-                                     label.minwidth = 0,
-                                     label.lineheight = 0,
                                      con.cap = 0,
-                                     con.type = "straight",
+                                     con.type = con.type,
                                      con.colour = "inherit")
         } else {
             shapes <- geom_shape(data = maskTable,
@@ -304,11 +320,10 @@ buildFancyMaskLayers <- function(maskTable, ratio, limits.expand, linewidth,
                                  label.buffer = label.buffer,
                                  label.fontface = label.fontface,
                                  label.margin = label.margin,
+                                 label.width = label.width,
                                  simp_ratio = simp_ratio,
-                                 label.minwidth = 0,
-                                 label.lineheight = 0,
                                  con.cap=0,
-                                 con.type = "straight",
+                                 con.type = con.type,
                                  con.colour = "inherit")
     } else {
         shapes <- geom_shape(data=maskTable,

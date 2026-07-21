@@ -13,7 +13,7 @@ geom_mark_shape(
   radius = 0,
   label.margin = margin(2, 2, 2, 2, "mm"),
   label.width = NULL,
-  label.minwidth = unit(50, "mm"),
+  label.minwidth = 0,
   label.hjust = 0,
   label.fontsize = 12,
   label.family = "",
@@ -24,7 +24,7 @@ geom_mark_shape(
   label.buffer = unit(10, "mm"),
   con.colour = "black",
   con.size = 0.5,
-  con.type = "elbow",
+  con.type = "ledge",
   con.linetype = 1,
   con.border = "one",
   con.cap = unit(3, "mm"),
@@ -93,8 +93,12 @@ plot area width.}
 \item{label.margin}{The margin around the annotation boxes, given by a call
 to \code{\link[ggplot2:element]{ggplot2::margin()}}.}
 
-\item{label.width}{A fixed width for the label. Set to \code{NULL} to let the text
-or \code{label.minwidth} decide.}
+\item{label.width}{Soft target width for wrapping the label (and description). A grid
+unit (e.g. \code{unit(30, "mm")}). The text is balanced across lines so line widths are
+even and close to this width, avoiding a short dangling line; a line may slightly
+exceed it to prevent an orphan, and an over-long single word is never broken. It is a
+soft cap: the box shrinks to fit the wrapped text (never forced to this exact width).
+\code{NULL} (default) leaves the label unwrapped.}
 
 \item{label.minwidth}{The minimum width to provide for the description. If
 the size of the label exceeds this, the description is allowed to fill as
@@ -129,8 +133,9 @@ two elements the first will be used for the label and the second for the
 description. Use \code{"inherit"} to use the border colour of the enclosure or
 \code{"inherit_fill"} to use the fill colour from the enclosure.}
 
-\item{label.buffer}{The size of the region around the mark where labels
-cannot be placed.}
+\item{label.buffer}{Polygon padding: cluster polygons are dilated by this distance and
+labels are kept out of the dilated zone, leaving a gap between each label and its
+cluster outline. A grid unit; \code{unit(0, "mm")} disables it. Default \code{unit(10, 'mm')}.}
 
 \item{con.colour}{The colour for the line connecting the annotation to the
 mark. Use \code{"inherit"} to use the border colour of the enclosure or
@@ -139,8 +144,8 @@ mark. Use \code{"inherit"} to use the border colour of the enclosure or
 \item{con.size}{The width of the connector. Use \code{"inherit"} to use the border
 width of the enclosure.}
 
-\item{con.type}{The type of the connector. Either \code{"elbow"}, \code{"straight"}, or
-\code{"none"}.}
+\item{con.type}{Leader / label-mark style: one of \code{"ledge"}, \code{"line"}, \code{"box"}, or
+\code{"none"} (see Details). Default \code{"ledge"}.}
 
 \item{con.linetype}{The linetype of the connector. Use \code{"inherit"} to use the
 border linetype of the enclosure.}
@@ -154,12 +159,11 @@ on all sides), or \code{"none"} (not going to explain that one).}
 \item{con.arrow}{An arrow specification for the connection using
 \code{\link[grid:arrow]{grid::arrow()}} for the end pointing towards the mark.}
 
-\item{simp_ratio}{Fraction of the polygon bounding box area used as the
-label-placement simplification threshold. Cluster polygons are simplified
-before the label placement search by removing small concave vertices,
-which reduces computation while guaranteeing the simplified polygon
-encloses the original. Larger values simplify more aggressively;
-set to \code{0} to disable. Default is \code{0.001}.}
+\item{simp_ratio}{Fraction of the polygon bounding-box area used to simplify
+cluster polygons before label placement (removes small inward vertices; the
+simplified polygon encloses the original, so labels never overlap the real shape).
+Speeds up placement geometry. Larger values simplify more; \code{0} disables.
+Default \code{0.001}.}
 
 \item{...}{Other arguments passed on to \code{\link[ggplot2:layer]{layer()}}'s \code{params} argument. These
 arguments broadly fall into one of 4 categories below. Notably, further
@@ -213,6 +217,16 @@ provided with the shape coordinates. As in \code{ggforce::geom_shape}, the polyg
 expanded/contracted and corners can be rounded, which is controlled by \code{expand} and
 \code{radius} parameters.
 }
+\details{
+\code{con.type} selects how each label is connected to its cluster:
+\itemize{
+\item \code{"ledge"} — leader from the box corner facing the cluster, plus a short horizontal ledge
+along the box edge at the leader's start (the default).
+\item \code{"line"} — leader from the box corner or edge-midpoint facing the cluster, with no ledge.
+\item \code{"box"} — placed as for \code{"line"}, and additionally outlines the label's bounding box.
+\item \code{"none"} — no connector is drawn; the label is still placed as for \code{"line"}.
+}
+}
 \section{Aesthetics}{
 
 \code{geom_mark_shape} understand the following aesthetics (required aesthetics are
@@ -220,8 +234,6 @@ in bold):
 \itemize{
 \item \strong{x}
 \item \strong{y}
-\item x0 \emph{(used to anchor the label)}
-\item y0 \emph{(used to anchor the label)}
 \item filter
 \item label
 \item description
@@ -270,20 +282,31 @@ library(ggplot2)
 shape1 <- data.frame(
     x = c(0, 3, 3, 2, 2, 1, 1, 0),
     y = c(0, 0, 3, 3, 1, 1, 3, 3),
-label="bracket"
+    label = "U-shape",
+    description = "two prongs on a base"
 )
 shape2 <- data.frame(
     x = c(0, 3, 3, 0)+4,
     y = c(0, 0, 3, 3),
-    label="square"
+    label = "square",
+    description = "four equal sides"
 )
 shape3 <- data.frame(
     x = c(0, 1.5, 3, 1.5)+8,
     y = c(1.5, 0, 1.5, 3),
-    label="diamond"
+    label = "diamond",
+    description = "a square on its corner"
 )
+shapes <- rbind(shape1, shape2, shape3)
 
-ggplot(rbind(shape1, shape2, shape3), aes(x=x, y=y, label=label, color=label, fill=label)) +
+# Label only
+ggplot(shapes, aes(x=x, y=y, label=label, color=label, fill=label)) +
+    geom_mark_shape() +
+    ylim(0, 5)
+
+# Label with a secondary description line
+ggplot(shapes, aes(x=x, y=y, label=label, description=description,
+                   color=label, fill=label)) +
     geom_mark_shape() +
     ylim(0, 5)
 

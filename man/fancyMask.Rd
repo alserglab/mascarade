@@ -14,10 +14,12 @@ fancyMask(
   label = TRUE,
   label.largest = TRUE,
   label.fontsize = 10,
-  label.buffer = unit(0, "cm"),
+  label.buffer = unit(2, "mm"),
   label.fontface = "plain",
   label.margin = margin(2, 2, 2, 2, "pt"),
-  simp_ratio = 0.001
+  label.width = NULL,
+  simp_ratio = 0.001,
+  con.type = "ledge"
 )
 }
 \arguments{
@@ -70,8 +72,9 @@ not labelled. When \code{FALSE}, all parts are labelled. Ignored when
 \item{label.fontsize}{Label font size passed to \code{geom_mark_shape()}.
 Default is \code{10}.}
 
-\item{label.buffer}{Label buffer distance passed to
-\code{geom_mark_shape()}. Default is \code{unit(0, "cm")}.}
+\item{label.buffer}{Polygon padding passed to \code{geom_mark_shape()}: cluster polygons are
+dilated by this distance and labels are kept out of the dilated zone, so each label
+keeps a gap from its cluster outline. Default \code{unit(2, "mm")}; \code{unit(0, "mm")} disables.}
 
 \item{label.fontface}{Label font face passed to
 \code{geom_mark_shape()}. Default is \code{"plain"}.}
@@ -79,12 +82,20 @@ Default is \code{10}.}
 \item{label.margin}{Label margin passed to
 \code{geom_mark_shape()}. Default is \code{margin(2, 2, 2, 2, "pt")}.}
 
-\item{simp_ratio}{Fraction of the polygon bounding box area used as the
-label-placement simplification threshold. Cluster polygons are simplified
-before the label placement search by removing small concave vertices,
-which reduces computation while guaranteeing the simplified polygon
-encloses the original. Larger values simplify more aggressively;
-set to \code{0} to disable. Default is \code{0.001}.}
+\item{label.width}{Soft target width for wrapping labels, passed to
+\code{geom_mark_shape()}. A grid unit (e.g. \code{unit(30, "mm")}); labels are balanced across
+lines to keep line widths even and close to this width, without a short dangling line.
+\code{NULL} (default) leaves labels unwrapped. See \code{geom_mark_shape()} for details.}
+
+\item{simp_ratio}{Fraction of the polygon bounding-box area used to simplify
+cluster polygons before label placement: small inward (concave) vertices whose
+cut-off area is below \code{simp_ratio * bbox_area} are removed, which speeds up the
+box-fit and leader-routing geometry (both scale with vertex count). The
+simplified polygon encloses the original, so labels never overlap the real
+cluster. Larger values simplify more; set to \code{0} to disable. Default \code{0.001}.}
+
+\item{con.type}{Leader / label-mark style passed to \code{geom_mark_shape()}: one of \code{"ledge"},
+\code{"line"}, \code{"box"}, or \code{"none"} (see the \code{geom_mark_shape()} Details). Default \code{"ledge"}.}
 }
 \value{
 A list of ggplot2 components suitable for adding to a plot with \code{+},

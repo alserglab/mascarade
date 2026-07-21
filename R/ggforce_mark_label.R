@@ -75,7 +75,7 @@ labelboxGrob <- function(label, x = unit(0.5, 'npc'), y = unit(0.5, 'npc'),
   pad[c(1, 3)] <- as_mm(pad[c(1, 3)], default.units, FALSE)
   if (!is.null(label) && !is.na(label)) {
     if (!is.null(width)) {
-      label <- wrap_text(label, gp, width - pad[2] - pad[4])
+      label <- balance_wrap(label, gp, width - pad[2] - pad[4])
     }
     just <- c(hjust[1], 0.5)
     lab_grob <- textGrob(label, x = just[1], y = just[2], just = just,
@@ -83,30 +83,26 @@ labelboxGrob <- function(label, x = unit(0.5, 'npc'), y = unit(0.5, 'npc'),
   } else {
     lab_grob <- nullGrob()
   }
-  if (!is.null(width)) {
-    final_width <- max(width, min.width) - pad[2] - pad[4]
+  # The box always fits the (wrapped) label, clamped from below by min.width;
+  # width is a soft cap on the wrapping, never a fixed box dimension.
+  if (as_mm(grobWidth(lab_grob)) > (min.width - pad[2] - pad[4])) {
+    final_width <- as_mm(grobWidth(lab_grob)) + pad[2] + pad[4]
   } else {
-    if (as_mm(grobWidth(lab_grob)) > (min.width - pad[2] - pad[4])) {
-      final_width <- as_mm(grobWidth(lab_grob)) + pad[2] + pad[4]
-    } else {
-      final_width <- max(as_mm(grobWidth(lab_grob)), min.width) - pad[2] - pad[4]
-    }
+    final_width <- max(as_mm(grobWidth(lab_grob)), min.width) - pad[2] - pad[4]
   }
   if (!is.null(description) && !is.na(description)) {
-    description <- wrap_text(description, desc.gp, final_width)
+    description <- balance_wrap(description, desc.gp, final_width)
     just <- c(rep_len(hjust, 2)[2], 0.5)
     desc_grob <- textGrob(description, x = just[1], y = just[2], just = just,
                           gp = desc.gp)
-    if (is.null(width)) {
-      final_width_desc <- min(final_width, as_mm(grobWidth(desc_grob)))
-      final_width <- as_mm(grobWidth(lab_grob))
-      if (final_width < final_width_desc) {
-        final_width <- final_width_desc
-      }
+    final_width_desc <- min(final_width, as_mm(grobWidth(desc_grob)))
+    final_width <- as_mm(grobWidth(lab_grob))
+    if (final_width < final_width_desc) {
+      final_width <- final_width_desc
     }
   } else {
     desc_grob <- nullGrob()
-    if (is.null(width)) final_width <- as_mm(grobWidth(lab_grob))
+    final_width <- as_mm(grobWidth(lab_grob))
   }
   bg_grob <- rectGrob(gp = gpar(col = NA, fill = gp$fill))
   lab_height <- as_mm(grobHeight(lab_grob), width = FALSE)
@@ -114,7 +110,10 @@ labelboxGrob <- function(label, x = unit(0.5, 'npc'), y = unit(0.5, 'npc'),
   sep_height <- if (lab_height > 0 && desc_height > 0) {
     pad[1]
   } else if (lab_height > 0) {
-    font_descent(gp$fontfamily, gp$fontface, gp$fontsize, gp$cex)
+    # Descenders extend below grobHeight(lab_grob) (which is the ascent box). Reserve only the
+    # part the bottom margin does not already cover, so a label without descenders is not padded
+    # with dead space underneath.
+    max(0, font_descent(gp$fontfamily, gp$fontface, gp$fontsize, gp$cex) - pad[3])
   } else {
     0
   }
@@ -144,22 +143,121 @@ widthDetails.mark_label <- function(x) {
 heightDetails.mark_label <- function(x) {
   x$vp$height
 }
+#' Split text into wrap tokens
+#'
+#' Break points are spaces and positions just *after* a hyphen (never before).
+#' A hyphen stays attached to the token on its left, so a break there leaves the
+#' hyphen at the end of the upper line.
+#'
+#' @param text A length-1 character string.
+#' @return A character vector of tokens.
+#' @keywords internal
+#' @noRd
+wrap_tokens <- function(text) {
+  s <- gsub('-', '- ', text, fixed = TRUE)
+  toks <- strsplit(s, split = ' ', fixed = TRUE)[[1]]
+  toks[toks != '']
+}
+
+#' Balance wrapped text across lines to a soft target width
+#'
+#' Word-wraps `text` so the lines are as even as possible and close to `width`
+#' (in mm), using a minimum-raggedness dynamic program. It avoids a short
+#' dangling final line and stray orphan words, and it treats `width` as a
+#' *soft* target: a line may exceed it slightly when that removes an orphan,
+#' and an over-long single word is never broken (the effective target grows to
+#' the widest word so it fits on its own line). Break points are spaces and
+#' positions just after a hyphen.
+#'
+#' The line cost is `slack^2` for a line narrower than the target and
+#' `over * excess^2` for one wider than it. Squared slack penalises a nearly
+#' empty line about as much as the width itself, so a tiny leading word (e.g.
+#' `"T"`) is merged with its neighbour rather than stranded. Larger `over`
+#' tolerates less overflow (more, shorter lines).
+#'
+#' @param text A length-1 character string.
+#' @param gp A `grid::gpar()` describing the font; used to measure token widths.
+#' @param width Soft target line width, in mm.
+#' @param over Overflow penalty weight. Default `8`.
+#' @return A single string with lines separated by `\n`.
+#' @keywords internal
+#' @noRd
 #' @importFrom grid textGrob grobWidth
-wrap_text <- function(text, gp, width) {
-  text <- gsub('-', '- ', text)
-  text <- strsplit(text, split = ' ', fixed = TRUE)[[1]]
-  text <- paste0(text, ' ')
-  text <- sub('- ', '-', text)
-  txt <- ''
-  for (i in text) {
-    oldlab <- txt
-    txt <- paste0(txt, i)
-    tmpGrob <- textGrob(txt, gp = gp)
-    if (as_mm(grobWidth(tmpGrob)) > width) {
-      txt <- paste(trimws(oldlab), i, sep = '\n')
+balance_wrap <- function(text, gp, width, over = 8) {
+  toks <- wrap_tokens(text)
+  n <- length(toks)
+  if (n <= 1) {
+    return(trimws(text))
+  }
+  tokenWidth <- vapply(
+    toks, function(t) as_mm(grobWidth(textGrob(t, gp = gp))), numeric(1))
+  spaceWidth <- as_mm(grobWidth(textGrob('x x', gp = gp))) -
+    2 * as_mm(grobWidth(textGrob('x', gp = gp)))
+  # A space precedes each token that shares a line with its predecessor, unless
+  # that predecessor ends in '-' (a mid-word break point takes no space).
+  endsHyphen <- grepl('-$', toks)
+  gapBefore <- c(0, ifelse(endsHyphen[-n], 0, spaceWidth))
+  cumWidth <- cumsum(tokenWidth)
+  cumGap <- cumsum(gapBefore)
+  lineWidth <- function(a, b) {
+    before <- 0
+    if (a > 1) {
+      before <- cumWidth[a - 1]
+    }
+    tokens <- cumWidth[b] - before
+    gaps <- cumGap[b] - cumGap[a]              # internal gaps only
+    tokens + gaps
+  }
+  target <- max(width, max(tokenWidth))        # unbreakable-word rule
+  lineCost <- function(a, b) {
+    slack <- target - lineWidth(a, b)
+    if (slack >= 0) {
+      slack^2
+    } else {
+      over * slack^2
     }
   }
-  trimws(txt)
+
+  # DP over all line counts: cost[i + 1] = min raggedness of the first i tokens.
+  cost <- c(0, rep(Inf, n))
+  arg <- integer(n + 1)
+  for (i in seq_len(n)) {
+    best <- Inf
+    bestJ <- 0L
+    for (j in 0:(i - 1)) {                     # last line is tokens (j + 1)..i
+      cand <- cost[j + 1] + lineCost(j + 1, i)
+      if (cand < best) {
+        best <- cand
+        bestJ <- j
+      }
+    }
+    cost[i + 1] <- best
+    arg[i + 1] <- bestJ
+  }
+
+  # Backtrack to the line-start token indices.
+  starts <- integer(0)
+  i <- n
+  while (i > 0) {
+    j <- arg[i + 1]
+    starts <- c(j + 1, starts)
+    i <- j
+  }
+  ends <- c(starts[-1] - 1, n)
+  joinLine <- function(a, b) {
+    out <- toks[a]
+    if (b > a) {
+      for (t in (a + 1):b) {
+        sep <- ' '
+        if (endsHyphen[t - 1]) {
+          sep <- ''
+        }
+        out <- paste0(out, sep, toks[t])
+      }
+    }
+    out
+  }
+  paste(mapply(joinLine, starts, ends), collapse = '\n')
 }
 #' @importFrom grid unit is.unit convertWidth convertHeight
 as_mm <- function(x, def, width = TRUE) {
@@ -171,125 +269,13 @@ as_mm <- function(x, def, width = TRUE) {
     convertHeight(x, 'mm', TRUE)
   }
 }
-straight <- function(xmin, xmax, ymin, ymax, x, y) {
-  conn_point <- get_end_points(xmin, xmax, ymin, ymax, x, y)
-  list(
-    as.matrix(conn_point),
-    cbind(x = x, y = y)
-  )
-}
-elbow <- function(xmin, xmax, ymin, ymax, x, y) {
-  lines <- straight(xmin, xmax, ymin, ymax, x, y)
-  end_pos <- lines[[1]] - lines[[2]]
-  end_angle <- atan2(end_pos[, 2], end_pos[, 1]) %% (2 * pi)
-  angle_bin <- end_angle %/% (pi / 4)
-  angle_lower <- end_angle %% (pi / 4) < 0.5
-  elbow <- lapply(seq_along(angle_bin), function(i) {
-    a_bin <- angle_bin[i]
-    a_lower <- angle_lower[i]
-    if (a_bin == 0 || a_bin == 4) {
-      if (a_lower) {
-        c(end_pos[i, 1] - end_pos[i, 2], 0)
-      } else {
-        c(end_pos[i, 2], end_pos[i, 2])
-      }
-    } else if (a_bin == 1 || a_bin == 5) {
-      if (a_lower) {
-        c(end_pos[i, 1], end_pos[i, 1])
-      } else {
-        c(0, end_pos[i, 2] - end_pos[i, 1])
-      }
-    } else if (a_bin == 2 || a_bin == 6) {
-      if (a_lower) {
-        c(0, end_pos[i, 2] + end_pos[i, 1])
-      } else {
-        c(end_pos[i, 1], -end_pos[i, 1])
-      }
-    } else if (a_bin == 3 || a_bin == 7) {
-      if (a_lower) {
-        c(-end_pos[i, 2], end_pos[i, 2])
-      } else {
-        c(end_pos[i, 1] + end_pos[i, 2], 0)
-      }
-    }
-  })
-  elbow <- inject(rbind(!!!elbow))
-  elbow <- elbow + lines[[2]]
-  colnames(elbow) <- c('x', 'y')
-  list(lines[[1]], elbow, lines[[2]])
-}
-with_borderline <- function(xmin, xmax, lines) {
-  new_start <- lines[[1]]
-  new_start[, 1] <- ifelse(new_start[, 1] == xmin, xmax, xmin)
-  c(list(new_start), lines)
-}
-end_cap <- function(lines, cap) {
-  from <- lines[[length(lines) - 1]]
-  to <- lines[[length(lines)]]
-  d <- to - from
-  l <- sqrt(rowSums((d)^2))
-  to <- from + d * (l - cap) / l
-  lines[[length(lines)]] <- to
-  lines
-}
-zip_points <- function(points) {
-  n_lines <- nrow(points[[1]])
-  n_joints <- length(points)
-  points <- as.data.frame(inject(rbind(!!!points)))
-  points$id <- rep(seq_len(n_lines), n_joints)
-  points[order(points$id), ]
-}
-get_end_points <- function(xmin, xmax, ymin, ymax, x, y) {
-  xmin_tmp <- xmin - x
-  xmax_tmp <- xmax - x
-  ymin_tmp <- ymin - y
-  ymax_tmp <- ymax - y
-  pos <- ifelse(
-    xmin_tmp < 0,
-    ifelse(ymin_tmp < 0, 'bottomleft', 'topleft'),
-    ifelse(ymin_tmp < 0, 'bottomright', 'topright')
-  )
-  pos <- ifelse(
-    ymin_tmp < 0 & ymax_tmp > 0,
-    ifelse(xmin_tmp < 0, 'left', 'right'),
-    ifelse(
-      xmin_tmp < 0 & xmax_tmp > 0,
-      ifelse(ymin_tmp < 0, 'bottom', 'top'),
-      pos
-    )
-  )
-  x_new <- vswitch(
-    pos,
-    left = xmax,
-    bottomleft = xmax,
-    topleft = xmax,
-    right = xmin,
-    bottomright = xmin,
-    topright = xmin,
-    top = ifelse(abs(xmin_tmp) < abs(xmax_tmp), xmin, xmax),
-    bottom = ifelse(abs(xmin_tmp) < abs(xmax_tmp), xmin, xmax)
-  )
-  y_new <- vswitch(
-    pos,
-    bottom = ymax,
-    bottomleft = ymax,
-    bottomright = ymax,
-    top = ymin,
-    topleft = ymin,
-    topright = ymin,
-    left = ifelse(abs(ymin_tmp) < abs(ymax_tmp), ymin, ymax),
-    right = ifelse(abs(ymin_tmp) < abs(ymax_tmp), ymin, ymax)
-  )
-  data_frame0(x = x_new, y = y_new)
-}
-vswitch <- function(x, ...) {
-  cases <- cbind(...)
-  cases[cbind(seq_along(x), match(x, colnames(cases)))]
-}
 
 font_descent <- function(fontfamily, fontface, fontsize, cex) {
-  italic <- fontface >= 3
-  bold <- fontface == 2 | fontface == 4
-  info <- systemfonts::font_info(fontfamily, italic, bold, fontsize * (cex %||% 1), res = 300)
-  as_mm(abs(info$max_descend)*72/300, 'pt', FALSE)
+  info <- systemfonts::font_info(
+    family = fontfamily,
+    italic = isTRUE(fontface %in% c(3, 4)),
+    weight = if (isTRUE(fontface %in% c(2, 4))) "bold" else "normal",
+    size   = fontsize * (cex %||% 1), res = 300)
+  as_mm(abs(info$max_descend) * 72 / 300, "pt", FALSE)
+
 }

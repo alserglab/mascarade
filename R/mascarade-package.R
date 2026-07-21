@@ -8,3 +8,7 @@
 #' @docType data
 #' @name exampleMascarade
 NULL
+
+#' @useDynLib mascarade, .registration = TRUE
+#' @importFrom Rcpp sourceCpp
+NULL
