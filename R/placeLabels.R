@@ -36,8 +36,8 @@ layoutCols <- c("label", "cx", "cy", "hw", "hh", "tx", "ty",
 #' Assemble the fixed placement scene
 #'
 #' Bundles everything that defines the placement problem and never changes during optimization,
-#' so it is built once and carried inside every Layout. The derived spacing constants (`pad`
-#' hard box clearance, `gap` seed column spacing) are computed here from the line height.
+#' so it is built once and carried inside every Layout. The derived spacing constant (`pad`, the
+#' hard box clearance) is computed here from the line height.
 #'
 #' @param geom Box-fit structure: a list with `poi` (K x 2 poles), `rtree` (`XPtr<BoxFit>`),
 #'   `polysx`/`polysy` (per-cluster polygons) and optionally `pad_xrange` (dilated x-extent).
@@ -59,7 +59,7 @@ placementScene <- function(geom, xlim, ylim, hw, hh, char_h, con_type) {
     rtree = geom$rtree, polysx = geom$polysx, polysy = geom$polysy, polyxlim = polyxlim,
     xlim = xlim, ylim = ylim,
     hw = hw, hh = hh, char_h = char_h, con_type = con_type,
-    pad = 0.05 * char_h, gap = 0.25 * char_h)
+    pad = 0.05 * char_h)
 }
 
 #' Find the leader's start anchor on a label box
