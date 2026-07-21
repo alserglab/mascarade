@@ -24,7 +24,7 @@ my_make_label(
 
 \item{dims}{List of measured label box sizes \code{c(w, h)} in mm.}
 
-\item{polygons}{List of cluster rings (\code{list(x, y)}) in mm.}
+\item{polygons}{List of cluster polygons (\code{list(x, y)}) in mm.}
 
 \item{ghosts}{Points to avoid (currently unused by the placer).}
 

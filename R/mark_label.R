@@ -1,11 +1,11 @@
 #' Enclosing polygon simplification
 #'
-#' Greedily removes small concave (inward) vertices from a ring: a vertex is dropped when the
+#' Greedily removes small concave (inward) vertices from a polygon: a vertex is dropped when the
 #' triangle it cuts off has area below `max_area`. Because only concave vertices are removed
-#' the simplified ring ENCLOSES the original, so the box-fit keep-out built from it stays
+#' the simplified polygon ENCLOSES the original, so the box-fit keep-out built from it stays
 #' conservative. Used to cut vertex counts before placement.
 #'
-#' @param poly A list with numeric `x`, `y` (the ring vertices).
+#' @param poly A list with numeric `x`, `y` (the polygon vertices).
 #' @param max_area Numeric area threshold; vertices whose cut-off triangle is smaller are removed.
 #' @param min_vertices Integer floor on the number of vertices kept.
 #' @return A list with simplified numeric `x`, `y`.
@@ -63,18 +63,18 @@ simplify_outer <- function(poly, max_area, min_vertices = 4L) {
   list(x = rx, y = ry)
 }
 
-#' Clean and simplify polygon rings for placement
+#' Clean and simplify polygons for placement
 #'
-#' Drops non-finite vertices and guarantees at least three points per ring, so the C++ box-fit
-#' and pole solvers never see a degenerate polygon (draw-stage rings can be cropped by axis
+#' Drops non-finite vertices and guarantees at least three points per polygon, so the C++ box-fit
+#' and pole solvers never see a degenerate polygon (draw-stage polygons can be cropped by axis
 #' limits, dropped by expansion, or collapsed to a point). When `simp_ratio > 0` it then removes
 #' small inward dents with `simplify_outer()` -- a big speed-up (box-fit and foreignLength walk
-#' every edge), and since only concave vertices are removed each ring still ENCLOSES the
+#' every edge), and since only concave vertices are removed each polygon still ENCLOSES the
 #' original, so the box-fit keep-out stays conservative.
 #'
-#' @param polys List of rings (`list(x, y)`), already subset to the drawn labels.
+#' @param polys List of polygons (`list(x, y)`), already subset to the drawn labels.
 #' @param simp_ratio Numeric simplification fraction; `0` disables simplification.
-#' @return A list of cleaned (and optionally simplified) rings.
+#' @return A list of cleaned (and optionally simplified) polygons.
 #' @keywords internal
 #' @noRd
 prepPolygons <- function(polys, simp_ratio) {
@@ -83,11 +83,11 @@ prepPolygons <- function(polys, simp_ratio) {
     x <- p$x[finite]
     y <- p$y[finite]
     if (length(x) < 3) {
-      # Defensive net: makeContent.shape_enc() now drops degenerate rings before they reach the
-      # placer (see degenerateRing()), so this should no longer trigger. Kept because a sub-three
-      # point ring would otherwise crash the box-fit and pole solvers. Replace it with a tiny
+      # Defensive net: makeContent.shape_enc() now drops degenerate polygons before they reach the
+      # placer (see degeneratePolygon()), so this should no longer trigger. Kept because a sub-three
+      # point polygon would otherwise crash the box-fit and pole solvers. Replace it with a tiny
       # non-collinear triangle around the centroid: eps is 1 um (1e-3 mm), orders of magnitude
-      # below label/leader scale, so it seeds a valid ring without shifting placement.
+      # below label/leader scale, so it seeds a valid polygon without shifting placement.
       cx <- if (length(x)) mean(x) else 0
       cy <- if (length(y)) mean(y) else 0
       eps <- 1e-3
@@ -105,13 +105,13 @@ prepPolygons <- function(polys, simp_ratio) {
   cleaned
 }
 
-#' Find each ring's pole of inaccessibility
+#' Find each polygon's pole of inaccessibility
 #'
-#' Returns the most-interior point of every ring via `polylabelr::poi()`, falling back to the
+#' Returns the most-interior point of every polygon via `polylabelr::poi()`, falling back to the
 #' vertex centroid when `poi()` errors or returns a non-finite point.
 #'
-#' @param polys List of cleaned rings (`list(x, y)`).
-#' @return A two-column matrix of pole `x`, `y` coordinates, one row per ring.
+#' @param polys List of cleaned polygons (`list(x, y)`).
+#' @return A two-column matrix of pole `x`, `y` coordinates, one row per polygon.
 #' @keywords internal
 #' @noRd
 #' @importFrom polylabelr poi
@@ -156,13 +156,16 @@ warnOnOverflow <- function(layout, bounds) {
 #' Place labels at draw time (boundary-seed placer)
 #'
 #' Runs at draw time in the panel's millimetre space: builds the poles and the box-fit R-tree
-#' from the cluster rings (cheap, ~20 ms for ~40 clusters; the expensive mask is not
+#' from the cluster polygons (cheap, ~20 ms for ~40 clusters; the expensive mask is not
 #' recomputed) and calls `placeLabels()`. The box-fit keep-out uses the dilated polygons while
 #' poles, leader ends and foreign-routing use the true ones, so leaders reach the real outline.
 #'
+#' Note: each cluster polygon here is a single `list(x, y)` ring; any mask holes are resolved
+#' upstream in `generateMask()`, so this layer treats every polygon as one simple ring.
+#'
 #' @param rects List of measured label box sizes `c(w, h)` in mm (a zeroed entry = not drawn).
-#' @param polygons List of true cluster rings (`list(x, y)`) in mm.
-#' @param polygons_pad List of the same rings dilated by `label.buffer` (the box keep-out).
+#' @param polygons List of true cluster polygons (`list(x, y)`) in mm.
+#' @param polygons_pad List of the same polygons dilated by `label.buffer` (the box keep-out).
 #' @param bounds Numeric `c(width, height)` of the panel in mm.
 #' @param anchors List of fallback anchor points, used only for degenerate input.
 #' @param simp_ratio Numeric polygon-simplification fraction (see `simplify_outer()`).
@@ -203,7 +206,7 @@ my_place_labels <- function(rects, polygons, polygons_pad, bounds, anchors,
     withLeaders(centres, leaders)
   }
 
-  # True rings drive poles, leader ends and foreign routing; padded rings (dilated by
+  # True polygons drive poles, leader ends and foreign routing; padded polygons (dilated by
   # label.buffer) drive the box-fit keep-out, so leaders still reach the real cluster outline.
   truePolys <- prepPolygons(polygons[drawn], simp_ratio)
   paddedPolys <- prepPolygons(polygons_pad[drawn], simp_ratio)
@@ -269,11 +272,11 @@ my_place_labels <- function(rects, polygons, polygons_pad, bounds, anchors,
 
 #' Compute the per-cluster anchor points (with optional overrides)
 #'
-#' The anchor defaults to the bounding-box centre of each ring; a finite `anchor_x` / `anchor_y`
+#' The anchor defaults to the bounding-box centre of each polygon; a finite `anchor_x` / `anchor_y`
 #' entry (when supplied for every polygon) overrides that coordinate. Anchors are the fallback
 #' target used only when the placer cannot run.
 #'
-#' @param polygons List of cluster rings (`list(x, y)`).
+#' @param polygons List of cluster polygons (`list(x, y)`).
 #' @param anchor_x,anchor_y Optional per-label anchor overrides (or `NULL`).
 #' @return A list of `c(x, y)` anchor points, one per polygon.
 #' @keywords internal
@@ -292,56 +295,56 @@ computeAnchors <- function(polygons, anchor_x, anchor_y) {
   })
 }
 
-#' Compute a polygon ring's absolute area (shoelace formula)
+#' Compute a polygon's absolute area (shoelace formula)
 #'
-#' @param p A ring (`list(x, y)`).
-#' @return The non-negative area enclosed by the ring.
+#' @param p A polygon (`list(x, y)`).
+#' @return The non-negative area enclosed by the polygon.
 #' @keywords internal
 #' @noRd
-ringArea <- function(p) {
+polygonArea <- function(p) {
   abs(sum(p$x * c(p$y[-1], p$y[1]) - c(p$x[-1], p$x[1]) * p$y)) / 2
 }
 
-#' Is a polygon ring too degenerate to place a label against?
+#' Is a polygon too degenerate to place a label against?
 #'
-#' A ring is degenerate when the pole / box-fit solvers have nothing to work with: fewer than
+#' A polygon is degenerate when the pole / box-fit solvers have nothing to work with: fewer than
 #' three finite vertices (a point or a line, possibly after NA cropping), or three-plus vertices
 #' enclosing a ~zero area (all-collinear or a repeated-vertex sliver). `generateMask()` never
-#' emits such rings, but a real cluster can still collapse this way after axis-limit cropping or
+#' emits such polygons, but a real cluster can still collapse this way after axis-limit cropping or
 #' a negative `expand`.
 #'
 #' In principle these could be *supported* rather than dropped: `prepPolygons()` already
-#' substitutes an eps-triangle for a sub-three-point ring, and a point/line has a well-defined
+#' substitutes an eps-triangle for a sub-three-point polygon, and a point/line has a well-defined
 #' anchor (its centroid / midpoint). The caller drops them for now because the supported input
 #' never produces them.
 #'
-#' @param p A ring (`list(x, y)`) in mm.
-#' @param area_eps Minimum enclosed area (mm^2) a non-degenerate ring must exceed. `1e-6` is a
-#'   1 um square -- conservative enough to catch only genuinely collapsed rings.
-#' @return `TRUE` if the ring is degenerate.
+#' @param p A polygon (`list(x, y)`) in mm.
+#' @param area_eps Minimum enclosed area (mm^2) a non-degenerate polygon must exceed. `1e-6` is a
+#'   1 um square -- conservative enough to catch only genuinely collapsed polygons.
+#' @return `TRUE` if the polygon is degenerate.
 #' @keywords internal
 #' @noRd
-degenerateRing <- function(p, area_eps = 1e-6) {
+degeneratePolygon <- function(p, area_eps = 1e-6) {
   finite <- is.finite(p$x) & is.finite(p$y)
   x <- p$x[finite]
   y <- p$y[finite]
   if (length(x) < 3) {
     return(TRUE)
   }
-  ringArea(list(x = x, y = y)) < area_eps
+  polygonArea(list(x = x, y = y)) < area_eps
 }
 
-#' Dilate each cluster ring individually by `delta` mm (the label keep-out)
+#' Dilate each cluster polygon individually by `delta` mm (the label keep-out)
 #'
-#' Offsets one ring at a time: `polyoffset()` on the whole list reorders (and can merge) its
+#' Offsets one polygon at a time: `polyoffset()` on the whole list reorders (and can merge) its
 #' output, which would break the 1:1 mapping the placer relies on (polygon `i` pairs with
-#' `rects[i]` / `anchors[i]`). A degenerate offset falls back to the original ring; a ring that
-#' splits into pieces keeps its largest, so exactly one ring maps to each label. Used only for
-#' the box-fit keep-out -- poles, leader ends and foreign routing use the true rings.
+#' `rects[i]` / `anchors[i]`). A degenerate offset falls back to the original polygon; a polygon that
+#' splits into pieces keeps its largest, so exactly one polygon maps to each label. Used only for
+#' the box-fit keep-out -- poles, leader ends and foreign routing use the true polygons.
 #'
-#' @param polygons List of cluster rings (`list(x, y)`) in mm.
+#' @param polygons List of cluster polygons (`list(x, y)`) in mm.
 #' @param delta Dilation distance in mm.
-#' @return A list of dilated rings, aligned 1:1 with `polygons`.
+#' @return A list of dilated polygons, aligned 1:1 with `polygons`.
 #' @keywords internal
 #' @noRd
 #' @importFrom polyclip polyoffset
@@ -354,7 +357,7 @@ dilatePolygons <- function(polygons, delta) {
     if (length(dilated) == 1) {
       return(dilated[[1]])
     }
-    areas <- vapply(dilated, ringArea, numeric(1))
+    areas <- vapply(dilated, polygonArea, numeric(1))
     dilated[[which.max(areas)]]
   })
 }
@@ -458,7 +461,7 @@ buildConnectorGrob <- function(labels_drawn, leaders, labelpos, dims,
 #'
 #' @param labels List of label-box grobs (one per mark part).
 #' @param dims List of measured label box sizes `c(w, h)` in mm.
-#' @param polygons List of cluster rings (`list(x, y)`) in mm.
+#' @param polygons List of cluster polygons (`list(x, y)`) in mm.
 #' @param ghosts Points to avoid (currently unused by the placer).
 #' @param buffer Grid unit: the `label.buffer` polygon padding / box keep-out.
 #' @param con_type Leader style: `"ledge"`, `"line"`, `"box"`, or `"none"`.

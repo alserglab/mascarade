@@ -10,7 +10,7 @@
 # Structures:
 #   * scene (see `placementScene`) -- the fixed placement problem, built ONCE and then carried
 #     inside every Layout so no stage takes the geometry as a separate argument: cluster
-#     geometry (poles, box-fit R-tree, rings, dilated x-range), the viewport, the per-label box
+#     geometry (poles, box-fit R-tree, polygons, dilated x-range), the viewport, the per-label box
 #     sizes and leader style, and the derived spacing constants.
 #   * Layout (see `seedLayout`) -- the evolving placement state: `scene`, a `place` table of
 #     placement rows tagged by `label` (one row per label to start; addRadialCandidates() appends
@@ -40,7 +40,7 @@ layoutCols <- c("label", "cx", "cy", "hw", "hh", "tx", "ty",
 #' hard box clearance, `gap` seed column spacing) are computed here from the line height.
 #'
 #' @param geom Box-fit structure: a list with `poi` (K x 2 poles), `rtree` (`XPtr<BoxFit>`),
-#'   `polysx`/`polysy` (per-cluster rings) and optionally `pad_xrange` (dilated x-extent).
+#'   `polysx`/`polysy` (per-cluster polygons) and optionally `pad_xrange` (dilated x-extent).
 #' @param xlim,ylim Numeric length-2 viewport bounds (already inset by `label.buffer`).
 #' @param hw,hh Numeric per-label box half-sizes (mm).
 #' @param char_h Numeric line height (mm) used to scale the internal spacing constants.
@@ -435,7 +435,7 @@ polishLayout <- function(layout) {
 #' Add the visible leader ends and return the final placement table
 #'
 #' Collapses the Layout to its one-row-per-label solution and fills `bx`, `by`: where each leader
-#' (anchor -> pole) first meets the label's own cluster ring, the point the drawn leader stops at
+#' (anchor -> pole) first meets the label's own cluster polygon, the point the drawn leader stops at
 #' (`firstLeaderHit()`). This is the deliverable the draw stage consumes.
 #'
 #' @param layout A Layout.

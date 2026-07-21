@@ -162,7 +162,7 @@ on all sides), or \code{"none"} (not going to explain that one).}
 
 \item{simp_ratio}{Fraction of the polygon bounding-box area used to simplify
 cluster polygons before label placement (removes small inward vertices; the
-simplified ring encloses the original, so labels never overlap the real shape).
+simplified polygon encloses the original, so labels never overlap the real shape).
 Speeds up placement geometry. Larger values simplify more; \code{0} disables.
 Default \code{0.001}.}
 

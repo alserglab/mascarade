@@ -71,22 +71,22 @@ test_that("border colours are not shifted after a thin polygon is dropped", {
                  label = "dropped polygon colour absent from SVG")
 })
 
-test_that("degenerateRing flags points, lines, and zero-area rings", {
+test_that("degeneratePolygon flags points, lines, and zero-area polygons", {
     # A real polygon is kept.
-    expect_false(degenerateRing(list(x = c(0, 1, 1, 0), y = c(0, 0, 1, 1))))
-    expect_false(degenerateRing(list(x = c(0, 1, 0.5), y = c(0, 0, 1))))
+    expect_false(degeneratePolygon(list(x = c(0, 1, 1, 0), y = c(0, 0, 1, 1))))
+    expect_false(degeneratePolygon(list(x = c(0, 1, 0.5), y = c(0, 0, 1))))
 
     # Fewer than three finite vertices: a point or a line.
-    expect_true(degenerateRing(list(x = 2, y = 3)))
-    expect_true(degenerateRing(list(x = c(0, 1), y = c(0, 1))))
+    expect_true(degeneratePolygon(list(x = 2, y = 3)))
+    expect_true(degeneratePolygon(list(x = c(0, 1), y = c(0, 1))))
 
     # Three-plus vertices but zero enclosed area (the area branch, which a vertex count alone
     # would miss): all-collinear, or repeated vertices.
-    expect_true(degenerateRing(list(x = c(0, 1, 2, 3), y = c(0, 1, 2, 3))))
-    expect_true(degenerateRing(list(x = c(0, 0, 0), y = c(1, 1, 1))))
+    expect_true(degeneratePolygon(list(x = c(0, 1, 2, 3), y = c(0, 1, 2, 3))))
+    expect_true(degeneratePolygon(list(x = c(0, 0, 0), y = c(1, 1, 1))))
 
     # NA vertices (e.g. axis-limit cropping) reduce the finite count below three.
-    expect_true(degenerateRing(list(x = c(0, 1, NA, NA), y = c(0, 1, NA, NA))))
+    expect_true(degeneratePolygon(list(x = c(0, 1, NA, NA), y = c(0, 1, NA, NA))))
 })
 
 test_that("a degenerate cluster is dropped completely without shifting colours", {

@@ -51,7 +51,7 @@
 #'   cluster outline. A grid unit; `unit(0, "mm")` disables it. Default `unit(10, 'mm')`.
 #' @param simp_ratio Fraction of the polygon bounding-box area used to simplify
 #'   cluster polygons before label placement (removes small inward vertices; the
-#'   simplified ring encloses the original, so labels never overlap the real shape).
+#'   simplified polygon encloses the original, so labels never overlap the real shape).
 #'   Speeds up placement geometry. Larger values simplify more; `0` disables.
 #'   Default `0.001`.
 #' @return A ggplot2 layer (`ggplot2::layer`) that adds polygonal shape annotations to a plot.
@@ -379,12 +379,12 @@ makeContent.shape_enc <- function(x) {
         # A single keep-set covers both reasons a polygon leaves the drawing:
         #   1. ggforce's shapeGrob silently drops polygons that contract to nothing under a
         #      negative expand (polyoffset returns empty) -- reflected in `surviving`.
-        #   2. A ring collapsed to a point, line, or zero-area sliver (degenerateRing()) that the
+        #   2. A polygon collapsed to a point, line, or zero-area sliver (degeneratePolygon()) that the
         #      pole / box-fit solvers cannot use. generateMask() never emits these, but a real
         #      cluster can collapse this way after axis-limit cropping or a negative expand.
         # Drop such clusters entirely (no outline, no label) and warn, pruning every
         # positionally-indexed structure through the one keep-set so colours stay aligned.
-        is_degenerate <- vapply(polygons, degenerateRing, logical(1))
+        is_degenerate <- vapply(polygons, degeneratePolygon, logical(1))
         keep_local <- which(!is_degenerate)
         keep_ids   <- surviving[keep_local]
         if (any(is_degenerate)) {

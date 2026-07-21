@@ -7,7 +7,7 @@
 simplify_outer(poly, max_area, min_vertices = 4L)
 }
 \arguments{
-\item{poly}{A list with numeric \code{x}, \code{y} (the ring vertices).}
+\item{poly}{A list with numeric \code{x}, \code{y} (the polygon vertices).}
 
 \item{max_area}{Numeric area threshold; vertices whose cut-off triangle is smaller are removed.}
 
@@ -17,9 +17,9 @@ simplify_outer(poly, max_area, min_vertices = 4L)
 A list with simplified numeric \code{x}, \code{y}.
 }
 \description{
-Greedily removes small concave (inward) vertices from a ring: a vertex is dropped when the
+Greedily removes small concave (inward) vertices from a polygon: a vertex is dropped when the
 triangle it cuts off has area below \code{max_area}. Because only concave vertices are removed
-the simplified ring ENCLOSES the original, so the box-fit keep-out built from it stays
+the simplified polygon ENCLOSES the original, so the box-fit keep-out built from it stays
 conservative. Used to cut vertex counts before placement.
 }
 \keyword{internal}

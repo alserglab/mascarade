@@ -18,9 +18,9 @@ my_place_labels(
 \arguments{
 \item{rects}{List of measured label box sizes \code{c(w, h)} in mm (a zeroed entry = not drawn).}
 
-\item{polygons}{List of true cluster rings (\code{list(x, y)}) in mm.}
+\item{polygons}{List of true cluster polygons (\code{list(x, y)}) in mm.}
 
-\item{polygons_pad}{List of the same rings dilated by \code{label.buffer} (the box keep-out).}
+\item{polygons_pad}{List of the same polygons dilated by \code{label.buffer} (the box keep-out).}
 
 \item{bounds}{Numeric \code{c(width, height)} of the panel in mm.}
 
@@ -38,8 +38,12 @@ drawn), carrying \code{attr(., "leaders")} with \code{c(ex, ey, bx, by, corner)}
 }
 \description{
 Runs at draw time in the panel's millimetre space: builds the poles and the box-fit R-tree
-from the cluster rings (cheap, ~20 ms for ~40 clusters; the expensive mask is not
+from the cluster polygons (cheap, ~20 ms for ~40 clusters; the expensive mask is not
 recomputed) and calls \code{placeLabels()}. The box-fit keep-out uses the dilated polygons while
 poles, leader ends and foreign-routing use the true ones, so leaders reach the real outline.
+}
+\details{
+Note: each cluster polygon here is a single \code{list(x, y)} ring; any mask holes are resolved
+upstream in \code{generateMask()}, so this layer treats every polygon as one simple ring.
 }
 \keyword{internal}
