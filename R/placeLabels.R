@@ -11,7 +11,7 @@
 #   * scene (see `placementScene`) -- the fixed placement problem, built ONCE and then carried
 #     inside every Layout so no stage takes the geometry as a separate argument: cluster
 #     geometry (poles, box-fit R-tree, polygons, dilated x-range), the viewport, the per-label box
-#     sizes and leader style, and the derived spacing constant.
+#     sizes and leader style, and the hard/soft box-clearance constants.
 #   * Layout (see `seedLayout`) -- the evolving placement state: `scene`, a `place` table of
 #     placement rows tagged by `label` (one row per label to start; addRadialCandidates() appends
 #     candidate alternatives, so a label may then own several rows), and `sel`, the 0-based row of
@@ -36,19 +36,23 @@ layoutCols <- c("label", "cx", "cy", "hw", "hh", "tx", "ty",
 #' Assemble the fixed placement scene
 #'
 #' Bundles everything that defines the placement problem and never changes during optimization,
-#' so it is built once and carried inside every Layout. The derived spacing constant (`pad`, the
-#' hard box clearance) is computed here from the line height.
+#' so it is built once and carried inside every Layout. Carries the two clearance constants:
+#' `hardPad` (the hard box clearance, folded into every placement rectangle) and `softPad` (an
+#' extra target spacing the polish alone aims for, on top of `hardPad`).
 #'
 #' @param geom Box-fit structure: a list with `poi` (K x 2 poles), `rtree` (`XPtr<BoxFit>`),
 #'   `polysx`/`polysy` (per-cluster polygons) and optionally `pad_xrange` (dilated x-extent).
 #' @param xlim,ylim Numeric length-2 viewport bounds (already inset by `label.buffer`).
 #' @param hw,hh Numeric per-label box half-sizes (mm).
-#' @param char_h Numeric line height (mm) used to scale the internal spacing constant.
+#' @param char_h Numeric line height (mm) used to scale the internal spacing.
 #' @param con_type Leader style: `"ledge"`, `"line"`, `"box"`, or `"none"`.
+#' @param hardPad Numeric hard box clearance (mm) added around every placement rectangle.
+#' @param softPad Numeric extra target spacing (mm) the polish aims for, on top of `hardPad`.
 #' @return A scene list.
 #' @keywords internal
 #' @noRd
-placementScene <- function(geom, xlim, ylim, hw, hh, char_h, con_type) {
+placementScene <- function(geom, xlim, ylim, hw, hh, char_h, con_type,
+                           hardPad = 0, softPad = 0) {
   polyxlim <- geom$pad_xrange                   # dilated extent (keep-out)
   if (is.null(polyxlim)) {
     xs <- unlist(geom$polysx)                   # undilated geom (tests); guard the empty view
@@ -59,7 +63,7 @@ placementScene <- function(geom, xlim, ylim, hw, hh, char_h, con_type) {
     rtree = geom$rtree, polysx = geom$polysx, polysy = geom$polysy, polyxlim = polyxlim,
     xlim = xlim, ylim = ylim,
     hw = hw, hh = hh, char_h = char_h, con_type = con_type,
-    pad = 0.05 * char_h)
+    hardPad = hardPad, softPad = softPad)
 }
 
 #' Find the leader's start anchor on a label box
@@ -100,7 +104,7 @@ placementScene <- function(geom, xlim, ylim, hw, hh, char_h, con_type) {
 #' the leader anchor directly (the boundary seed needs anchors that do not follow the
 #' `.anchorPoint()` rule). Use `.layoutFromCentres()` when the anchor should follow the style.
 #'
-#' @param scene The placement scene (for `hw`, `hh`, `poi`, `pad`).
+#' @param scene The placement scene (for `hw`, `hh`, `poi`, `hardPad`).
 #' @param label Integer 1-indexed cluster of each row.
 #' @param cx,cy Numeric box-centre coordinates.
 #' @param ex,ey Numeric leader-start (anchor) coordinates.
@@ -113,11 +117,11 @@ placementScene <- function(geom, xlim, ylim, hw, hh, char_h, con_type) {
   halfH <- scene$hh[label]
   tx <- scene$poi[label, 1]
   ty <- scene$poi[label, 2]
-  pad <- scene$pad
+  hardPad <- scene$hardPad
   data.table::data.table(
     label = label, cx = cx, cy = cy, hw = halfW, hh = halfH, tx = tx, ty = ty,
-    cxmin = cx - halfW - pad, cxmax = cx + halfW + pad,
-    cymin = cy - halfH - pad, cymax = cy + halfH + pad,
+    cxmin = cx - halfW - hardPad, cxmax = cx + halfW + hardPad,
+    cymin = cy - halfH - hardPad, cymax = cy + halfH + hardPad,
     ex = ex, ey = ey, corner = corner,
     len = sqrt((cx - tx)^2 + (cy - ty)^2))
 }
@@ -184,8 +188,9 @@ currentPlacements <- function(layout) {
 #' Places the labels assigned to one side (`side` -1 left, +1 right) as a vertical stack on the
 #' line `x = Xline`. A column may be empty (0 labels) or hold a single label, in which case the
 #' label just sits at its pole y. Otherwise the labels are placed on a uniform grid of slots as
-#' tall as the tallest box and a single Hungarian assigns each label to a slot -- one box per
-#' slot, so any assignment leaves the boxes at most touching (single- and multi-line alike).
+#' tall as the tallest *padded* box (box + `hardPad`) and a single Hungarian assigns each label
+#' to a slot -- one padded box per slot, so any assignment leaves the padded boxes at most
+#' touching, i.e. conflict-free (single- and multi-line alike).
 #'
 #' * If the whole column fits the viewport (`m <= capacity`), the grid fills the viewport, so the
 #'   slack slots let labels sit near their poles.
@@ -212,7 +217,7 @@ currentPlacements <- function(layout) {
   }
   dx2 <- (Xline - poi[set, 1])^2                # squared horizontal pole-to-column distance
   viewH <- ylim[2] - ylim[1]
-  slotH <- max(boxH[set])                       # uniform slot as tall as the tallest box (no pad)
+  slotH <- max(boxH[set]) + 2 * scene$hardPad   # slot as tall as the tallest padded box
   capacity <- floor(viewH / slotH)              # such slots the viewport holds
 
   # Lay a grid of uniform tallest-box slots centred on the pole span, then Hungarian-assign the
@@ -238,11 +243,10 @@ currentPlacements <- function(layout) {
                          Xline = Xline, side = side)
 }
 
-#' Build the boundary side slots
+#' Build the conflict-free boundary side slots
 #'
-#' The seed is *near*-feasible, not strictly conflict-free: with the no-pad slot pitch, adjacent
-#' tallest boxes in a dense pole region can overlap by up to `2 * pad` on their padded extents.
-#' These small overlaps are deliberately left for the downstream sweeps to resolve.
+#' Because each column stacks padded boxes one per tallest-padded-box slot (see `.sideColumn()`),
+#' the seed is conflict-free by construction: boxes touch at most, never overlap.
 #'
 #' The starting placement: two columns hang off the cluster cloud on the vertical lines
 #' `x = min/max` polygon x. Because the polygons are dilated by `label.buffer`, those lines sit
@@ -271,11 +275,12 @@ currentPlacements <- function(layout) {
     .sideColumn(scene, rightSet, scene$polyxlim[2], +1))
 
   # box centre so the padded near edge sits on the column line; the leader starts on the true
-  # (unpadded) near edge so a "ledge" connector's ledge meets it. The box stays a padded-margin
-  # width inside the line; column neighbours sit one tallest-box apart, so they at most touch.
+  # (unpadded) near edge so a "ledge" connector's ledge meets it. The box stays a hardPad-margin
+  # width inside the line; column neighbours sit one tallest-padded-box apart, so they at most
+  # touch.
   slots[, `:=`(
-    cx = Xline + side * (hw[label] + scene$pad),
-    ex = Xline + side * scene$pad,
+    cx = Xline + side * (hw[label] + scene$hardPad),
+    ex = Xline + side * scene$hardPad,
     ey = if (scene$con_type == "ledge") cy - hh[label] else cy,
     corner = scene$con_type == "ledge")]
   slots[]
@@ -283,7 +288,7 @@ currentPlacements <- function(layout) {
 
 #' Build the initial feasible layout (the seed)
 #'
-#' Wraps the boundary side slots (`.sideSlots()`) into a Layout -- one placement
+#' Wraps the conflict-free boundary side slots (`.sideSlots()`) into a Layout -- one placement
 #' per label, all selected. This is the starting state the rest of the pipeline improves.
 #'
 #' @param scene The placement scene.
@@ -314,7 +319,7 @@ seedLayout <- function(scene) {
   radFill <- 1.2 * scene$char_h
   dedup <- 0.3 * scene$char_h
   cand <- data.table::as.data.table(radialCandidates(
-    scene$rtree, scene$poi, scene$hw, scene$hh, scene$pad,
+    scene$rtree, scene$poi, scene$hw, scene$hh, scene$hardPad,
     ndir, radStep, radStart, radReach, radFill, dedup))
   .layoutFromCentres(scene, cand)
 }
@@ -406,11 +411,13 @@ polishLayout <- function(layout) {
   chosen <- currentPlacements(layout)
   MU <- 55                                      # box-spacing weight (fixed polish tuning)
   iters <- 120L                                 # polish iteration count
+  # hardPad is the hard box clearance (as everywhere else); the polish additionally aims for a
+  # softer target spacing of hardPad + softPad between boxes.
   polished <- forcePolish(
     scene$rtree, chosen$cx, chosen$cy, scene$hw, scene$hh, scene$poi[, 1], scene$poi[, 2],
-    scene$polysx, scene$polysy, scene$pad,
+    scene$polysx, scene$polysy, scene$hardPad,
     scene$xlim[1], scene$xlim[2], scene$ylim[1], scene$ylim[2],
-    as.integer(iters), 0.4 * scene$char_h, MU, 0.6 * scene$char_h, 0.03 * scene$char_h,
+    as.integer(iters), 0.4 * scene$char_h, MU, scene$hardPad + scene$softPad, 0.03 * scene$char_h,
     if (scene$con_type == "ledge") 0L else 1L)
   place <- .layoutFromCentres(
     scene, data.table::data.table(label = seq_len(scene$K),
@@ -457,8 +464,7 @@ emptyPlacement <- function(scene) {
 #'
 #' Boundary-seed placement driver, run as a straight pipeline over a single Layout object:
 #' `seedLayout()` -> `addRadialCandidates()` -> `oneMoveSweep()` -> `twoMoveSweep()` ->
-#' `polishLayout()` -> `withLeaderEnds()`. The sweeps drive the layout to conflict-free from the
-#' near-feasible seed (see `.sideSlots()`), minimising leader length within that.
+#' `polishLayout()` -> `withLeaderEnds()`. Conflict-free by construction given a feasible seed.
 #' Pure given the per-label box half-sizes and line height (the draw hook supplies those from text
 #' metrics in the panel's mm space). It returns one placement per cluster, so an empty view
 #' (K == 0) returns an empty layout.
@@ -466,14 +472,17 @@ emptyPlacement <- function(scene) {
 #' @param geom Box-fit structure (see `placementScene()`).
 #' @param xlim,ylim Numeric length-2 viewport bounds (already inset by `label.buffer`).
 #' @param hw,hh Numeric per-label box half-sizes (mm).
-#' @param char_h Numeric line height (mm) used to scale the internal spacing constant.
+#' @param char_h Numeric line height (mm) used to scale the internal spacing.
 #' @param con_type Leader style: `"ledge"`, `"line"`, `"box"`, or `"none"`.
+#' @param hardPad Numeric hard box clearance (mm) folded into every placement rectangle.
+#' @param softPad Numeric extra target spacing (mm) the polish aims for, on top of `hardPad`.
 #' @return A data.table (one row per cluster) with `cx`, `cy`, the box columns, the leader anchor
 #'   `ex`, `ey`, its `corner` flag and the visible leader end `bx`, `by`.
 #' @keywords internal
 #' @noRd
-placeLabels <- function(geom, xlim, ylim, hw, hh, char_h, con_type = "ledge") {
-  scene <- placementScene(geom, xlim, ylim, hw, hh, char_h, con_type)
+placeLabels <- function(geom, xlim, ylim, hw, hh, char_h, con_type = "ledge",
+                        hardPad = 0, softPad = 0) {
+  scene <- placementScene(geom, xlim, ylim, hw, hh, char_h, con_type, hardPad, softPad)
   # No clusters -> no placements. The early return only spares the pipeline an empty seed
   # (`seedLayout()` assumes at least one label); the contract is the same one-row-per-cluster.
   if (scene$K == 0) {

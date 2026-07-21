@@ -116,7 +116,7 @@ test_that(".sideColumn on a crowded column lays labels on a uniform tallest-box 
   set.seed(1)
   m <- 6
   scene <- list(poi = cbind(runif(m, -3, -1), runif(m, 0, 3)),  # poles left of the column line
-                hh = rep(0.5, m), ylim = c(0, 3))
+                hh = rep(0.5, m), ylim = c(0, 3), hardPad = 0)
   slotH <- max(2 * scene$hh)
   out <- mascarade:::.sideColumn(scene, seq_len(m), Xline = -3, side = -1)
 
@@ -126,4 +126,10 @@ test_that(".sideColumn on a crowded column lays labels on a uniform tallest-box 
   expect_gt(max(cy) - min(cy), diff(scene$ylim))    # grid extends past the viewport (unclamped)
   expect_equal(mean(range(cy)),                     # grid centred on the pole span
                mean(range(scene$poi[, 2])), tolerance = 1e-9)
+
+  # hardPad widens the slot pitch to the tallest *padded* box (box + 2*hardPad), so the padded
+  # boxes still at most touch.
+  scene$hardPad <- 0.25
+  padded <- sort(mascarade:::.sideColumn(scene, seq_len(m), Xline = -3, side = -1)$cy)
+  expect_equal(diff(padded), rep(slotH + 2 * 0.25, m - 1))
 })
