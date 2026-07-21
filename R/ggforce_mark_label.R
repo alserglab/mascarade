@@ -73,11 +73,6 @@ labelboxGrob <- function(label, x = unit(0.5, 'npc'), y = unit(0.5, 'npc'),
   min.width <- as_mm(min.width, default.units)
   pad <- as_mm(pad, default.units)
   pad[c(1, 3)] <- as_mm(pad[c(1, 3)], default.units, FALSE)
-  if (!is.null(width)) {
-    # A soft target width caps the box, so it also lowers the effective minimum
-    # (otherwise a min.width above width would force the box past the cap).
-    min.width <- min(min.width, width)
-  }
   if (!is.null(label) && !is.na(label)) {
     if (!is.null(width)) {
       label <- balance_wrap(label, gp, width - pad[2] - pad[4])

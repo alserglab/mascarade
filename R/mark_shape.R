@@ -41,9 +41,8 @@
 #'   unit (e.g. `unit(30, "mm")`). The text is balanced across lines so line widths are
 #'   even and close to this width, avoiding a short dangling line; a line may slightly
 #'   exceed it to prevent an orphan, and an over-long single word is never broken. It is a
-#'   soft cap: the box shrinks to fit the wrapped text (never forced to this exact width),
-#'   and the effective `label.minwidth` is lowered so the box never exceeds it. `NULL`
-#'   (default) leaves the label unwrapped.
+#'   soft cap: the box shrinks to fit the wrapped text (never forced to this exact width).
+#'   `NULL` (default) leaves the label unwrapped.
 #' @param label.buffer Polygon padding: cluster polygons are dilated by this distance and
 #'   labels are kept out of the dilated zone, leaving a gap between each label and its
 #'   cluster outline. A grid unit; `unit(0, "mm")` disables it. Default `unit(10, 'mm')`.
@@ -102,7 +101,7 @@ geom_mark_shape <- function(mapping = NULL, data = NULL, stat = 'identity',
                            radius = 0,
                            label.margin = margin(2, 2, 2, 2, 'mm'),
                            label.width = NULL,
-                           label.minwidth = unit(50, 'mm'),
+                           label.minwidth = 0,
                            label.hjust = 0, label.fontsize = 12,
                            label.family = '', label.lineheight = 1,
                            label.fontface = c('bold', 'plain'),
@@ -161,7 +160,7 @@ GeomMarkShape <- ggplot2::ggproto(
                           radius = unit(2.5, 'mm'),
                           label.margin = margin(2, 2, 2, 2, 'mm'),
                           label.width = NULL,
-                          label.minwidth = unit(50, 'mm'),
+                          label.minwidth = 0,
                           label.hjust = 0, label.buffer = unit(10, 'mm'),
                           label.fontsize = 12, label.family = '',
                           label.fontface = c('bold', 'plain'),
@@ -267,7 +266,7 @@ shapeEncGrob <- function(x = c(0, 0.5, 1, 0.5), y = c(0.5, 1, 0.5, 0), id = NULL
                         name = NULL, mark.gp = gpar(), label.gp = gpar(),
                         desc.gp = gpar(), con.gp = gpar(), label.margin = margin(),
                         label.width = NULL,
-                        label.minwidth = unit(50, 'mm'),
+                        label.minwidth = 0,
                         label.hjust = 0, label.buffer = unit(10, 'mm'),
                         con.type = 'ledge', con.border = 'one',
                         con.cap = unit(3, "mm"), con.arrow = NULL, vp = NULL,
