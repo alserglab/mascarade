@@ -187,8 +187,8 @@ currentPlacements <- function(layout) {
 #' tall as the tallest box and a single Hungarian assigns each label to a slot -- one box per
 #' slot, so any assignment leaves the boxes at most touching (single- and multi-line alike).
 #'
-#' * If the whole column fits the viewport, the grid has a few slack slots and is clamped into
-#'   the viewport, so labels sit near their poles.
+#' * If the whole column fits the viewport (`m <= capacity`), the grid fills the viewport, so the
+#'   slack slots let labels sit near their poles.
 #' * Otherwise the column is too crowded for slack: the grid is exactly `m` slots centred on the
 #'   pole span, extended past the viewport when the labels still cannot all fit.
 #'
@@ -215,12 +215,12 @@ currentPlacements <- function(layout) {
   slotH <- max(boxH[set])                       # uniform slot as tall as the tallest box (no pad)
   capacity <- floor(viewH / slotH)              # such slots the viewport holds
 
-  # Lay a grid of uniform tallest-box slots centred on the pole span. When the whole column
-  # fits, use a few slack slots and clamp the grid into the viewport so labels sit near their
-  # poles; when it is too crowded to fit, use exactly `m` slots and let the grid extend past
-  # the viewport. `min(capacity, ...)` collapses to `m` in the crowded case (capacity < m).
-  spanSlots <- ceiling((max(poleY) - min(poleY)) / slotH)
-  nSlot <- max(m, min(capacity, spanSlots + 2L * m))
+  # Lay a grid of uniform tallest-box slots centred on the pole span, then Hungarian-assign the
+  # labels to it. When the column fits (m <= capacity) fill the viewport, so the slack slots let
+  # labels sit near their poles; when it is too crowded, use exactly `m` slots and let the grid
+  # extend past the viewport. The far slack slots stay empty (the Hungarian hugs the poles), so
+  # capacity only sets the cost-matrix size, not where labels land.
+  nSlot <- max(m, capacity)
   lo <- mean(range(poleY)) - nSlot * slotH / 2
   if (nSlot * slotH <= viewH) {                 # clamp into the viewport only when it fits
     lo <- max(ylim[1], min(lo, ylim[2] - nSlot * slotH))
