@@ -11,7 +11,7 @@
 #   * scene (see `placementScene`) -- the fixed placement problem, built ONCE and then carried
 #     inside every Layout so no stage takes the geometry as a separate argument: cluster
 #     geometry (poles, box-fit R-tree, polygons, dilated x-range), the viewport, the per-label box
-#     sizes and leader style, and the derived spacing constants.
+#     sizes and leader style, and the derived spacing constant.
 #   * Layout (see `seedLayout`) -- the evolving placement state: `scene`, a `place` table of
 #     placement rows tagged by `label` (one row per label to start; addRadialCandidates() appends
 #     candidate alternatives, so a label may then own several rows), and `sel`, the 0-based row of
@@ -43,7 +43,7 @@ layoutCols <- c("label", "cx", "cy", "hw", "hh", "tx", "ty",
 #'   `polysx`/`polysy` (per-cluster polygons) and optionally `pad_xrange` (dilated x-extent).
 #' @param xlim,ylim Numeric length-2 viewport bounds (already inset by `label.buffer`).
 #' @param hw,hh Numeric per-label box half-sizes (mm).
-#' @param char_h Numeric line height (mm) used to scale the internal spacing constants.
+#' @param char_h Numeric line height (mm) used to scale the internal spacing constant.
 #' @param con_type Leader style: `"ledge"`, `"line"`, `"box"`, or `"none"`.
 #' @return A scene list.
 #' @keywords internal
@@ -238,7 +238,11 @@ currentPlacements <- function(layout) {
                          Xline = Xline, side = side)
 }
 
-#' Build the conflict-free boundary side slots
+#' Build the boundary side slots
+#'
+#' The seed is *near*-feasible, not strictly conflict-free: with the no-pad slot pitch, adjacent
+#' tallest boxes in a dense pole region can overlap by up to `2 * pad` on their padded extents.
+#' These small overlaps are deliberately left for the downstream sweeps to resolve.
 #'
 #' The starting placement: two columns hang off the cluster cloud on the vertical lines
 #' `x = min/max` polygon x. Because the polygons are dilated by `label.buffer`, those lines sit
@@ -279,7 +283,7 @@ currentPlacements <- function(layout) {
 
 #' Build the initial feasible layout (the seed)
 #'
-#' Wraps the conflict-free boundary side slots (`.sideSlots()`) into a Layout -- one placement
+#' Wraps the boundary side slots (`.sideSlots()`) into a Layout -- one placement
 #' per label, all selected. This is the starting state the rest of the pipeline improves.
 #'
 #' @param scene The placement scene.
@@ -453,7 +457,8 @@ emptyPlacement <- function(scene) {
 #'
 #' Boundary-seed placement driver, run as a straight pipeline over a single Layout object:
 #' `seedLayout()` -> `addRadialCandidates()` -> `oneMoveSweep()` -> `twoMoveSweep()` ->
-#' `polishLayout()` -> `withLeaderEnds()`. Conflict-free by construction given a feasible seed.
+#' `polishLayout()` -> `withLeaderEnds()`. The sweeps drive the layout to conflict-free from the
+#' near-feasible seed (see `.sideSlots()`), minimising leader length within that.
 #' Pure given the per-label box half-sizes and line height (the draw hook supplies those from text
 #' metrics in the panel's mm space). It returns one placement per cluster, so an empty view
 #' (K == 0) returns an empty layout.
@@ -461,7 +466,7 @@ emptyPlacement <- function(scene) {
 #' @param geom Box-fit structure (see `placementScene()`).
 #' @param xlim,ylim Numeric length-2 viewport bounds (already inset by `label.buffer`).
 #' @param hw,hh Numeric per-label box half-sizes (mm).
-#' @param char_h Numeric line height (mm) used to scale the internal spacing constants.
+#' @param char_h Numeric line height (mm) used to scale the internal spacing constant.
 #' @param con_type Leader style: `"ledge"`, `"line"`, `"box"`, or `"none"`.
 #' @return A data.table (one row per cluster) with `cx`, `cy`, the box columns, the leader anchor
 #'   `ex`, `ey`, its `corner` flag and the visible leader end `bx`, `by`.
