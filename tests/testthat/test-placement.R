@@ -74,7 +74,7 @@ test_that("fancyMask renders a plot end-to-end (draw-stage placement)", {
     ggplot2::geom_point(ggplot2::aes(x, y, color = cluster)) +
     fancyMask(mt, ratio = 1, cols = "inherit")
   tmp <- tempfile(fileext = ".png")
-  expect_error(ggplot2::ggsave(tmp, p, width = 8, height = 6, dpi = 90), NA)
+  expect_no_error(ggplot2::ggsave(tmp, p, width = 8, height = 6, dpi = 90))
   unlink(tmp)
 })
 
