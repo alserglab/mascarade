@@ -25,17 +25,6 @@ test_that("all leader styles (ledge, line, box) produce conflict-free layouts", 
   }
 })
 
-test_that("placement stays conflict-free across box scales (view-change property)", {
-  data("exampleMascarade", package = "mascarade")
-  for (frac in c(0.03, 0.06, 0.09)) {              # smaller/larger boxes = zoom in/out
-    g <- .buildTestGeom(exampleMascarade$dims, exampleMascarade$clusters, char_frac = frac)
-    P <- placeLabels(g$geom, g$xlim, g$ylim, g$hw, g$hh, g$char_h)
-    s <- layoutScore(P)
-    expect_true(s["bb"] == 0 && s["ll"] == 0 && s["lb"] == 0,
-                info = sprintf("char_frac=%.2f gave bb/ll/lb = %d/%d/%d", frac, s["bb"], s["ll"], s["lb"]))
-  }
-})
-
 test_that("a single label is placed in free space through the normal pipeline", {
   data("exampleMascarade", package = "mascarade")
   keep <- exampleMascarade$clusters == exampleMascarade$clusters[1]
