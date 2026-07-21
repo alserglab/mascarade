@@ -327,6 +327,11 @@ makeContent.shape_enc <- function(x) {
     y_new <- split(y_new, mark$id)
     polygons <- Map(function(xx, yy, type) {
         mat <- unique0(cbind(xx, yy))
+        # LEGACY (inherited from ggforce's mark_hull): collapse a degenerate part to its
+        # extreme points -- a single vertex / two points, an all-vertical column, or a collinear
+        # run. These reduced (< 3-point / zero-area) parts are then dropped downstream by
+        # degeneratePolygon() in the label branch, so this normalization is largely redundant now;
+        # kept because it also feeds the drawn `mark` and predates the degeneracy drop.
         if (nrow(mat) <= 2) {
             return(mat)
         }

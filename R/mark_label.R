@@ -98,8 +98,10 @@ prepPolygons <- function(polys, simp_ratio) {
 
 #' Find each polygon's pole of inaccessibility
 #'
-#' Returns the most-interior point of every polygon via `polylabelr::poi()`, falling back to the
-#' vertex centroid when `poi()` errors or returns a non-finite point.
+#' Returns the most-interior point of every polygon via `polylabelr::poi()`. Polygons reaching
+#' here are non-degenerate (see `degeneratePolygon()`), so `poi()` is expected to succeed and
+#' return a finite point; no fallback -- if it does not, that is a bug and should surface (the
+#' caller's `stopifnot(all(is.finite(poles)))` catches a non-finite result).
 #'
 #' @param polys List of cleaned polygons (`list(x, y)`).
 #' @return A two-column matrix of pole `x`, `y` coordinates, one row per polygon.
@@ -108,12 +110,8 @@ prepPolygons <- function(polys, simp_ratio) {
 #' @importFrom polylabelr poi
 polesOfInaccessibility <- function(polys) {
   t(vapply(polys, function(p) {
-    pole <- tryCatch(polylabelr::poi(p$x, p$y), error = function(e) NULL)
-    if (is.null(pole) || !is.finite(pole$x) || !is.finite(pole$y)) {
-      c(mean(p$x), mean(p$y))
-    } else {
-      c(pole$x, pole$y)
-    }
+    pole <- polylabelr::poi(p$x, p$y)
+    c(pole$x, pole$y)
   }, numeric(2)))
 }
 
@@ -303,12 +301,13 @@ degeneratePolygon <- function(p, area_eps = 1e-6) {
 #'
 #' Offsets one polygon at a time: `polyoffset()` on the whole list reorders (and can merge) its
 #' output, which would break the 1:1 mapping the placer relies on (polygon `i` pairs with
-#' `rects[i]`). A degenerate offset falls back to the original polygon; a polygon that
-#' splits into pieces keeps its largest, so exactly one polygon maps to each label. Used only for
-#' the box-fit keep-out -- poles, leader ends and foreign routing use the true polygons.
+#' `rects[i]`). `delta` (`label.buffer`) is non-negative, so dilating a single connected polygon
+#' always yields exactly one connected piece (it can neither vanish nor split -- those need a
+#' negative offset), which the assertion enforces. Used only for the box-fit keep-out -- poles,
+#' leader ends and foreign routing use the true polygons.
 #'
 #' @param polygons List of cluster polygons (`list(x, y)`) in mm.
-#' @param delta Dilation distance in mm.
+#' @param delta Dilation distance in mm (`>= 0`).
 #' @return A list of dilated polygons, aligned 1:1 with `polygons`.
 #' @keywords internal
 #' @noRd
@@ -316,14 +315,8 @@ degeneratePolygon <- function(p, area_eps = 1e-6) {
 dilatePolygons <- function(polygons, delta) {
   lapply(polygons, function(p) {
     dilated <- polyoffset(list(p), delta)
-    if (length(dilated) == 0) {
-      return(p)
-    }
-    if (length(dilated) == 1) {
-      return(dilated[[1]])
-    }
-    areas <- vapply(dilated, polygonArea, numeric(1))
-    dilated[[which.max(areas)]]
+    stopifnot(length(dilated) == 1)
+    dilated[[1]]
   })
 }
 
@@ -441,8 +434,10 @@ my_make_label <- function(labels, dims, polygons, ghosts, buffer, con_type,
                           con_cap, con_gp, arrow, simp_ratio = 0.001) {
   # `label.buffer` keep-out: dilate each cluster by `buffer` (mm). Used only for the box-fit
   # keep-out; poles, leader ends and foreign routing use the true `polygons`, so leaders reach
-  # the actual cluster outline.
+  # the actual cluster outline. label.buffer is a padding, so it must be non-negative -- a
+  # negative offset would erode (and could split or empty) the clusters.
   delta <- convertWidth(buffer, "mm", TRUE)
+  stopifnot(delta >= 0)
   polygons_pad <- dilatePolygons(polygons, delta)
 
   panel <- c(
