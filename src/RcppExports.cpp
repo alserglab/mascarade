@@ -96,23 +96,6 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// packLen
-NumericVector packLen(NumericVector dx, NumericVector py, NumericVector h, double gap, double slot, double ylo, double yhi);
-RcppExport SEXP _mascarade_packLen(SEXP dxSEXP, SEXP pySEXP, SEXP hSEXP, SEXP gapSEXP, SEXP slotSEXP, SEXP yloSEXP, SEXP yhiSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< NumericVector >::type dx(dxSEXP);
-    Rcpp::traits::input_parameter< NumericVector >::type py(pySEXP);
-    Rcpp::traits::input_parameter< NumericVector >::type h(hSEXP);
-    Rcpp::traits::input_parameter< double >::type gap(gapSEXP);
-    Rcpp::traits::input_parameter< double >::type slot(slotSEXP);
-    Rcpp::traits::input_parameter< double >::type ylo(yloSEXP);
-    Rcpp::traits::input_parameter< double >::type yhi(yhiSEXP);
-    rcpp_result_gen = Rcpp::wrap(packLen(dx, py, h, gap, slot, ylo, yhi));
-    return rcpp_result_gen;
-END_RCPP
-}
 // forcePolish
 List forcePolish(SEXP boxfit, NumericVector cx0, NumericVector cy0, NumericVector hw, NumericVector hh, NumericVector tx, NumericVector ty, List polysx, List polysy, double pad, double xlo, double xhi, double ylo, double yhi, int iters, double step, double MU, double pad_tgt, double stepmin, int con_type, bool sq);
 RcppExport SEXP _mascarade_forcePolish(SEXP boxfitSEXP, SEXP cx0SEXP, SEXP cy0SEXP, SEXP hwSEXP, SEXP hhSEXP, SEXP txSEXP, SEXP tySEXP, SEXP polysxSEXP, SEXP polysySEXP, SEXP padSEXP, SEXP xloSEXP, SEXP xhiSEXP, SEXP yloSEXP, SEXP yhiSEXP, SEXP itersSEXP, SEXP stepSEXP, SEXP MUSEXP, SEXP pad_tgtSEXP, SEXP stepminSEXP, SEXP con_typeSEXP, SEXP sqSEXP) {
@@ -196,7 +179,6 @@ static const R_CallMethodDef CallEntries[] = {
     {"_mascarade_radialCandidates", (DL_FUNC) &_mascarade_radialCandidates, 11},
     {"_mascarade_effectiveLength", (DL_FUNC) &_mascarade_effectiveLength, 16},
     {"_mascarade_firstLeaderHit", (DL_FUNC) &_mascarade_firstLeaderHit, 6},
-    {"_mascarade_packLen", (DL_FUNC) &_mascarade_packLen, 7},
     {"_mascarade_forcePolish", (DL_FUNC) &_mascarade_forcePolish, 21},
     {"_mascarade_oneMoveSweepKernel", (DL_FUNC) &_mascarade_oneMoveSweepKernel, 12},
     {"_mascarade_twoMoveSweepKernel", (DL_FUNC) &_mascarade_twoMoveSweepKernel, 13},
