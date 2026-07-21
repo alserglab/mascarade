@@ -108,3 +108,22 @@ test_that("hungarian solves a small assignment to the known optimum", {
   total <- sum(vapply(seq_len(3), function(i) cost[i, res[i] + 1L], 0))
   expect_equal(total, 3)
 })
+
+test_that(".sideColumn on a crowded column lays labels on a uniform tallest-box grid", {
+  # A column with more labels than the viewport can hold (m > capacity) takes the crowded path:
+  # exactly m slots, one tallest-box tall, centred on the pole span and extended past the
+  # viewport. boxH = slotH = 1, viewH = 3 -> capacity = 3 < m = 6.
+  set.seed(1)
+  m <- 6
+  scene <- list(poi = cbind(runif(m, -3, -1), runif(m, 0, 3)),  # poles left of the column line
+                hh = rep(0.5, m), ylim = c(0, 3))
+  slotH <- max(2 * scene$hh)
+  out <- mascarade:::.sideColumn(scene, seq_len(m), Xline = -3, side = -1)
+
+  expect_equal(nrow(out), m)                        # every label placed, one per slot
+  cy <- sort(out$cy)
+  expect_equal(diff(cy), rep(slotH, m - 1))         # uniform pitch = tallest box (unpadded touch)
+  expect_gt(max(cy) - min(cy), diff(scene$ylim))    # grid extends past the viewport (unclamped)
+  expect_equal(mean(range(cy)),                     # grid centred on the pole span
+               mean(range(scene$poi[, 2])), tolerance = 1e-9)
+})
