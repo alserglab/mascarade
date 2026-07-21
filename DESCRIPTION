@@ -40,7 +40,7 @@ Suggests:
     scales,
     SeuratObject,
     svglite,
-    colorrepel
+    colorrepel (>= 0.5.1)
 Config/testthat/edition: 3
 VignetteBuilder: knitr
 URL: https://alserglab.github.io/mascarade/
