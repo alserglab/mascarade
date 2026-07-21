@@ -13,8 +13,6 @@ my_make_label(
   con_type,
   con_cap,
   con_gp,
-  anchor_x,
-  anchor_y,
   arrow,
   simp_ratio = 0.001
 )
@@ -35,8 +33,6 @@ my_make_label(
 \item{con_cap}{Numeric gap (mm) left between the leader end and the cluster.}
 
 \item{con_gp}{A \code{gpar} for the connectors (per drawn label).}
-
-\item{anchor_x, anchor_y}{Optional per-label anchor overrides.}
 
 \item{arrow}{Optional \code{grid::arrow} for the connectors.}
 

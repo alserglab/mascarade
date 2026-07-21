@@ -9,7 +9,6 @@ my_place_labels(
   polygons,
   polygons_pad,
   bounds,
-  anchors,
   simp_ratio = 0.001,
   con_type = "ledge",
   buffer = 0
@@ -23,8 +22,6 @@ my_place_labels(
 \item{polygons_pad}{List of the same polygons dilated by \code{label.buffer} (the box keep-out).}
 
 \item{bounds}{Numeric \code{c(width, height)} of the panel in mm.}
-
-\item{anchors}{List of fallback anchor points, used only for degenerate input.}
 
 \item{simp_ratio}{Numeric polygon-simplification fraction (see \code{simplify_outer()}).}
 

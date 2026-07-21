@@ -158,7 +158,6 @@ warnOnOverflow <- function(layout, bounds) {
 #' @param polygons List of true cluster polygons (`list(x, y)`) in mm.
 #' @param polygons_pad List of the same polygons dilated by `label.buffer` (the box keep-out).
 #' @param bounds Numeric `c(width, height)` of the panel in mm.
-#' @param anchors List of fallback anchor points, used only for degenerate input.
 #' @param simp_ratio Numeric polygon-simplification fraction (see `simplify_outer()`).
 #' @param con_type Leader style: `"ledge"`, `"line"`, `"box"`, or `"none"`.
 #' @param buffer Numeric `label.buffer` in mm; the overflow viewport is inset by it.
@@ -166,7 +165,7 @@ warnOnOverflow <- function(layout, bounds) {
 #'   drawn), carrying `attr(., "leaders")` with `c(ex, ey, bx, by, corner)` per drawn label.
 #' @keywords internal
 #' @importFrom stats median
-my_place_labels <- function(rects, polygons, polygons_pad, bounds, anchors,
+my_place_labels <- function(rects, polygons, polygons_pad, bounds,
                             simp_ratio = 0.001, con_type = "ledge", buffer = 0) {
   nLabels <- length(rects)
 
@@ -184,17 +183,14 @@ my_place_labels <- function(rects, polygons, polygons_pad, bounds, anchors,
     return(withLeaders(vector("list", nLabels), vector("list", nLabels)))
   }
 
-  # Drop every drawn label onto its anchor point with a zero-length (start == end, so invisible)
-  # leader. Used whenever the geometry is too degenerate for the placer to run.
-  placeOnAnchors <- function() {
-    centres <- vector("list", nLabels)
-    leaders <- vector("list", nLabels)
-    for (j in seq_along(drawn)) {
-      anchor <- as.numeric(anchors[[drawn[j]]])
-      centres[[drawn[j]]] <- anchor
-      leaders[[drawn[j]]] <- c(anchor, anchor, 0)
-    }
-    withLeaders(centres, leaders)
+  # When placement genuinely cannot run -- a zero-size panel, or the C++ solver failing -- warn
+  # once and draw no labels. (Degenerate polygons are dropped upstream, so they never reach here.)
+  skipPlacement <- function(reason) {
+    cli::cli_warn(c(
+      "!" = "Could not place cluster labels: {reason}.",
+      "i" = "No labels were drawn."
+    ))
+    withLeaders(vector("list", nLabels), vector("list", nLabels))
   }
 
   # True polygons drive poles, leader ends and foreign routing; padded polygons (dilated by
@@ -209,7 +205,7 @@ my_place_labels <- function(rects, polygons, polygons_pad, bounds, anchors,
   # assert also keeps the `<= 0` comparison NA-safe).
   stopifnot(all(is.finite(poles)), all(is.finite(bounds)))
   if (bounds[1] <= 0 || bounds[2] <= 0) {
-    return(placeOnAnchors())
+    return(skipPlacement("the plot panel has zero size"))
   }
 
   centres <- vector("list", nLabels)
@@ -249,7 +245,7 @@ my_place_labels <- function(rects, polygons, polygons_pad, bounds, anchors,
     error = function(e) NULL
   )
   if (is.null(layout)) {
-    return(placeOnAnchors())
+    return(skipPlacement("the label placement solver failed"))
   }
   layout <- layout[order(layout$label)]
 
@@ -262,31 +258,6 @@ my_place_labels <- function(rects, polygons, polygons_pad, bounds, anchors,
                              as.numeric(layout$corner[j]))
   }
   withLeaders(centres, leaders)
-}
-
-#' Compute the per-cluster anchor points (with optional overrides)
-#'
-#' The anchor defaults to the bounding-box centre of each polygon; a finite `anchor_x` / `anchor_y`
-#' entry (when supplied for every polygon) overrides that coordinate. Anchors are the fallback
-#' target used only when the placer cannot run.
-#'
-#' @param polygons List of cluster polygons (`list(x, y)`).
-#' @param anchor_x,anchor_y Optional per-label anchor overrides (or `NULL`).
-#' @return A list of `c(x, y)` anchor points, one per polygon.
-#' @keywords internal
-#' @noRd
-computeAnchors <- function(polygons, anchor_x, anchor_y) {
-  lapply(seq_along(polygons), function(i) {
-    x <- mean(range(polygons[[i]]$x))
-    y <- mean(range(polygons[[i]]$y))
-    if (length(anchor_x) == length(polygons) && !is.na(anchor_x[i])) {
-      x <- anchor_x[i]
-    }
-    if (length(anchor_y) == length(polygons) && !is.na(anchor_y[i])) {
-      y <- anchor_y[i]
-    }
-    c(x, y)
-  })
 }
 
 #' Compute a polygon's absolute area (shoelace formula)
@@ -332,7 +303,7 @@ degeneratePolygon <- function(p, area_eps = 1e-6) {
 #'
 #' Offsets one polygon at a time: `polyoffset()` on the whole list reorders (and can merge) its
 #' output, which would break the 1:1 mapping the placer relies on (polygon `i` pairs with
-#' `rects[i]` / `anchors[i]`). A degenerate offset falls back to the original polygon; a polygon that
+#' `rects[i]`). A degenerate offset falls back to the original polygon; a polygon that
 #' splits into pieces keeps its largest, so exactly one polygon maps to each label. Used only for
 #' the box-fit keep-out -- poles, leader ends and foreign routing use the true polygons.
 #'
@@ -461,17 +432,13 @@ buildConnectorGrob <- function(labels_drawn, leaders, labelpos, dims,
 #' @param con_type Leader style: `"ledge"`, `"line"`, `"box"`, or `"none"`.
 #' @param con_cap Numeric gap (mm) left between the leader end and the cluster.
 #' @param con_gp A `gpar` for the connectors (per drawn label).
-#' @param anchor_x,anchor_y Optional per-label anchor overrides.
 #' @param arrow Optional `grid::arrow` for the connectors.
 #' @param simp_ratio Numeric polygon-simplification fraction (see `simplify_outer()`).
 #' @return A `gList`-ready list: the positioned label grobs followed by the connector grob.
 #' @keywords internal
 #' @importFrom grid convertWidth convertHeight nullGrob unit
 my_make_label <- function(labels, dims, polygons, ghosts, buffer, con_type,
-                          con_cap, con_gp, anchor_x, anchor_y, arrow,
-                          simp_ratio = 0.001) {
-  anchors <- computeAnchors(polygons, anchor_x, anchor_y)
-
+                          con_cap, con_gp, arrow, simp_ratio = 0.001) {
   # `label.buffer` keep-out: dilate each cluster by `buffer` (mm). Used only for the box-fit
   # keep-out; poles, leader ends and foreign routing use the true `polygons`, so leaders reach
   # the actual cluster outline.
@@ -482,7 +449,7 @@ my_make_label <- function(labels, dims, polygons, ghosts, buffer, con_type,
     convertWidth(unit(1, "npc"), "mm", TRUE),
     convertHeight(unit(1, "npc"), "mm", TRUE)
   )
-  labelpos <- my_place_labels(dims, polygons, polygons_pad, panel, anchors,
+  labelpos <- my_place_labels(dims, polygons, polygons_pad, panel,
                               simp_ratio = simp_ratio, con_type = con_type,
                               buffer = delta)
   if (all(lengths(labelpos) == 0)) {

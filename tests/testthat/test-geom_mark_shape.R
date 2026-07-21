@@ -2,8 +2,8 @@ library(ggplot2)
 
 # Regression test: a polygon thin enough to be completely contracted by polyoffset(-1pt)
 # is silently dropped by ggforce's shapeGrob makeContent, which leaves a gap between
-# x$labeldim (n entries) and the rebuilt polygons (n-1 entries), causing
-# anchors[[i]] to be out of bounds in my_place_labels.
+# x$labeldim (n entries) and the rebuilt polygons (n-1 entries), causing a
+# label/polygon misalignment in my_place_labels.
 test_that("geom_mark_shape does not crash when a thin polygon is eliminated by expansion", {
     # At ggsave(width=5, height=4), plot panel is ~112mm wide.
     # xlim range = 14 → scale ≈ 8 mm/unit.

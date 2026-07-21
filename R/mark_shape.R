@@ -24,8 +24,6 @@
 #'
 #' - **x**
 #' - **y**
-#' - x0 *(used to anchor the label)*
-#' - y0 *(used to anchor the label)*
 #' - filter
 #' - label
 #' - description
@@ -175,9 +173,6 @@ GeomMarkShape <- ggplot2::ggproto(
                           simp_ratio = 0.001) {
         if (nrow(data) == 0) return(ggplot2::zeroGrob())
 
-        # As long as coord$transform() doesn't recognise x0/y0
-        data$xmin <- data$x0
-        data$ymin <- data$y0
         coords <- coord$transform(data, panel_params)
         if (!is.integer(coords$group)) {
             coords$group <- match(coords$group, unique0(coords$group))
@@ -248,9 +243,7 @@ GeomMarkShape <- ggplot2::ggproto(
                      con.type = con.type,
                      con.border = con.border,
                      con.cap = con.cap,
-                     con.arrow = con.arrow,
-                     anchor.x = first_rows$xmin,
-                     anchor.y = first_rows$ymin
+                     con.arrow = con.arrow
         )
     },
     default_aes = ggplot2::aes(
@@ -267,7 +260,7 @@ GeomMarkShape <- ggplot2::ggproto(
 # Helpers -----------------------------------------------------------------
 
 #' @import ggforce
-#' @importFrom grid gpar grobWidth grobHeight gTree is.unit
+#' @importFrom grid gpar grobWidth grobHeight gTree
 shapeEncGrob <- function(x = c(0, 0.5, 1, 0.5), y = c(0.5, 1, 0.5, 0), id = NULL,
                         id.lengths = NULL, expand = 0, radius = 0,
                         label = NULL, ghosts = NULL, default.units = 'npc',
@@ -277,8 +270,7 @@ shapeEncGrob <- function(x = c(0, 0.5, 1, 0.5), y = c(0.5, 1, 0.5, 0), id = NULL
                         label.minwidth = unit(50, 'mm'),
                         label.hjust = 0, label.buffer = unit(10, 'mm'),
                         con.type = 'ledge', con.border = 'one',
-                        con.cap = unit(3, "mm"), con.arrow = NULL,
-                        anchor.x = NULL, anchor.y = NULL, vp = NULL,
+                        con.cap = unit(3, "mm"), con.arrow = NULL, vp = NULL,
                         simp_ratio = 0.001) {
     mark <- shapeGrob(
         x = x, y = y, id = id, id.lengths = id.lengths,
@@ -315,17 +307,11 @@ shapeEncGrob <- function(x = c(0, 0.5, 1, 0.5), y = c(0.5, 1, 0.5, 0), id = NULL
     } else {
         labeldim <- NULL
     }
-    if (!is.null(anchor.x) && !is.unit(anchor.x)) {
-        anchor.x <- unit(anchor.x, default.units)
-    }
-    if (!is.null(anchor.y) && !is.unit(anchor.y)) {
-        anchor.y <- unit(anchor.y, default.units)
-    }
     gTree(
         mark = mark, label = label, labeldim = labeldim,
         buffer = label.buffer, ghosts = ghosts, con.gp = con.gp, con.type = con.type,
         con.cap = as_mm(con.cap, default.units), con.border = con.border,
-        con.arrow = con.arrow, anchor.x = anchor.x, anchor.y = anchor.y,
+        con.arrow = con.arrow,
         simp_ratio = simp_ratio, name = name,
         vp = vp, cl = 'shape_enc'
     )
@@ -373,8 +359,6 @@ makeContent.shape_enc <- function(x) {
         # `split()` groups by sorted id, so bind `surviving` to the same order (sort, not
         # first-appearance) — this keeps polygons[[k]] aligned with surviving[k].
         surviving <- sort(unique(mark$id))
-        anchor_x <- if (is.null(x$anchor.x)) NULL else convertX(x$anchor.x, 'mm', TRUE)
-        anchor_y <- if (is.null(x$anchor.y)) NULL else convertY(x$anchor.y, 'mm', TRUE)
 
         # A single keep-set covers both reasons a polygon leaves the drawing:
         #   1. ggforce's shapeGrob silently drops polygons that contract to nothing under a
@@ -405,16 +389,13 @@ makeContent.shape_enc <- function(x) {
             polygons   <- polygons[keep_local]
             x$label    <- x$label[keep_ids]
             x$labeldim <- x$labeldim[keep_ids]
-            if (!is.null(anchor_x)) anchor_x <- anchor_x[keep_ids]
-            if (!is.null(anchor_y)) anchor_y <- anchor_y[keep_ids]
             mark       <- pruneMark(mark, keep_ids)
             x$con.gp   <- subset_gp(x$con.gp, keep_ids)
         }
         labels <- my_make_label(
             labels = x$label, dims = x$labeldim, polygons = polygons,
             ghosts = x$ghosts, buffer = x$buffer, con_type = x$con.type,
-            con_cap = x$con.cap, con_gp = x$con.gp, anchor_x = anchor_x,
-            anchor_y = anchor_y, arrow = x$con.arrow,
+            con_cap = x$con.cap, con_gp = x$con.gp, arrow = x$con.arrow,
             simp_ratio = x$simp_ratio
         )
         setChildren(x, rlang::inject(gList(!!!c(list(mark), labels))))
