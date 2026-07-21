@@ -220,12 +220,12 @@ currentPlacements <- function(layout) {
   slotH <- max(boxH[set]) + 2 * scene$hardPad   # slot as tall as the tallest padded box
   capacity <- floor(viewH / slotH)              # such slots the viewport holds
 
-  # Lay a grid of uniform tallest-box slots centred on the pole span, then Hungarian-assign the
+  # Lay a grid of uniform tallest-box slots centered on the viewport center, then Hungarian-assign the
   # labels to it. When the column fits (m <= capacity) fill the viewport, so the slack slots let
   # labels sit near their poles; when it is too crowded, use exactly `m` slots and let the grid
   # extend past the viewport.
   nSlot <- max(m, capacity)
-  lo <- mean(range(poleY)) - nSlot * slotH / 2
+  lo <- mean(range(ylim)) - nSlot * slotH / 2
   slotY <- lo + (seq_len(nSlot) - 0.5) * slotH
 
   # square cost: m real label rows (leader length to each slot) + dummy zero-cost rows. One box
