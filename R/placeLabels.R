@@ -183,18 +183,16 @@ currentPlacements <- function(layout) {
 #'
 #' Places the labels assigned to one side (`side` -1 left, +1 right) as a vertical stack on the
 #' line `x = Xline`. A column may be empty (0 labels) or hold a single label, in which case the
-#' label just sits at its pole y. Otherwise each side chooses its slot height once:
+#' label just sits at its pole y. Otherwise the labels are placed on a uniform grid of slots as
+#' tall as the tallest box and a single Hungarian assigns each label to a slot -- one box per
+#' slot, so any assignment leaves the boxes at most touching (single- and multi-line alike).
 #'
-#' Labels are placed on a uniform grid of slots as tall as the tallest box and a single Hungarian
-#' assigns each label to a slot -- one box per slot, so any assignment leaves the boxes at most
-#' touching (single- and multi-line labels alike).
-#'
-#' * If the whole column fits the viewport, the grid is a bounded window clamped into the
-#'   viewport with a few slack slots, so labels sit near their poles.
+#' * If the whole column fits the viewport, the grid has a few slack slots and is clamped into
+#'   the viewport, so labels sit near their poles.
 #' * Otherwise the column is too crowded for slack: the grid is exactly `m` slots centred on the
 #'   pole span, extended past the viewport when the labels still cannot all fit.
 #'
-#' @param scene The placement scene (for `poi`, `hh`, `gap`, `ylim`).
+#' @param scene The placement scene (for `poi`, `hh`, `ylim`).
 #' @param set Integer labels assigned to this column.
 #' @param Xline Numeric x-coordinate of the column line.
 #' @param side Integer -1 (left column) or +1 (right column).
@@ -214,35 +212,29 @@ currentPlacements <- function(layout) {
   }
   dx2 <- (Xline - poi[set, 1])^2                # squared horizontal pole-to-column distance
   viewH <- ylim[2] - ylim[1]
-  coarseSlot <- max(boxH[set])                  # uniform slot as tall as the tallest box (no pad)
-  capacity <- floor(viewH / coarseSlot)         # such slots the viewport holds
+  slotH <- max(boxH[set])                       # uniform slot as tall as the tallest box (no pad)
+  capacity <- floor(viewH / slotH)              # such slots the viewport holds
 
-  if (m <= capacity) {
-    # room for every label to get its own tallest-box slot: the Hungarian assignment is itself
-    # overlap-free, so no packing DP is needed. Slots cover the pole span (a bounded window,
-    # clamped into the viewport) so labels sit near their poles.
-    spanSlots <- ceiling((max(poleY) - min(poleY)) / coarseSlot)
-    nSlot <- max(m, min(capacity, spanSlots + 2L * m))
-    lo <- mean(range(poleY)) - nSlot * coarseSlot / 2
-    lo <- max(ylim[1], min(lo, ylim[2] - nSlot * coarseSlot))
-    slotY <- lo + (seq_len(nSlot) - 0.5) * coarseSlot
-    cost <- matrix(0, nSlot, nSlot)             # square: m real rows + dummy zero-cost rows
-    for (i in seq_len(m)) {
-      cost[i, ] <- sqrt(dx2[i] + (poleY[i] - slotY)^2)
-    }
-    assignment <- hungarian(cost) + 1L
-    return(data.table::data.table(label = set, cy = slotY[assignment[seq_len(m)]],
-                                  Xline = Xline, side = side))
+  # Lay a grid of uniform tallest-box slots centred on the pole span. When the whole column
+  # fits, use a few slack slots and clamp the grid into the viewport so labels sit near their
+  # poles; when it is too crowded to fit, use exactly `m` slots and let the grid extend past
+  # the viewport. `min(capacity, ...)` collapses to `m` in the crowded case (capacity < m).
+  spanSlots <- ceiling((max(poleY) - min(poleY)) / slotH)
+  nSlot <- max(m, min(capacity, spanSlots + 2L * m))
+  lo <- mean(range(poleY)) - nSlot * slotH / 2
+  if (nSlot * slotH <= viewH) {                 # clamp into the viewport only when it fits
+    lo <- max(ylim[1], min(lo, ylim[2] - nSlot * slotH))
   }
+  slotY <- lo + (seq_len(nSlot) - 0.5) * slotH
 
-  # too crowded to give each label a slack slot: lay a uniform tallest-box grid of exactly m
-  # slots centred on the pole span (extending past the viewport when they cannot all fit) and
-  # Hungarian-assign the labels to it. One box per slot, so the assignment is overlap-free.
-  gridY <- mean(range(poleY)) + (seq_len(m) - (m + 1) / 2) * coarseSlot
-  cost <- sqrt(outer(dx2, rep(1, m)) +          # leader length from label i to grid slot j
-               outer(poleY, gridY, function(a, b) (a - b)^2))
+  # square cost: m real label rows (leader length to each slot) + dummy zero-cost rows. One box
+  # per slot, so the Hungarian assignment leaves the boxes at most touching.
+  cost <- matrix(0, nSlot, nSlot)
+  for (i in seq_len(m)) {
+    cost[i, ] <- sqrt(dx2[i] + (poleY[i] - slotY)^2)
+  }
   assignment <- hungarian(cost) + 1L
-  data.table::data.table(label = set, cy = gridY[assignment],
+  data.table::data.table(label = set, cy = slotY[assignment[seq_len(m)]],
                          Xline = Xline, side = side)
 }
 
