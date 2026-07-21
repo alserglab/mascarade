@@ -65,12 +65,12 @@ simplify_outer <- function(poly, max_area, min_vertices = 4L) {
 
 #' Clean and simplify polygons for placement
 #'
-#' Drops non-finite vertices and guarantees at least three points per polygon, so the C++ box-fit
-#' and pole solvers never see a degenerate polygon (draw-stage polygons can be cropped by axis
-#' limits, dropped by expansion, or collapsed to a point). When `simp_ratio > 0` it then removes
-#' small inward dents with `simplify_outer()` -- a big speed-up (box-fit and foreignLength walk
-#' every edge), and since only concave vertices are removed each polygon still ENCLOSES the
-#' original, so the box-fit keep-out stays conservative.
+#' Drops non-finite vertices (draw-stage polygons can be cropped by axis limits). Degenerate
+#' polygons are dropped upstream by `degeneratePolygon()` in `makeContent.shape_enc()`, so this
+#' asserts at least three finite vertices remain rather than guarding the case. When
+#' `simp_ratio > 0` it then removes small inward dents with `simplify_outer()` -- a big speed-up
+#' (box-fit and foreignLength walk every edge), and since only concave vertices are removed each
+#' polygon still ENCLOSES the original, so the box-fit keep-out stays conservative.
 #'
 #' @param polys List of polygons (`list(x, y)`), already subset to the drawn labels.
 #' @param simp_ratio Numeric simplification fraction; `0` disables simplification.
@@ -82,18 +82,9 @@ prepPolygons <- function(polys, simp_ratio) {
     finite <- is.finite(p$x) & is.finite(p$y)
     x <- p$x[finite]
     y <- p$y[finite]
-    if (length(x) < 3) {
-      # Defensive net: makeContent.shape_enc() now drops degenerate polygons before they reach the
-      # placer (see degeneratePolygon()), so this should no longer trigger. Kept because a sub-three
-      # point polygon would otherwise crash the box-fit and pole solvers. Replace it with a tiny
-      # non-collinear triangle around the centroid: eps is 1 um (1e-3 mm), orders of magnitude
-      # below label/leader scale, so it seeds a valid polygon without shifting placement.
-      cx <- if (length(x)) mean(x) else 0
-      cy <- if (length(y)) mean(y) else 0
-      eps <- 1e-3
-      x <- cx + c(-eps, eps, 0)
-      y <- cy + c(-eps, -eps, eps)
-    }
+    # degeneratePolygon() drops sub-3-vertex / zero-area polygons upstream, so the box-fit and
+    # pole solvers never see a degenerate polygon here.
+    stopifnot(length(x) >= 3)
     list(x = x, y = y)
   })
   if (simp_ratio > 0) {
@@ -212,9 +203,12 @@ my_place_labels <- function(rects, polygons, polygons_pad, bounds, anchors,
   paddedPolys <- prepPolygons(polygons_pad[drawn], simp_ratio)
   poles <- polesOfInaccessibility(truePolys)
 
-  degenerate <- any(!is.finite(poles)) || any(!is.finite(bounds)) ||
-                bounds[1] <= 0 || bounds[2] <= 0
-  if (degenerate) {
+  # Poles are finite by construction (>= 3-vertex polygons; polesOfInaccessibility falls back to
+  # the centroid), and the panel size (convertWidth/Height of 1 npc during an active draw) is
+  # always finite. A collapsed / zero-size panel is still possible, so guard that (the finiteness
+  # assert also keeps the `<= 0` comparison NA-safe).
+  stopifnot(all(is.finite(poles)), all(is.finite(bounds)))
+  if (bounds[1] <= 0 || bounds[2] <= 0) {
     return(placeOnAnchors())
   }
 
