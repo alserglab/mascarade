@@ -209,13 +209,6 @@ my_place_labels <- function(rects, polygons, polygons_pad, bounds,
   centres <- vector("list", nLabels)
   leaders <- vector("list", nLabels)
 
-  # A single label needs no layout: sit it on its pole with no visible leader.
-  if (length(drawn) == 1) {
-    centres[[drawn]] <- poles[1, ]
-    leaders[[drawn]] <- c(poles[1, ], poles[1, ], 0)
-    return(withLeaders(centres, leaders))
-  }
-
   halfWidth <- vapply(drawn, function(i) rects[[i]][1] / 2, 0)
   halfHeight <- vapply(drawn, function(i) rects[[i]][2] / 2, 0)
   charHeight <- stats::median(2 * halfHeight)
@@ -355,8 +348,8 @@ buildConnectorGrob <- function(labels_drawn, leaders, labelpos, dims,
     halfHeight <- dims[[idx]][2] / 2
     segs <- list()
 
-    # Leader: box anchor c(ex, ey) -> visible end c(bx, by). A zero-length leader (start == end,
-    # e.g. the single-label / anchor fallback) is below the 1e-4 mm floor and draws nothing.
+    # Leader: box anchor c(ex, ey) -> visible end c(bx, by). A degenerate zero-length leader
+    # (start == end) falls below the 1e-4 mm floor and draws nothing.
     x0 <- leader[1]
     y0 <- leader[2]
     x1 <- leader[3]

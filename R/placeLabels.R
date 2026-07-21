@@ -473,8 +473,8 @@ emptyPlacement <- function(scene) {
 #' `seedLayout()` -> `addRadialCandidates()` -> `oneMoveSweep()` -> `twoMoveSweep()` ->
 #' `polishLayout()` -> `withLeaderEnds()`. Conflict-free by construction given a feasible seed.
 #' Pure given the per-label box half-sizes and line height (the draw hook supplies those from text
-#' metrics in the panel's mm space). A single label (K == 1) flows through unchanged; only the
-#' empty view (K == 0) is special-cased.
+#' metrics in the panel's mm space). It returns one placement per cluster, so an empty view
+#' (K == 0) returns an empty layout.
 #'
 #' @param geom Box-fit structure (see `placementScene()`).
 #' @param xlim,ylim Numeric length-2 viewport bounds (already inset by `label.buffer`).
@@ -487,6 +487,8 @@ emptyPlacement <- function(scene) {
 #' @noRd
 placeLabels <- function(geom, xlim, ylim, hw, hh, char_h, con_type = "ledge") {
   scene <- placementScene(geom, xlim, ylim, hw, hh, char_h, con_type)
+  # No clusters -> no placements. The early return only spares the pipeline an empty seed
+  # (`seedLayout()` assumes at least one label); the contract is the same one-row-per-cluster.
   if (scene$K == 0) {
     return(emptyPlacement(scene))
   }
