@@ -17,7 +17,9 @@ my_place_labels(
   bounds,
   simp_ratio = 0.001,
   con_type = "ledge",
-  buffer = 0
+  buffer = 0,
+  hardpad = 0,
+  softpad = 0
 )
 ```
 
@@ -53,6 +55,16 @@ my_place_labels(
 - buffer:
 
   Numeric `label.buffer` in mm; the overflow viewport is inset by it.
+
+- hardpad:
+
+  Numeric `label.hardpad` in mm: hard box clearance folded into every
+  placement rectangle (seed slots, sweeps and polish alike).
+
+- softpad:
+
+  Numeric `label.softpad` in mm: extra target box spacing the polish
+  aims for, on top of `hardpad`.
 
 ## Value
 

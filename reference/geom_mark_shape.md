@@ -28,6 +28,8 @@ geom_mark_shape(
   label.fill = "white",
   label.colour = "black",
   label.buffer = unit(10, "mm"),
+  label.hardpad = unit(0, "pt"),
+  label.softpad = unit(6, "pt"),
   con.colour = "black",
   con.size = 0.5,
   con.type = "ledge",
@@ -191,6 +193,22 @@ geom_mark_shape(
   labels are kept out of the dilated zone, leaving a gap between each
   label and its cluster outline. A grid unit; `unit(0, "mm")` disables
   it. Default `unit(10, 'mm')`.
+
+- label.hardpad:
+
+  Hard box clearance: each label box is grown by this padding for *all*
+  placement decisions (seed slots, label-label and label-leader conflict
+  tests, and the polish), so labels keep at least this gap from each
+  other. A grid unit. Defaults to `unit(0, 'pt')` – the label margin
+  usually gives enough separation; raise it mainly for
+  `con.type = 'box'`, where the drawn box outlines would otherwise
+  touch.
+
+- label.softpad:
+
+  Soft box spacing the polish step *additionally* aims for, on top of
+  `label.hardpad` (it does not tighten the hard conflict tests). A grid
+  unit. Default `unit(6, 'pt')`.
 
 - con.colour:
 

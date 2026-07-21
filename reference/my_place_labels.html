@@ -60,7 +60,9 @@ poles, leader ends and foreign-routing use the true ones, so leaders reach the r
 <span>  <span class="va">bounds</span>,</span>
 <span>  simp_ratio <span class="op">=</span> <span class="fl">0.001</span>,</span>
 <span>  con_type <span class="op">=</span> <span class="st">"ledge"</span>,</span>
-<span>  buffer <span class="op">=</span> <span class="fl">0</span></span>
+<span>  buffer <span class="op">=</span> <span class="fl">0</span>,</span>
+<span>  hardpad <span class="op">=</span> <span class="fl">0</span>,</span>
+<span>  softpad <span class="op">=</span> <span class="fl">0</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -94,6 +96,16 @@ poles, leader ends and foreign-routing use the true ones, so leaders reach the r
 
 <dt id="arg-buffer">buffer<a class="anchor" aria-label="anchor" href="#arg-buffer"></a></dt>
 <dd><p>Numeric <code>label.buffer</code> in mm; the overflow viewport is inset by it.</p></dd>
+
+
+<dt id="arg-hardpad">hardpad<a class="anchor" aria-label="anchor" href="#arg-hardpad"></a></dt>
+<dd><p>Numeric <code>label.hardpad</code> in mm: hard box clearance folded into every placement
+rectangle (seed slots, sweeps and polish alike).</p></dd>
+
+
+<dt id="arg-softpad">softpad<a class="anchor" aria-label="anchor" href="#arg-softpad"></a></dt>
+<dd><p>Numeric <code>label.softpad</code> in mm: extra target box spacing the polish aims for, on
+top of <code>hardpad</code>.</p></dd>
 
 </dl></div>
     <div class="section level2">

@@ -74,6 +74,8 @@ expanded/contracted and corners can be rounded, which is controlled by <code>exp
 <span>  label.fill <span class="op">=</span> <span class="st">"white"</span>,</span>
 <span>  label.colour <span class="op">=</span> <span class="st">"black"</span>,</span>
 <span>  label.buffer <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/grid/unit.html" class="external-link">unit</a></span><span class="op">(</span><span class="fl">10</span>, <span class="st">"mm"</span><span class="op">)</span>,</span>
+<span>  label.hardpad <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/grid/unit.html" class="external-link">unit</a></span><span class="op">(</span><span class="fl">0</span>, <span class="st">"pt"</span><span class="op">)</span>,</span>
+<span>  label.softpad <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/grid/unit.html" class="external-link">unit</a></span><span class="op">(</span><span class="fl">6</span>, <span class="st">"pt"</span><span class="op">)</span>,</span>
 <span>  con.colour <span class="op">=</span> <span class="st">"black"</span>,</span>
 <span>  con.size <span class="op">=</span> <span class="fl">0.5</span>,</span>
 <span>  con.type <span class="op">=</span> <span class="st">"ledge"</span>,</span>
@@ -218,6 +220,20 @@ description. Use <code>"inherit"</code> to use the border colour of the enclosur
 <dd><p>Polygon padding: cluster polygons are dilated by this distance and
 labels are kept out of the dilated zone, leaving a gap between each label and its
 cluster outline. A grid unit; <code>unit(0, "mm")</code> disables it. Default <code>unit(10, 'mm')</code>.</p></dd>
+
+
+<dt id="arg-label-hardpad">label.hardpad<a class="anchor" aria-label="anchor" href="#arg-label-hardpad"></a></dt>
+<dd><p>Hard box clearance: each label box is grown by this padding for <em>all</em>
+placement decisions (seed slots, label-label and label-leader conflict tests, and the
+polish), so labels keep at least this gap from each other. A grid unit. Defaults to
+<code>unit(0, 'pt')</code> – the label margin usually gives enough separation; raise it mainly for
+<code>con.type = 'box'</code>, where the drawn box outlines would otherwise touch.</p></dd>
+
+
+<dt id="arg-label-softpad">label.softpad<a class="anchor" aria-label="anchor" href="#arg-label-softpad"></a></dt>
+<dd><p>Soft box spacing the polish step <em>additionally</em> aims for, on top of
+<code>label.hardpad</code> (it does not tighten the hard conflict tests). A grid unit. Default
+<code>unit(6, 'pt')</code>.</p></dd>
 
 
 <dt id="arg-con-colour">con.colour<a class="anchor" aria-label="anchor" href="#arg-con-colour"></a></dt>

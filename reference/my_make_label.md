@@ -20,7 +20,9 @@ my_make_label(
   con_cap,
   con_gp,
   arrow,
-  simp_ratio = 0.001
+  simp_ratio = 0.001,
+  hardpad = unit(0, "pt"),
+  softpad = unit(0, "pt")
 )
 ```
 
@@ -67,6 +69,14 @@ my_make_label(
 
   Numeric polygon-simplification fraction (see
   [`simplify_outer()`](https://alserglab.github.io/mascarade/reference/simplify_outer.md)).
+
+- hardpad:
+
+  Grid unit: the `label.hardpad` hard box clearance.
+
+- softpad:
+
+  Grid unit: the `label.softpad` extra polish-only target box spacing.
 
 ## Value
 

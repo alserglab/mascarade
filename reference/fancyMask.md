@@ -18,6 +18,8 @@ fancyMask(
   label.largest = TRUE,
   label.fontsize = 10,
   label.buffer = unit(2, "mm"),
+  label.hardpad = unit(0, "pt"),
+  label.softpad = unit(6, "pt"),
   label.fontface = "plain",
   label.margin = margin(2, 2, 2, 2, "pt"),
   label.width = NULL,
@@ -114,6 +116,22 @@ fancyMask(
   cluster polygons are dilated by this distance and labels are kept out
   of the dilated zone, so each label keeps a gap from its cluster
   outline. Default `unit(2, "mm")`; `unit(0, "mm")` disables.
+
+- label.hardpad:
+
+  Hard box clearance passed to
+  [`geom_mark_shape()`](https://alserglab.github.io/mascarade/reference/geom_mark_shape.md):
+  each label box is grown by this padding for all placement decisions,
+  so labels keep at least this gap from each other. Default
+  `unit(0, "pt")` (the label margin usually suffices; raise it mainly
+  for `con.type = "box"`).
+
+- label.softpad:
+
+  Extra box spacing the polish step aims for, on top of `label.hardpad`,
+  passed to
+  [`geom_mark_shape()`](https://alserglab.github.io/mascarade/reference/geom_mark_shape.md).
+  Default `unit(6, "pt")`.
 
 - label.fontface:
 
