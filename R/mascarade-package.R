@@ -9,6 +9,13 @@
 #' @name exampleMascarade
 NULL
 
+#' Example generated mask.
+#'
+#' Result of `generateMasks(dims=exampleMascarade$dims, clusters=exampleMascarade$clusters)`.
+#' @docType data
+#' @name exampleMascarade
+NULL
+
 #' @useDynLib mascarade, .registration = TRUE
 #' @importFrom Rcpp sourceCpp
 NULL
