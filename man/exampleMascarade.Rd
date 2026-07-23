@@ -11,6 +11,4 @@ The object is a list with three elements:
 \item \code{clusters} -- vector of cell population annotations,
 \item \code{features} -- matrix withgene expression for several genes.
 }
-
-Result of \code{generateMasks(dims=exampleMascarade$dims, clusters=exampleMascarade$clusters)}.
 }

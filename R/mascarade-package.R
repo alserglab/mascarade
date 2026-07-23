@@ -13,7 +13,7 @@ NULL
 #'
 #' Result of `generateMasks(dims=exampleMascarade$dims, clusters=exampleMascarade$clusters)`.
 #' @docType data
-#' @name exampleMascarade
+#' @name exampleMaskTable
 NULL
 
 #' @useDynLib mascarade, .registration = TRUE
