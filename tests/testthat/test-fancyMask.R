@@ -1,11 +1,7 @@
 library(ggplot2)
 
-make_mask_table <- function() {
-    data("exampleMascarade")
-    generateMask(dims = exampleMascarade$dims,
-                 clusters = exampleMascarade$clusters,
-                 gridSize = 50)
-}
+# Colour/label-selection tests: use the shipped `exampleMaskTable` (via
+# `exampleMask()`) rather than re-running `generateMask()`.
 
 get_layer_colors <- function(res) {
     # The geom layer is the second element (first is coord_cartesian).
@@ -14,14 +10,14 @@ get_layer_colors <- function(res) {
 
 
 test_that("fancyMask applies single color to all clusters", {
-    mt <- make_mask_table()
+    mt <- exampleMask()
     res <- fancyMask(mt, cols = "red")
     colors <- get_layer_colors(res)
     expect_true(all(colors == "red"))
 })
 
 test_that("fancyMask maps unnamed color vector by factor level order", {
-    mt <- make_mask_table()
+    mt <- exampleMask()
     clusterLevels <- levels(mt$cluster)
     col_vec <- rep("grey50", length(clusterLevels))
     col_vec[1] <- "blue"
@@ -32,7 +28,7 @@ test_that("fancyMask maps unnamed color vector by factor level order", {
 })
 
 test_that("fancyMask maps named color vector by cluster name", {
-    mt <- make_mask_table()
+    mt <- exampleMask()
     clusterLevels <- levels(mt$cluster)
     # Provide in reverse order to verify matching is by name, not position
     col_vec <- setNames(scales::hue_pal()(length(clusterLevels)),
@@ -43,13 +39,13 @@ test_that("fancyMask maps named color vector by cluster name", {
 })
 
 test_that("fancyMask errors on wrong-length unnamed cols", {
-    mt <- make_mask_table()
+    mt <- exampleMask()
     expect_error(fancyMask(mt, cols = c("red", "blue")),
                  "must equal the number of clusters")
 })
 
 test_that("fancyMask errors on named cols missing a cluster", {
-    mt <- make_mask_table()
+    mt <- exampleMask()
     clusterLevels <- levels(mt$cluster)
     # Provide only the first two clusters, omitting the rest
     col_vec <- setNames(c("red", "blue"), clusterLevels[1:2])
@@ -59,11 +55,12 @@ test_that("fancyMask errors on named cols missing a cluster", {
 
 test_that("fancyMask works when cluster column is character, not factor", {
     data("exampleMascarade")
-    # Use character clusters (not factor) to mimic Seurat metadata
+    # Character (non-factor) clusters, mimicking Seurat metadata.
     charClusters <- paste0("_", exampleMascarade$clusters)
-    mt <- generateMask(dims = exampleMascarade$dims,
-                       clusters = charClusters,
-                       gridSize = 50)
+    mt <- exampleMask()
+    mt$cluster <- paste0("_", as.character(mt$cluster))
+    mt$part <- paste0("_", mt$part)
+    mt$group <- paste0("_", mt$group)
     expect_false(is.factor(mt$cluster))
 
     # Direct cols should work
@@ -85,7 +82,7 @@ test_that("fancyMask works when cluster column is character, not factor", {
 })
 
 test_that("fancyMask renders without error with custom cols", {
-    mt <- make_mask_table()
+    mt <- exampleMask()
     data("exampleMascarade")
     p <- ggplot(do.call(cbind, exampleMascarade)) +
         geom_point(aes(x = UMAP_1, y = UMAP_2)) +
@@ -97,20 +94,20 @@ test_that("fancyMask renders without error with custom cols", {
 })
 
 test_that("fancyMask with cols='auto' returns a fancyMask S3 object", {
-    mt <- make_mask_table()
+    mt <- exampleMask()
     res <- fancyMask(mt)
     expect_true(inherits(res, "fancyMask"))
 })
 
 test_that("fancyMask with cols='inherit' returns a plain list", {
-    mt <- make_mask_table()
+    mt <- exampleMask()
     res <- fancyMask(mt, cols = "inherit")
     expect_true(is.list(res))
     expect_false(inherits(res, "fancyMask"))
 })
 
 test_that("cols='inherit' picks up scale_color_manual values", {
-    mt <- make_mask_table()
+    mt <- exampleMask()
     data("exampleMascarade")
     clusterLevels <- levels(mt$cluster)
     myPal <- setNames(rainbow(length(clusterLevels)), clusterLevels)
@@ -130,7 +127,7 @@ test_that("cols='inherit' picks up scale_color_manual values", {
 })
 
 test_that("cols='inherit' uses ggplot2 default scale when no colour scale is set", {
-    mt <- make_mask_table()
+    mt <- exampleMask()
     data("exampleMascarade")
 
     # No colour aesthetic on the scatter — mask uses its own aes(colour=cluster)
@@ -146,7 +143,7 @@ test_that("cols='inherit' uses ggplot2 default scale when no colour scale is set
 })
 
 test_that("cols accepts a palette function", {
-    mt <- make_mask_table()
+    mt <- exampleMask()
     res <- fancyMask(mt, cols = rainbow)
     colors <- get_layer_colors(res)
     clusterLevels <- levels(mt$cluster)
@@ -155,7 +152,7 @@ test_that("cols accepts a palette function", {
 })
 
 test_that("cols='inherit' picks up colors from layer-level mapping", {
-    mt <- make_mask_table()
+    mt <- exampleMask()
     clusterLevels <- levels(mt$cluster)
     myPal <- setNames(rainbow(length(clusterLevels)), clusterLevels)
 
@@ -210,7 +207,7 @@ test_that("label.largest=TRUE works with cols='inherit'", {
 })
 
 test_that("cols='inherit' renders without error", {
-    mt <- make_mask_table()
+    mt <- exampleMask()
     data("exampleMascarade")
     clusterLevels <- levels(mt$cluster)
     myPal <- setNames(rainbow(length(clusterLevels)), clusterLevels)
@@ -239,9 +236,10 @@ test_that("cols='inherit' border colors match point colors when factor has unuse
         levels = c(levels(exampleMascarade$clusters), "ghost1", "ghost2")
     )
 
-    mt <- generateMask(dims = exampleMascarade$dims,
-                       clusters = clusters_with_ghosts,
-                       gridSize = 50)
+    # Ghost levels never reach the table's rows, only its factor levels.
+    mt <- exampleMask()
+    mt$cluster <- factor(as.character(mt$cluster),
+                         levels = levels(clusters_with_ghosts))
 
     expect_true("ghost1" %in% levels(mt$cluster))
     expect_false("ghost1" %in% as.character(mt$cluster))
@@ -270,7 +268,7 @@ test_that("cols='auto' works when base plot uses a continuous colour scale", {
     # "Discrete value supplied to a continuous scale." cols="auto" detects the
     # continuous mapping and falls back to baked-in hue_pal() colours instead.
     data("exampleMascarade")
-    mt <- make_mask_table()
+    mt <- exampleMask()
 
     plotData <- data.frame(exampleMascarade$dims,
                            GNLY = exampleMascarade$features[, "GNLY"])
@@ -290,7 +288,7 @@ test_that("cols='auto' works when base plot uses a continuous colour scale", {
 })
 
 test_that("cols='inherit' mask colours are identical regardless of scale_color_* order", {
-    mt <- make_mask_table()
+    mt <- exampleMask()
     data("exampleMascarade")
     clusterLevels <- levels(mt$cluster)
     myPal <- setNames(rainbow(length(clusterLevels)), clusterLevels)
