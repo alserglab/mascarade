@@ -193,7 +193,7 @@ sessionInfo()
     ## [1] stats     graphics  grDevices utils     datasets  methods   base     
     ## 
     ## other attached packages:
-    ## [1] colorrepel_0.5.0  ggplot2_4.0.3     data.table_1.18.4 mascarade_0.4.1  
+    ## [1] colorrepel_0.5.0  ggplot2_4.0.3     data.table_1.18.4 mascarade_0.4.2  
     ## 
     ## loaded via a namespace (and not attached):
     ##  [1] dqrng_0.4.1            sass_0.4.10            generics_0.1.4        

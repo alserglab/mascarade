@@ -5,6 +5,9 @@
 - [`exampleMascarade`](https://alserglab.github.io/mascarade/reference/exampleMascarade.md)
   : Example data with UMAP points from PBMC3K dataset.
 
+- [`exampleMaskTable`](https://alserglab.github.io/mascarade/reference/exampleMaskTable.md)
+  : Example generated mask.
+
 - [`fancyMask()`](https://alserglab.github.io/mascarade/reference/fancyMask.md)
   : Generate ggplot2 layers for a labeled cluster mask
 

@@ -411,7 +411,7 @@ sessionInfo()
     ## 
     ## other attached packages:
     ## [1] Seurat_5.5.1       SeuratObject_5.4.0 sp_2.2-3           ggforce_0.5.0     
-    ## [5] ggplot2_4.0.3      data.table_1.18.4  mascarade_0.4.1   
+    ## [5] ggplot2_4.0.3      data.table_1.18.4  mascarade_0.4.2   
     ## 
     ## loaded via a namespace (and not attached):
     ##   [1] pbapply_1.7-4          deldir_2.0-4           gridExtra_2.3.1       
@@ -441,16 +441,16 @@ sessionInfo()
     ##  [73] Rtsne_0.17             future_1.75.0          fastDummies_1.7.6     
     ##  [76] desc_1.4.3             survival_3.8-6         polyclip_1.10-7       
     ##  [79] fitdistrplus_1.2-6     pillar_1.11.1          KernSmooth_2.23-26    
-    ##  [82] plotly_4.12.0          generics_0.1.4         RcppHNSW_0.7.0        
+    ##  [82] plotly_4.12.1          generics_0.1.4         RcppHNSW_0.7.0        
     ##  [85] scales_1.4.0           xtable_1.8-8           globals_0.19.1        
-    ##  [88] glue_1.8.1             lazyeval_0.2.3         tools_4.6.1           
-    ##  [91] RSpectra_0.16-2        RANN_2.6.2             fs_2.1.0              
-    ##  [94] dotCall64_1.2          cowplot_1.2.0          grid_4.6.1            
-    ##  [97] tidyr_1.3.2            patchwork_1.3.2        nlme_3.1-169          
-    ## [100] cli_3.6.6              spatstat.sparse_3.2-0  textshaping_1.0.5     
-    ## [103] spam_2.11-4            viridisLite_0.4.3      dplyr_1.2.1           
-    ## [106] uwot_0.2.4             gtable_0.3.6           sass_0.4.10           
-    ## [109] digest_0.6.39          progressr_1.0.0        ggrepel_0.9.8         
-    ## [112] htmlwidgets_1.6.4      farver_2.1.2           htmltools_0.5.9       
-    ## [115] pkgdown_2.2.1          lifecycle_1.0.5        httr_1.4.8            
-    ## [118] mime_0.13              MASS_7.3-65
+    ##  [88] glue_1.8.1             tools_4.6.1            RSpectra_0.16-2       
+    ##  [91] RANN_2.6.2             fs_2.1.0               dotCall64_1.2         
+    ##  [94] cowplot_1.2.0          grid_4.6.1             tidyr_1.3.2           
+    ##  [97] patchwork_1.3.2        nlme_3.1-169           cli_3.6.6             
+    ## [100] spatstat.sparse_3.2-0  textshaping_1.0.5      spam_2.11-4           
+    ## [103] viridisLite_0.4.3      dplyr_1.2.1            uwot_0.2.4            
+    ## [106] gtable_0.3.6           sass_0.4.10            digest_0.6.39         
+    ## [109] progressr_1.0.0        ggrepel_0.9.8          htmlwidgets_1.6.4     
+    ## [112] farver_2.1.2           htmltools_0.5.9        pkgdown_2.2.1         
+    ## [115] lifecycle_1.0.5        httr_1.4.8             mime_0.13             
+    ## [118] MASS_7.3-65
