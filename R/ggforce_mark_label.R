@@ -62,8 +62,7 @@ subset_gp <- function(gp, index, ignore = c('font')) {
 
 
 
-#' @importFrom grid valid.just textGrob nullGrob viewport grobWidth grobHeight
-#' rectGrob gpar grid.layout unit gTree gList grobDescent
+#' @importFrom grid valid.just textGrob nullGrob viewport grobWidth grobHeight rectGrob gpar grid.layout unit gTree gList grobDescent
 labelboxGrob <- function(label, x = unit(0.5, 'npc'), y = unit(0.5, 'npc'),
                          description = NULL, width = NULL, min.width = 50,
                          default.units = 'mm', hjust = 0,

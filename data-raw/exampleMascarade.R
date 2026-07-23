@@ -19,6 +19,11 @@ exampleMascarade <- list(
 usethis::use_data(exampleMascarade, overwrite = TRUE)
 
 
+exampleMaskTable <- generateMask(dims=exampleMascarade$dims,
+                                 clusters=exampleMascarade$clusters)
+
+usethis::use_data(exampleMaskTable, overwrite = TRUE)
+
 exampleSeurat <- DietSeurat(pbmc3k.final,
                             layers = c("data"),
                             features = featureList,

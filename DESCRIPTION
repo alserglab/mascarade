@@ -1,7 +1,7 @@
 Package: mascarade
 Type: Package
 Title: Generating Cluster Masks for Single-Cell Dimensional Reduction Plots
-Version: 0.4.1
+Version: 0.4.1.9000
 Authors@R: person("Alexey", "Sergushichev", email = "alsergbox@gmail.com", role = c("aut", "cre"))
 Description: Implements a procedure to automatically generate 2D masks
     for clusters on dimensional reduction plots from methods like 
@@ -20,7 +20,7 @@ Imports:
     vctrs,
     rlang,
     cli,
-    systemfonts,
+    systemfonts (>= 1.3.0),
     Rcpp
 LinkingTo:
     Rcpp,
@@ -45,4 +45,4 @@ VignetteBuilder: knitr
 URL: https://alserglab.github.io/mascarade/
 BugReports: https://github.com/alserglab/mascarade/issues
 Roxygen: list(markdown=TRUE)
-RoxygenNote: 7.3.3
+Config/roxygen2/version: 8.0.0
