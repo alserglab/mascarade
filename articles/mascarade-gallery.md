@@ -15,6 +15,10 @@ library(colorrepel)
 ``` r
 
 example <- readRDS(url("https://alserglab.wustl.edu/files/mascarade/examples/pbmc3k_umap.rds"))
+```
+
+``` r
+
 data <- data.table(example$dims, 
                    cluster=example$clusters)
 
@@ -28,7 +32,7 @@ ggplot(data, aes(x=UMAP_1, y=UMAP_2)) +
     theme_classic()
 ```
 
-![](mascarade-gallery_files/figure-html/unnamed-chunk-2-1.png)
+![](mascarade-gallery_files/figure-html/unnamed-chunk-3-1.png)
 
 With labels:
 
@@ -40,13 +44,17 @@ ggplot(data, aes(x=UMAP_1, y=UMAP_2)) +
     theme_classic() + theme(legend.position = "none")
 ```
 
-![](mascarade-gallery_files/figure-html/unnamed-chunk-3-1.png)
+![](mascarade-gallery_files/figure-html/unnamed-chunk-4-1.png)
 
 ### PBMC-3K t-SNE
 
 ``` r
 
 example <- readRDS(url("https://alserglab.wustl.edu/files/mascarade/examples/pbmc3k_tsne.rds"))
+```
+
+``` r
+
 data <- data.table(example$dims, 
                    cluster=example$clusters)
 
@@ -60,7 +68,7 @@ ggplot(data, aes(x=tSNE_1, y=tSNE_2)) +
     theme_classic()
 ```
 
-![](mascarade-gallery_files/figure-html/unnamed-chunk-4-1.png)
+![](mascarade-gallery_files/figure-html/unnamed-chunk-6-1.png)
 
 With labels:
 
@@ -72,13 +80,17 @@ ggplot(data, aes(x=tSNE_1, y=tSNE_2)) +
     theme_classic() + theme(legend.position = "none")
 ```
 
-![](mascarade-gallery_files/figure-html/unnamed-chunk-5-1.png)
+![](mascarade-gallery_files/figure-html/unnamed-chunk-7-1.png)
 
 ### Aya
 
 ``` r
 
 example <- readRDS(url("https://alserglab.wustl.edu/files/mascarade/examples/aya.rds"))
+```
+
+``` r
+
 data <- data.table(example$dims, 
                    cluster=example$clusters)
 
@@ -93,13 +105,17 @@ ggplot(data, aes(x=UMAP_1, y=UMAP_2)) +
     theme_classic()
 ```
 
-![](mascarade-gallery_files/figure-html/unnamed-chunk-6-1.png)
+![](mascarade-gallery_files/figure-html/unnamed-chunk-9-1.png)
 
 ### Chia-Jung
 
 ``` r
 
 example <- readRDS(url("https://alserglab.wustl.edu/files/mascarade/examples/chiajung1.rds"))
+```
+
+``` r
+
 data <- data.table(example$dims, 
                    cluster=example$clusters)
 
@@ -114,11 +130,15 @@ ggplot(data, aes(x=UMAP_1, y=UMAP_2)) +
     theme_classic()
 ```
 
-![](mascarade-gallery_files/figure-html/unnamed-chunk-7-1.png)
+![](mascarade-gallery_files/figure-html/unnamed-chunk-11-1.png)
 
 ``` r
 
 example <- readRDS(url("https://alserglab.wustl.edu/files/mascarade/examples/chiajung2.rds"))
+```
+
+``` r
+
 data <- data.table(example$dims, 
                    cluster=example$clusters)
 
@@ -133,7 +153,7 @@ ggplot(data, aes(x=UMAP_1, y=UMAP_2)) +
     theme_classic()
 ```
 
-![](mascarade-gallery_files/figure-html/unnamed-chunk-8-1.png)
+![](mascarade-gallery_files/figure-html/unnamed-chunk-13-1.png)
 
 ### Vladimir Shitov
 
@@ -142,6 +162,10 @@ Really hard case, so playing with parameters a bit to make more space.
 ``` r
 
 example <- readRDS(url("https://alserglab.wustl.edu/files/mascarade/examples/vshitov.rds"))
+```
+
+``` r
+
 data <- data.table(example$dims, 
                    cluster=example$clusters)
 
@@ -163,7 +187,7 @@ ggplot(data, aes(x=UMAP1, y=UMAP2)) +
     theme_classic() + theme(legend.position = "none")
 ```
 
-![](mascarade-gallery_files/figure-html/unnamed-chunk-9-1.png)
+![](mascarade-gallery_files/figure-html/unnamed-chunk-15-1.png)
 
 ### Session info
 
@@ -193,7 +217,7 @@ sessionInfo()
     ## [1] stats     graphics  grDevices utils     datasets  methods   base     
     ## 
     ## other attached packages:
-    ## [1] colorrepel_0.5.0  ggplot2_4.0.3     data.table_1.18.4 mascarade_0.4.2  
+    ## [1] colorrepel_0.5.0  ggplot2_4.0.3     data.table_1.18.4 mascarade_0.4.3  
     ## 
     ## loaded via a namespace (and not attached):
     ##  [1] dqrng_0.4.1            sass_0.4.10            generics_0.1.4        
