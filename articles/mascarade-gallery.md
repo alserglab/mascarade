@@ -221,7 +221,7 @@ sessionInfo()
     ## 
     ## loaded via a namespace (and not attached):
     ##  [1] dqrng_0.4.1            sass_0.4.10            generics_0.1.4        
-    ##  [4] spatstat.explore_3.8-1 gtools_3.9.5           polylabelr_1.0.0      
+    ##  [4] spatstat.explore_3.8-2 gtools_3.9.5           polylabelr_1.0.0      
     ##  [7] tensor_1.5.1           distances_0.1.13       spatstat.data_3.1-9   
     ## [10] lattice_0.22-9         digest_0.6.39          magrittr_2.0.5        
     ## [13] spatstat.utils_3.2-4   evaluate_1.0.5         grid_4.6.1            
@@ -232,7 +232,7 @@ sessionInfo()
     ## [28] rlang_1.3.0            polyclip_1.10-7        withr_3.0.3           
     ## [31] cachem_1.1.0           yaml_2.3.12            otel_0.2.0            
     ## [34] spatstat.univar_3.2-0  tools_4.6.1            deldir_2.0-4          
-    ## [37] dplyr_1.2.1            spatstat.geom_3.8-1    vctrs_0.7.3           
+    ## [37] dplyr_1.2.1            spatstat.geom_3.8-2    vctrs_0.7.3           
     ## [40] R6_2.6.1               matrixStats_1.5.0      lifecycle_1.0.5       
     ## [43] fs_2.1.0               htmlwidgets_1.6.4      MASS_7.3-65           
     ## [46] ragg_1.5.2             pkgconfig_2.0.3        desc_1.4.3            
@@ -241,5 +241,5 @@ sessionInfo()
     ## [55] ggforce_0.5.0          systemfonts_1.3.2      xfun_0.60             
     ## [58] tibble_3.3.1           tidyselect_1.2.1       knitr_1.51            
     ## [61] goftest_1.2-3          farver_2.1.2           nlme_3.1-169          
-    ## [64] spatstat.random_3.5-0  htmltools_0.5.9        labeling_0.4.3        
+    ## [64] spatstat.random_3.5-1  htmltools_0.5.9        labeling_0.4.3        
     ## [67] rmarkdown_2.31         compiler_4.6.1         S7_0.2.2

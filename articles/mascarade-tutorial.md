@@ -291,6 +291,10 @@ Let’s get the example PBMC3K dataset:
 ``` r
 
 pbmc3k <- readRDS(url("https://alserglab.wustl.edu/files/mascarade/examples/pbmc3k_seurat5.rds"))
+```
+
+``` r
+
 pbmc3k <- NormalizeData(pbmc3k)
 pbmc3k
 ```
@@ -366,7 +370,7 @@ FeaturePlot(pbmc3k, features=featureList, cols=c("grey90", "red")) *
     fancyMask(maskTable, ratio=1, linewidth=0.5, label=FALSE, cols = scales::hue_pal())
 ```
 
-![](mascarade-tutorial_files/figure-html/unnamed-chunk-23-1.png)
+![](mascarade-tutorial_files/figure-html/unnamed-chunk-24-1.png)
 
 Works with t-SNE too:
 
@@ -380,7 +384,7 @@ FeaturePlot(pbmc3k, features=featureList, reduction = "tsne", cols=c("grey90", "
     fancyMask(maskTable, ratio=1, linewidth=0.5, label=FALSE, cols = scales::hue_pal())
 ```
 
-![](mascarade-tutorial_files/figure-html/unnamed-chunk-24-1.png)
+![](mascarade-tutorial_files/figure-html/unnamed-chunk-25-1.png)
 
 ### Session info
 
@@ -417,7 +421,7 @@ sessionInfo()
     ##   [1] pbapply_1.7-4          deldir_2.0-4           gridExtra_2.3.1       
     ##   [4] rlang_1.3.0            magrittr_2.0.5         RcppAnnoy_0.0.23      
     ##   [7] otel_0.2.0             matrixStats_1.5.0      ggridges_0.5.7        
-    ##  [10] compiler_4.6.1         spatstat.geom_3.8-1    reshape2_1.4.5        
+    ##  [10] compiler_4.6.1         spatstat.geom_3.8-2    reshape2_1.4.5        
     ##  [13] png_0.1-9              systemfonts_1.3.2      vctrs_0.7.3           
     ##  [16] polylabelr_1.0.0       stringr_1.6.0          pkgconfig_2.0.3       
     ##  [19] fastmap_1.2.0          labeling_0.4.3         promises_1.5.0        
@@ -434,7 +438,7 @@ sessionInfo()
     ##  [52] sctransform_0.4.3      httpuv_1.6.17          Matrix_1.7-5          
     ##  [55] splines_4.6.1          igraph_2.3.3           tidyselect_1.2.1      
     ##  [58] abind_1.4-8            yaml_2.3.12            codetools_0.2-20      
-    ##  [61] spatstat.random_3.5-0  miniUI_0.1.2           spatstat.explore_3.8-1
+    ##  [61] spatstat.random_3.5-1  miniUI_0.1.2           spatstat.explore_3.8-2
     ##  [64] listenv_1.0.0          plyr_1.8.9             lattice_0.22-9        
     ##  [67] tibble_3.3.1           shiny_1.14.0           withr_3.0.3           
     ##  [70] S7_0.2.2               ROCR_1.0-12            evaluate_1.0.5        
