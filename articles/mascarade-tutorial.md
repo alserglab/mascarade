@@ -395,7 +395,7 @@ sessionInfo()
 
     ## R version 4.6.1 (2026-06-24)
     ## Platform: x86_64-pc-linux-gnu
-    ## Running under: Ubuntu 24.04.4 LTS
+    ## Running under: Ubuntu 24.04.5 LTS
     ## 
     ## Matrix products: default
     ## BLAS:   /usr/lib/x86_64-linux-gnu/openblas-pthread/libblas.so.3 
@@ -414,27 +414,28 @@ sessionInfo()
     ## [1] stats     graphics  grDevices utils     datasets  methods   base     
     ## 
     ## other attached packages:
-    ## [1] Seurat_5.5.1       SeuratObject_5.4.0 sp_2.2-3           ggforce_0.5.0     
-    ## [5] ggplot2_4.0.3      data.table_1.18.4  mascarade_0.4.3   
+    ## [1] Seurat_5.5.1         SeuratObject_5.4.0   sp_2.2-3            
+    ## [4] ggforce_0.5.0        ggplot2_4.0.3        data.table_1.18.6.1 
+    ## [7] mascarade_0.4.3.9000
     ## 
     ## loaded via a namespace (and not attached):
-    ##   [1] pbapply_1.7-4          deldir_2.0-4           gridExtra_2.3.1       
+    ##   [1] pbapply_1.7-5          deldir_2.0-4           gridExtra_2.3.1       
     ##   [4] rlang_1.3.0            magrittr_2.0.5         RcppAnnoy_0.0.23      
     ##   [7] otel_0.2.0             matrixStats_1.5.0      ggridges_0.5.7        
     ##  [10] compiler_4.6.1         spatstat.geom_3.8-2    reshape2_1.4.5        
     ##  [13] png_0.1-9              systemfonts_1.3.2      vctrs_0.7.3           
     ##  [16] polylabelr_1.0.0       stringr_1.6.0          pkgconfig_2.0.3       
     ##  [19] fastmap_1.2.0          labeling_0.4.3         promises_1.5.0        
-    ##  [22] rmarkdown_2.31         ragg_1.5.2             purrr_1.2.2           
+    ##  [22] rmarkdown_2.32         ragg_1.5.2             purrr_1.2.2           
     ##  [25] xfun_0.60              cachem_1.1.0           jsonlite_2.0.0        
     ##  [28] goftest_1.2-3          later_1.4.8            spatstat.utils_3.2-4  
     ##  [31] tweenr_2.0.3           irlba_2.3.7            parallel_4.6.1        
     ##  [34] cluster_2.1.8.2        R6_2.6.1               ica_1.0-3             
-    ##  [37] stringi_1.8.7          bslib_0.11.0           RColorBrewer_1.1-3    
-    ##  [40] spatstat.data_3.1-9    reticulate_1.46.0      parallelly_1.48.0     
+    ##  [37] stringi_1.8.9          bslib_0.12.0           RColorBrewer_1.1-3    
+    ##  [40] spatstat.data_3.1-9    reticulate_1.47.0      parallelly_1.48.0     
     ##  [43] spatstat.univar_3.2-0  scattermore_1.2        lmtest_0.9-40         
-    ##  [46] jquerylib_0.1.4        Rcpp_1.1.2             knitr_1.51            
-    ##  [49] tensor_1.5.1           future.apply_1.20.2    zoo_1.8-15            
+    ##  [46] jquerylib_0.1.4        Rcpp_1.1.2             knitr_1.52            
+    ##  [49] tensor_1.5.1           future.apply_1.20.2    zoo_1.9-0             
     ##  [52] sctransform_0.4.3      httpuv_1.6.17          Matrix_1.7-5          
     ##  [55] splines_4.6.1          igraph_2.3.3           tidyselect_1.2.1      
     ##  [58] abind_1.4-8            yaml_2.3.12            codetools_0.2-20      
@@ -448,13 +449,13 @@ sessionInfo()
     ##  [82] plotly_4.12.1          generics_0.1.4         RcppHNSW_0.7.0        
     ##  [85] scales_1.4.0           xtable_1.8-8           globals_0.19.1        
     ##  [88] glue_1.8.1             tools_4.6.1            RSpectra_0.16-2       
-    ##  [91] RANN_2.6.2             fs_2.1.0               dotCall64_1.2         
+    ##  [91] RANN_2.6.3             fs_2.1.0               dotCall64_1.2         
     ##  [94] cowplot_1.2.0          grid_4.6.1             tidyr_1.3.2           
     ##  [97] patchwork_1.3.2        nlme_3.1-169           cli_3.6.6             
     ## [100] spatstat.sparse_3.2-0  textshaping_1.0.5      spam_2.11-4           
-    ## [103] viridisLite_0.4.3      dplyr_1.2.1            uwot_0.2.4            
+    ## [103] viridisLite_0.4.3      dplyr_1.2.1            uwot_0.2.5            
     ## [106] gtable_0.3.6           sass_0.4.10            digest_0.6.39         
     ## [109] progressr_1.0.0        ggrepel_0.9.8          htmlwidgets_1.6.4     
     ## [112] farver_2.1.2           htmltools_0.5.9        pkgdown_2.2.1         
-    ## [115] lifecycle_1.0.5        httr_1.4.8             mime_0.13             
+    ## [115] lifecycle_1.0.5        httr_1.4.9             mime_0.13             
     ## [118] MASS_7.3-65

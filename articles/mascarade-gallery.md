@@ -198,7 +198,7 @@ sessionInfo()
 
     ## R version 4.6.1 (2026-06-24)
     ## Platform: x86_64-pc-linux-gnu
-    ## Running under: Ubuntu 24.04.4 LTS
+    ## Running under: Ubuntu 24.04.5 LTS
     ## 
     ## Matrix products: default
     ## BLAS:   /usr/lib/x86_64-linux-gnu/openblas-pthread/libblas.so.3 
@@ -217,7 +217,8 @@ sessionInfo()
     ## [1] stats     graphics  grDevices utils     datasets  methods   base     
     ## 
     ## other attached packages:
-    ## [1] colorrepel_0.5.0  ggplot2_4.0.3     data.table_1.18.4 mascarade_0.4.3  
+    ## [1] colorrepel_0.5.2     ggplot2_4.0.3        data.table_1.18.6.1 
+    ## [4] mascarade_0.4.3.9000
     ## 
     ## loaded via a namespace (and not attached):
     ##  [1] dqrng_0.4.1            sass_0.4.10            generics_0.1.4        
@@ -236,10 +237,10 @@ sessionInfo()
     ## [40] R6_2.6.1               matrixStats_1.5.0      lifecycle_1.0.5       
     ## [43] fs_2.1.0               htmlwidgets_1.6.4      MASS_7.3-65           
     ## [46] ragg_1.5.2             pkgconfig_2.0.3        desc_1.4.3            
-    ## [49] pkgdown_2.2.1          pillar_1.11.1          bslib_0.11.0          
+    ## [49] pkgdown_2.2.1          pillar_1.11.1          bslib_0.12.0          
     ## [52] gtable_0.3.6           Rcpp_1.1.2             glue_1.8.1            
     ## [55] ggforce_0.5.0          systemfonts_1.3.2      xfun_0.60             
-    ## [58] tibble_3.3.1           tidyselect_1.2.1       knitr_1.51            
+    ## [58] tibble_3.3.1           tidyselect_1.2.1       knitr_1.52            
     ## [61] goftest_1.2-3          farver_2.1.2           nlme_3.1-169          
     ## [64] spatstat.random_3.5-1  htmltools_0.5.9        labeling_0.4.3        
-    ## [67] rmarkdown_2.31         compiler_4.6.1         S7_0.2.2
+    ## [67] rmarkdown_2.32         compiler_4.6.1         S7_0.2.2

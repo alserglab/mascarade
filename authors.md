@@ -10,13 +10,13 @@ Source:
 [`DESCRIPTION`](https://github.com/alserglab/mascarade/blob/main/DESCRIPTION)
 
 Sergushichev A (2026). *mascarade: Generating Cluster Masks for
-Single-Cell Dimensional Reduction Plots*. R package version 0.4.3,
-<https://alserglab.github.io/mascarade/>.
+Single-Cell Dimensional Reduction Plots*. R package version 0.4.3.9000,
+<https://alserglab.wustl.edu/mascarade/>.
 
     @Manual{,
       title = {mascarade: Generating Cluster Masks for Single-Cell Dimensional Reduction Plots},
       author = {Alexey Sergushichev},
       year = {2026},
-      note = {R package version 0.4.3},
-      url = {https://alserglab.github.io/mascarade/},
+      note = {R package version 0.4.3.9000},
+      url = {https://alserglab.wustl.edu/mascarade/},
     }
